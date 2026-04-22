@@ -1,4 +1,8 @@
-# Welcome to your Expo app 👋
+# SlideRep
+
+SlideRep es una aplicación diseñada para ayudar a los jueces en competiciones y entrenamientos de CrossFit a llevar el seguimiento de repeticiones, rondas, tiempos y otros marcadores, todo ello con una interfaz pensada para minimizar la atención visual del juez, permitiéndole mantener el foco en la calidad de los movimientos del atleta.
+
+---
 
 This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
 
