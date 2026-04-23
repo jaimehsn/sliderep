@@ -126,6 +126,7 @@ export function useJudge(wodType: WodType) {
 
   return {
     isRunning,
+    startTimer: () => setIsRunning(true),
     toggleTimer: () => setIsRunning((r) => !r),
     resetTimer: () => { setElapsed(0); setIsRunning(false); },
     timerStr,

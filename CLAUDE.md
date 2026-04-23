@@ -2,6 +2,16 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Purpose
+
+**SLIDEREP** is a CrossFit judging app for mobile. It lets a coach or peer judge count reps during a WOD (Workout of the Day), marking each rep as valid or no-rep, while tracking progress through rounds, exercises, and stations. The name comes from the gesture-based rep input.
+
+The app supports four classic CrossFit WOD formats:
+- **For Time** (FRAN 21-15-9: thrusters + pull-ups) — elapsed timer
+- **AMRAP** (CINDY 12-min: pull-ups, push-ups, air squats) — countdown timer
+- **EMOM** (10-min alternating: burpees + KB swings) — per-minute countdown
+- **Chipper** (FILTHY FIFTY: 10 stations × 50 reps) — elapsed timer
+
 ## Commands
 
 ```bash
@@ -20,25 +30,31 @@ npm run reset-project  # Reset to blank Expo template
 ### Routing
 
 File-based routing via Expo Router. All routes live in `app/`:
-- `app/_layout.tsx` — root layout wrapping the full app with theme provider and navigation stack
-- `app/(tabs)/_layout.tsx` — bottom tab navigator (Home, Explore)
-- `app/modal.tsx` — modal pushed from the root stack
+- `app/index.tsx` — WOD selection screen (list of available workouts)
+- `app/judge/[type].tsx` — Judge screen for a specific WOD type (`forTime` | `amrap` | `emom` | `chipper`)
+- `app/_layout.tsx` — root layout wrapping the full app with navigation stack
 
-### Theme System
+### WOD System
 
-Light/dark mode support throughout:
-- `constants/theme.ts` — centralized color and font definitions for both modes
-- `hooks/use-theme-color.ts` — resolves a color key to the correct light/dark value
-- `hooks/use-color-scheme.ts` (+ `.web.ts`) — platform-specific color scheme detection; web variant adds a `useEffect` listener instead of relying on the native hook
-- `ThemedText` and `ThemedView` components wrap native primitives and consume the theme automatically
+- `constants/wods.ts` — defines `WodConfig` and `WodSession` types, plus the four WOD configs (`forTime`, `amrap`, `emom`, `chipper`). Each config implements a common interface: `getTarget`, `getExerciseName`, `getKpi`, `getSegments`, `getHint`, `advance`, `isComplete`.
+- `constants/hf.ts` — design tokens (colors, etc.) used throughout the UI
 
-### Cross-Platform Conventions
+### Judge Screen Components (`components/judge/`)
 
-Platform-specific files use filename suffixes:
-- `.ios.tsx` — iOS-only implementation (e.g., `icon-symbol.ios.tsx` uses SF Symbols)
-- `.web.ts` — web-specific implementation (e.g., `use-color-scheme.web.ts`)
+- `reducer.ts` + `types.ts` — state machine for the judging session (`REP`, `NO_REP`, `RESET` actions)
+- `hero-counter.tsx` — large rep count display
+- `gesture-footer.tsx` — swipe/tap gesture area for recording reps
+- `seg-bar.tsx` — segmented progress bar across exercises in the current round/station
+- `dot-trail.tsx` — visual trail of recent reps (valid/invalid)
+- `drop-strip.tsx` — animated feedback strip on rep input
+- `event-log.tsx` — scrollable log of all rep events
+- `invalid-badge.tsx` — sticky badge shown after a no-rep
+- `timer-strip.tsx` — timer display (elapsed / countdown / per-minute depending on WOD type)
+- `side-rails.tsx` — side UI rails
 
-The default file (no suffix) is the Android/fallback implementation.
+### Hook
+
+- `hooks/use-judge.ts` — encapsulates the judging session state using `useReducer`, wiring the WOD config to the reducer
 
 ### Path Alias
 

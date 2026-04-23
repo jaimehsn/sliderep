@@ -15,11 +15,14 @@ export type WodSession = {
   stationIdx: number;
 };
 
+export type WodExercise = { name: string; detail: string };
+
 export type WodConfig = {
   mode: string;
   name: string;
   timerMode: 'elapsed' | 'remaining' | 'minLeft';
   totalSeconds: number;
+  exercises: WodExercise[];
   initialSession: WodSession;
   getTarget: (s: WodSession) => number;
   getExerciseName: (s: WodSession) => string;
@@ -41,6 +44,10 @@ const forTimeConfig: WodConfig = {
   name: 'FRAN',
   timerMode: 'elapsed',
   totalSeconds: 0,
+  exercises: [
+    { name: 'THRUSTERS', detail: '21 · 15 · 9' },
+    { name: 'PULL-UPS',  detail: '21 · 15 · 9' },
+  ],
   initialSession: { roundIdx: 0, exIdx: 0, completedRounds: 0, minuteIdx: 0, stationIdx: 0 },
   getTarget: (s) => FRAN_ROUNDS[s.roundIdx]?.[s.exIdx] ?? 0,
   getExerciseName: (s) => FRAN_EXERCISES[s.exIdx] ?? 'DONE',
@@ -82,6 +89,11 @@ const amrapConfig: WodConfig = {
   name: 'CINDY',
   timerMode: 'remaining',
   totalSeconds: 12 * 60,
+  exercises: [
+    { name: 'PULL-UPS',   detail: '5 reps' },
+    { name: 'PUSH-UPS',   detail: '10 reps' },
+    { name: 'AIR SQUATS', detail: '15 reps' },
+  ],
   initialSession: { roundIdx: 0, exIdx: 0, completedRounds: 0, minuteIdx: 0, stationIdx: 0 },
   getTarget: (s) => CINDY_REPS[s.exIdx] ?? 0,
   getExerciseName: (s) => CINDY_EXERCISES[s.exIdx] ?? 'DONE',
@@ -127,6 +139,10 @@ const emomConfig: WodConfig = {
   name: 'EVERY MINUTE',
   timerMode: 'minLeft',
   totalSeconds: 10 * 60,
+  exercises: [
+    { name: 'BURPEES',   detail: '10 / min' },
+    { name: 'KB SWINGS', detail: '15 / min' },
+  ],
   initialSession: { roundIdx: 0, exIdx: 0, completedRounds: 0, minuteIdx: 0, stationIdx: 0 },
   getTarget: (s) => EMOM_MINUTES[s.minuteIdx % EMOM_MINUTES.length].target,
   getExerciseName: (s) => EMOM_MINUTES[s.minuteIdx % EMOM_MINUTES.length].ex,
@@ -178,6 +194,7 @@ const chipperConfig: WodConfig = {
   name: 'FILTHY FIFTY',
   timerMode: 'elapsed',
   totalSeconds: 0,
+  exercises: CHIPPER_EXERCISES.map((e) => ({ name: e.name, detail: '50 reps' })),
   initialSession: { roundIdx: 0, exIdx: 0, completedRounds: 0, minuteIdx: 0, stationIdx: 0 },
   getTarget: (s) => CHIPPER_EXERCISES[s.stationIdx]?.target ?? 0,
   getExerciseName: (s) => CHIPPER_EXERCISES[s.stationIdx]?.name ?? 'DONE',

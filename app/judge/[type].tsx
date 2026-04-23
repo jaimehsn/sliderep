@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -14,8 +15,9 @@ import {
 } from '@expo-google-fonts/ibm-plex-mono';
 
 import { HF } from '@/constants/hf';
-import { WodType } from '@/constants/wods';
+import { WodType, getWodConfig } from '@/constants/wods';
 import { useJudge } from '@/hooks/use-judge';
+import { StartOverlay } from '@/components/judge/start-overlay';
 import { TimerStrip } from '@/components/judge/timer-strip';
 import { SideRails } from '@/components/judge/side-rails';
 import { DropStrip } from '@/components/judge/drop-strip';
@@ -41,9 +43,21 @@ export default function JudgeScreen() {
   });
 
   const judge = useJudge(wodType);
+  const [phase, setPhase] = useState<'ready' | 'judging'>('ready');
 
   if (!fontsLoaded) {
     return <View style={{ flex: 1, backgroundColor: HF.bg }} />;
+  }
+
+  if (phase === 'ready') {
+    return (
+      <View style={[styles.root, { paddingTop: insets.top, paddingBottom: Math.max(insets.bottom, 24) }]}>
+        <StartOverlay
+          config={getWodConfig(wodType)}
+          onDone={() => { setPhase('judging'); judge.startTimer(); }}
+        />
+      </View>
+    );
   }
 
   return (
