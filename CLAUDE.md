@@ -25,7 +25,7 @@ npm run reset-project  # Reset to blank Expo template
 
 ## Architecture
 
-**Stack**: Expo 54 + React Native 0.81 + TypeScript + Expo Router 6
+**Stack**: Expo 57 + React Native 0.86 + TypeScript 6 + Expo Router 57
 
 ### Routing
 

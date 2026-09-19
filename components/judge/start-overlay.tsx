@@ -18,7 +18,10 @@ export function StartOverlay({ config, onDone }: Props) {
   const [phase, setPhase] = useState<'ready' | 'countdown'>('ready');
   const [count, setCount] = useState(10);
   const onDoneRef = useRef(onDone);
-  onDoneRef.current = onDone;
+
+  useEffect(() => {
+    onDoneRef.current = onDone;
+  }, [onDone]);
 
   useEffect(() => {
     if (phase !== 'countdown') return;
