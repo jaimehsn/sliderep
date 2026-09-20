@@ -12,6 +12,10 @@ The app supports four classic CrossFit WOD formats:
 - **EMOM** (10-min alternating: burpees + KB swings) — per-minute countdown
 - **Chipper** (FILTHY FIFTY: 10 stations × 50 reps) — elapsed timer
 
+## Roadmap
+
+Planned work and open design topics (data model, persistence, short-term tasks) live in `docs/ROADMAP.md`. Read it before starting feature work; all five Track A topics are decided there (Users, WOD hierarchy, WOD format as data, Exercise sessions, Storage & persistence, Design), and each lists its unconfirmed assumptions — validate them when they start to matter instead of assuming.
+
 ## Commands
 
 ```bash
