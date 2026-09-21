@@ -1,6 +1,5 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, TextStyle, View, ViewStyle } from 'react-native';
 import Animated, { AnimatedStyle } from 'react-native-reanimated';
-import { TextStyle, ViewStyle } from 'react-native';
 import { HF } from '@/constants/hf';
 
 type Props = {

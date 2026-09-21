@@ -293,10 +293,10 @@ Assumptions (not confirmed):
 
 ### Independent of Track A
 
-1. **Housekeeping**
-   - `git rm package-lock.json`; update CLAUDE.md/README commands to pnpm.
-   - Translate UI text to English in `app/index.tsx`, `components/judge/start-overlay.tsx`, `components/judge/gesture-footer.tsx` (`COMENZAR`, `selecciona un entrenamiento`, `10 estaciones · 50 reps c/u`, `+ NUEVO ENTRENAMIENTO`, `próximamente`).
-   - Fix the `import/no-duplicates` warning in `components/judge/hero-counter.tsx`.
+1. **Housekeeping** — ✅ **done**
+   - Removed `package-lock.json` (`git rm`); CLAUDE.md and README commands now use pnpm. `scripts/reset-project.js` was left untouched (it generates text for a blank template).
+   - UI text translated to English in `app/index.tsx` (`10 stations · 50 reps each`, `select a workout`, `+ NEW WORKOUT`, `coming soon`), `components/judge/start-overlay.tsx` (`START`) and `app/+not-found.tsx` (`Screen not found`, `Back to home`). `components/judge/gesture-footer.tsx` was already in English.
+   - Fixed the `import/no-duplicates` warning in `components/judge/hero-counter.tsx`.
 2. **Tap = rep** — today only the swipe works (confirmed). In `hooks/use-judge.ts` the `Gesture.Pan().onEnd` only fires if the pan activated. Add `Gesture.Tap()` → `handleRep` and compose with `Gesture.Exclusive(pan, tap)`. Check whether `runOnJS` is deprecated in worklets 0.10 (`scheduleOnRN`).
 3. **Robust EMOM** — the minute advance uses a separate 60 s `setInterval` (`use-judge.ts`) that desyncs from `elapsed` when pausing/resuming, and `minuteIdx` is not clamped at 10. Worse, the minute also advances on reaching the target (`reducer.ts:10`), so minutes get skipped (double advance). Derive the minute from `elapsed` (`floor(elapsed / 60)`), clamp, and wait for the clock after the target is reached. *Absorbed by the `onClock` rule of the format engine (see WOD format as data); it can also be fixed earlier on the current code.*
 4. **Sound cues** with `expo-audio` — countdown, EMOM minute change, end of time.

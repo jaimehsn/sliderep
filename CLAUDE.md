@@ -19,12 +19,12 @@ Planned work and open design topics (data model, persistence, short-term tasks) 
 ## Commands
 
 ```bash
-npm start              # Start Expo dev server
-npm run android        # Run on Android emulator
-npm run ios            # Run on iOS simulator
-npm run web            # Run in browser
-npm run lint           # Run ESLint
-npm run reset-project  # Reset to blank Expo template
+pnpm start             # Start Expo dev server
+pnpm android           # Run on Android emulator
+pnpm ios               # Run on iOS simulator
+pnpm web               # Run in browser
+pnpm lint              # Run ESLint
+pnpm reset-project     # Reset to blank Expo template
 ```
 
 ## Architecture

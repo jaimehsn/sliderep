@@ -18,7 +18,7 @@ const WOD_DESCRIPTIONS: Record<WodType, string> = {
   forTime: '21-15-9 · thrusters + pull-ups',
   amrap:   '12 min · pull-ups, push-ups, air squats',
   emom:    '10 min · burpees + kb swings',
-  chipper: '10 estaciones · 50 reps c/u',
+  chipper: '10 stations · 50 reps each',
 };
 
 export default function WodSelectScreen() {
@@ -41,7 +41,7 @@ export default function WodSelectScreen() {
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.appName}>SLIDEREP</Text>
-        <Text style={styles.subtitle}>selecciona un entrenamiento</Text>
+        <Text style={styles.subtitle}>select a workout</Text>
       </View>
 
       <View style={styles.divider} />
@@ -71,11 +71,11 @@ export default function WodSelectScreen() {
 
       <View style={styles.divider} />
 
-      {/* New WOD — placeholder para más adelante */}
+      {/* New WOD — placeholder for later */}
       <Pressable style={styles.newWodBtn} disabled>
         <View>
-          <Text style={styles.newWodLabel}>+ NUEVO ENTRENAMIENTO</Text>
-          <Text style={styles.newWodSub}>próximamente</Text>
+          <Text style={styles.newWodLabel}>+ NEW WORKOUT</Text>
+          <Text style={styles.newWodSub}>coming soon</Text>
         </View>
       </Pressable>
 

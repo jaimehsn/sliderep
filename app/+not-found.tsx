@@ -7,9 +7,9 @@ export default function NotFoundScreen() {
     <>
       <Stack.Screen options={{ title: 'Not Found', headerShown: true }} />
       <View style={styles.container}>
-        <Text style={styles.title}>Pantalla no encontrada</Text>
+        <Text style={styles.title}>Screen not found</Text>
         <Link href="/" style={styles.link}>
-          <Text style={styles.linkText}>Volver al juez</Text>
+          <Text style={styles.linkText}>Back to home</Text>
         </Link>
       </View>
     </>

@@ -99,7 +99,7 @@ export function StartOverlay({ config, onDone }: Props) {
           style={({ pressed }) => [styles.btn, pressed && styles.btnPressed]}
           onPress={() => setPhase('countdown')}
         >
-          <Text style={styles.btnText}>COMENZAR</Text>
+          <Text style={styles.btnText}>START</Text>
         </Pressable>
       </View>
     </View>
