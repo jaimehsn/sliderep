@@ -297,7 +297,7 @@ Assumptions (not confirmed):
    - Removed `package-lock.json` (`git rm`); CLAUDE.md and README commands now use pnpm. `scripts/reset-project.js` was left untouched (it generates text for a blank template).
    - UI text translated to English in `app/index.tsx` (`10 stations · 50 reps each`, `select a workout`, `+ NEW WORKOUT`, `coming soon`), `components/judge/start-overlay.tsx` (`START`) and `app/+not-found.tsx` (`Screen not found`, `Back to home`). `components/judge/gesture-footer.tsx` was already in English.
    - Fixed the `import/no-duplicates` warning in `components/judge/hero-counter.tsx`.
-2. **Tap = rep** — today only the swipe works (confirmed). In `hooks/use-judge.ts` the `Gesture.Pan().onEnd` only fires if the pan activated. Add `Gesture.Tap()` → `handleRep` and compose with `Gesture.Exclusive(pan, tap)`. Check whether `runOnJS` is deprecated in worklets 0.10 (`scheduleOnRN`).
+2. **Tap = rep** — ✅ **done**. Added a `Gesture.Tap()` → `handleRep` and composed it as `Gesture.Exclusive(pan, tap)` in `hooks/use-judge.ts` (the hook now returns `gesture` instead of `pan`; updated in `app/judge/[type].tsx`). Confirmed `runOnJS` is deprecated in the installed reanimated 4.5.1 / worklets 0.10.1 (both re-exports carry `@deprecated Use scheduleOnRN instead`); migrated both call sites to `scheduleOnRN` from `react-native-worklets`.
 3. **Robust EMOM** — the minute advance uses a separate 60 s `setInterval` (`use-judge.ts`) that desyncs from `elapsed` when pausing/resuming, and `minuteIdx` is not clamped at 10. Worse, the minute also advances on reaching the target (`reducer.ts:10`), so minutes get skipped (double advance). Derive the minute from `elapsed` (`floor(elapsed / 60)`), clamp, and wait for the clock after the target is reached. *Absorbed by the `onClock` rule of the format engine (see WOD format as data); it can also be fixed earlier on the current code.*
 4. **Sound cues** with `expo-audio` — countdown, EMOM minute change, end of time.
 5. **Volume buttons as rep / no-rep** — needs a native module → **dev build** (not Expo Go; EAS profile `preview3` already has `developmentClient`). Evaluate the library before committing.
@@ -331,7 +331,7 @@ Undo last rep, keep-awake, tests, iOS / store release.
 
 ## Known issues (code)
 
-- Tap is announced ("tap = rep" in the footer) but does not count — see B2.
+- ~~Tap is announced ("tap = rep" in the footer) but does not count~~ — fixed, see B2.
 - EMOM timing desync — see B3.
 - EMOM double advance: a minute advances on reaching the target (`components/judge/reducer.ts:10`) **and** every 60 s (`hooks/use-judge.ts:45`), so minutes are skipped — see B3.
 - No final state: the timer keeps running after completion / at 00:00 — see B6.

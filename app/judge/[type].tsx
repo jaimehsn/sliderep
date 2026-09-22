@@ -72,7 +72,7 @@ export default function JudgeScreen() {
         onLongPress={judge.resetTimer}
       />
 
-      <GestureDetector gesture={judge.pan}>
+      <GestureDetector gesture={judge.gesture}>
         <View style={styles.gestureArea}>
 
           <SideRails railStyle={judge.railStyle} />

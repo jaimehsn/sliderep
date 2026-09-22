@@ -3,13 +3,13 @@ import { Gesture } from 'react-native-gesture-handler';
 import {
   Easing,
   interpolateColor,
-  runOnJS,
   useAnimatedStyle,
   useSharedValue,
   withSequence,
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
 import * as Haptics from 'expo-haptics';
 import { WodType, getWodConfig } from '@/constants/wods';
 import { HF } from '@/constants/hf';
@@ -83,11 +83,18 @@ export function useJudge(wodType: WodType) {
   const pan = Gesture.Pan().onEnd((evt) => {
     'worklet';
     if (evt.translationX < -20) {
-      runOnJS(handleNoRep)();
+      scheduleOnRN(handleNoRep);
     } else {
-      runOnJS(handleRep)();
+      scheduleOnRN(handleRep);
     }
   });
+
+  const tap = Gesture.Tap().onEnd(() => {
+    'worklet';
+    scheduleOnRN(handleRep);
+  });
+
+  const gesture = Gesture.Exclusive(pan, tap);
 
   const { session, done, log, invalidSticky } = judgeState;
   const target = config.getTarget(session);
@@ -142,7 +149,7 @@ export function useJudge(wodType: WodType) {
     log,
     repsCount,
     noRepsCount,
-    pan,
+    gesture,
     dropKey,
     lastKind,
     counterStyle,
