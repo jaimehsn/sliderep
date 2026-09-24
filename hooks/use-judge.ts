@@ -14,6 +14,7 @@ import * as Haptics from 'expo-haptics';
 import { WodType, getWodConfig } from '@/constants/wods';
 import { HF } from '@/constants/hf';
 import { judgeReducer, makeInitial, formatTime } from '@/components/judge/reducer';
+import { useSoundCue } from '@/hooks/use-sound-cue';
 
 export function useJudge(wodType: WodType) {
   const config = useMemo(() => getWodConfig(wodType), [wodType]);
@@ -31,6 +32,9 @@ export function useJudge(wodType: WodType) {
   const crosshairWidth = useSharedValue(40);
   const invalidProgress = useSharedValue(0);
 
+  const playMinute = useSoundCue(require('@/assets/sounds/minute.wav'));
+  const playEnd = useSoundCue(require('@/assets/sounds/end.wav'));
+
   useEffect(() => {
     if (!isRunning) return;
     const id = setInterval(() => setElapsed((e) => e + 1), 1000);
@@ -43,6 +47,8 @@ export function useJudge(wodType: WodType) {
     const minuteIdx = Math.min(Math.floor(elapsed / 60), totalMinutes);
     const prev = judgeStateRef.current;
     if (minuteIdx === prev.session.minuteIdx) return;
+    if (minuteIdx >= totalMinutes) playEnd();
+    else playMinute();
     dispatch({
       type: 'RESET',
       initial: {
@@ -52,7 +58,13 @@ export function useJudge(wodType: WodType) {
         invalidSticky: false,
       },
     });
-  }, [elapsed, wodType, config]);
+  }, [elapsed, wodType, config, playMinute, playEnd]);
+
+  useEffect(() => {
+    if (config.timerMode !== 'remaining' || config.totalSeconds <= 0) return;
+    if (elapsed !== config.totalSeconds) return;
+    playEnd();
+  }, [elapsed, config, playEnd]);
 
   const handleRep = useCallback(() => {
     dispatch({ type: 'REP', config });

@@ -3,6 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { HF } from '@/constants/hf';
 import { WodConfig } from '@/constants/wods';
+import { useSoundCue } from '@/hooks/use-sound-cue';
 
 type Props = {
   config: WodConfig;
@@ -18,6 +19,8 @@ export function StartOverlay({ config, onDone }: Props) {
   const [phase, setPhase] = useState<'ready' | 'countdown'>('ready');
   const [count, setCount] = useState(10);
   const onDoneRef = useRef(onDone);
+  const playTick = useSoundCue(require('@/assets/sounds/tick.wav'));
+  const playGo = useSoundCue(require('@/assets/sounds/go.wav'));
 
   useEffect(() => {
     onDoneRef.current = onDone;
@@ -28,6 +31,12 @@ export function StartOverlay({ config, onDone }: Props) {
     const id = setInterval(() => setCount((c) => c - 1), 1000);
     return () => clearInterval(id);
   }, [phase]);
+
+  useEffect(() => {
+    if (phase !== 'countdown') return;
+    if (count > 0) playTick();
+    else playGo();
+  }, [phase, count, playTick, playGo]);
 
   useEffect(() => {
     if (phase !== 'countdown' || count > 0) return;
