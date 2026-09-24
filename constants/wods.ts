@@ -22,6 +22,8 @@ export type WodConfig = {
   name: string;
   timerMode: 'elapsed' | 'remaining' | 'minLeft';
   totalSeconds: number;
+  /** onTarget: advance() fires as soon as the target is reached. onClock: only the clock advances (extra reps are ignored). */
+  advanceMode: 'onTarget' | 'onClock';
   exercises: WodExercise[];
   initialSession: WodSession;
   getTarget: (s: WodSession) => number;
@@ -44,6 +46,7 @@ const forTimeConfig: WodConfig = {
   name: 'FRAN',
   timerMode: 'elapsed',
   totalSeconds: 0,
+  advanceMode: 'onTarget',
   exercises: [
     { name: 'THRUSTERS', detail: '21 · 15 · 9' },
     { name: 'PULL-UPS',  detail: '21 · 15 · 9' },
@@ -89,6 +92,7 @@ const amrapConfig: WodConfig = {
   name: 'CINDY',
   timerMode: 'remaining',
   totalSeconds: 12 * 60,
+  advanceMode: 'onTarget',
   exercises: [
     { name: 'PULL-UPS',   detail: '5 reps' },
     { name: 'PUSH-UPS',   detail: '10 reps' },
@@ -139,6 +143,7 @@ const emomConfig: WodConfig = {
   name: 'EVERY MINUTE',
   timerMode: 'minLeft',
   totalSeconds: 10 * 60,
+  advanceMode: 'onClock',
   exercises: [
     { name: 'BURPEES',   detail: '10 / min' },
     { name: 'KB SWINGS', detail: '15 / min' },
@@ -194,6 +199,7 @@ const chipperConfig: WodConfig = {
   name: 'FILTHY FIFTY',
   timerMode: 'elapsed',
   totalSeconds: 0,
+  advanceMode: 'onTarget',
   exercises: CHIPPER_EXERCISES.map((e) => ({ name: e.name, detail: '50 reps' })),
   initialSession: { roundIdx: 0, exIdx: 0, completedRounds: 0, minuteIdx: 0, stationIdx: 0 },
   getTarget: (s) => CHIPPER_EXERCISES[s.stationIdx]?.target ?? 0,

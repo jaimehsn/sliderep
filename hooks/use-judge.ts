@@ -38,19 +38,21 @@ export function useJudge(wodType: WodType) {
   }, [isRunning]);
 
   useEffect(() => {
-    if (wodType !== 'emom' || !isRunning) return;
-    const id = setInterval(() => {
-      const prev = judgeStateRef.current;
-      dispatch({ type: 'RESET', initial: {
-        session: config.advance(prev.session),
+    if (wodType !== 'emom') return;
+    const totalMinutes = Math.ceil(config.totalSeconds / 60);
+    const minuteIdx = Math.min(Math.floor(elapsed / 60), totalMinutes);
+    const prev = judgeStateRef.current;
+    if (minuteIdx === prev.session.minuteIdx) return;
+    dispatch({
+      type: 'RESET',
+      initial: {
+        session: { ...prev.session, minuteIdx },
         done: 0,
         log: prev.log,
         invalidSticky: false,
-      }});
-    }, 60_000);
-    return () => clearInterval(id);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isRunning]);
+      },
+    });
+  }, [elapsed, wodType, config]);
 
   const handleRep = useCallback(() => {
     dispatch({ type: 'REP', config });

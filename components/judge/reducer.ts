@@ -7,7 +7,11 @@ export function judgeReducer(state: JudgeState, action: JudgeAction): JudgeState
       const target = action.config.getTarget(state.session);
       const newDone = state.done + 1;
       const newLog: LogEntry[] = [...state.log, { id: Date.now() + Math.random(), ok: true }];
-      if (newDone >= target && !action.config.isComplete(state.session)) {
+      const shouldAdvance =
+        action.config.advanceMode === 'onTarget' &&
+        newDone >= target &&
+        !action.config.isComplete(state.session);
+      if (shouldAdvance) {
         return { session: action.config.advance(state.session), done: 0, log: newLog, invalidSticky: false };
       }
       return { ...state, done: Math.min(newDone, target), log: newLog, invalidSticky: false };
