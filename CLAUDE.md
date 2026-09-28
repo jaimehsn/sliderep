@@ -40,25 +40,26 @@ File-based routing via Expo Router. All routes live in `app/`:
 
 ### WOD System
 
-- `constants/wods.ts` — defines `WodConfig` and `WodSession` types, plus the four WOD configs (`forTime`, `amrap`, `emom`, `chipper`). Each config implements a common interface: `getTarget`, `getExerciseName`, `getKpi`, `getSegments`, `getHint`, `advance`, `isComplete`.
+- `constants/wods.ts` — defines `WodConfig` and `WodSession` types, plus the four WOD configs (`forTime`, `amrap`, `emom`, `chipper`). Each config implements a common interface: `getTarget`, `getExerciseName`, `getKpi` (header progress: `label`, `current`, `total | null`), `advance`, `isComplete`, plus `advanceMode` (`onTarget` | `onClock`).
 - `constants/hf.ts` — design tokens (colors, etc.) used throughout the UI
 
 ### Judge Screen Components (`components/judge/`)
 
+The judging screen follows the **"Ghost · base"** design from Claude Design (a local copy of the handoff bundle lives in `design/`, which is git-ignored). Layout, top to bottom: header · exercise name · swipe band · count. Only the swipe band receives gestures.
+
 - `reducer.ts` + `types.ts` — state machine for the judging session (`REP`, `NO_REP`, `RESET` actions)
-- `hero-counter.tsx` — large rep count display
-- `gesture-footer.tsx` — swipe/tap gesture area for recording reps
-- `seg-bar.tsx` — segmented progress bar across exercises in the current round/station
-- `dot-trail.tsx` — visual trail of recent reps (valid/invalid)
-- `drop-strip.tsx` — animated feedback strip on rep input
-- `event-log.tsx` — scrollable log of all rep events
-- `invalid-badge.tsx` — sticky badge shown after a no-rep
-- `timer-strip.tsx` — timer display (elapsed / countdown / per-minute depending on WOD type)
-- `side-rails.tsx` — side UI rails
+- `judge-header.tsx` — timer (elapsed / countdown / per-minute depending on WOD type) on the left; round / minute / station progress with `round-pips.tsx` on the right. Not interactive.
+- `round-pips.tsx` — row of squares: done (filled), current (ink outline), pending (hairline outline)
+- `exercise-name.tsx` — current exercise name, shrinks to fit, turns accent after a no-rep
+- `swipe-band.tsx` — the only interactive surface: swipe right = rep, swipe left = no-rep, tap = rep; edge ticks, a breathing dot that follows the finger and a travel line after each gesture
+- `count-readout.tsx` — large rep count, plus reps left and the target
+- `side-rails.tsx` — full-height edge lines (accent after a no-rep) and a strip that sweeps inward after each gesture
+- `start-overlay.tsx` — pre-judging WOD summary and 10-second countdown (with sound cues)
 
-### Hook
+### Hooks
 
-- `hooks/use-judge.ts` — encapsulates the judging session state using `useReducer`, wiring the WOD config to the reducer
+- `hooks/use-judge.ts` — encapsulates the judging session state using `useReducer`, wiring the WOD config to the reducer; owns the timer, the gestures (`Pan` + `Tap`, thresholds from the design) and the animated styles
+- `hooks/use-sound-cue.ts` — wraps a short local sound (`expo-audio`) in a stable, fire-and-forget `play()` callback
 
 ### Path Alias
 

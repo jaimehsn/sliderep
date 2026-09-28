@@ -38,6 +38,9 @@ yarn-error.*
 
 app-example
 
+# Claude Design handoff bundle (local reference; the source of truth is the Claude Design project)
+design/
+
 # generated native folders
 /ios
 /android

@@ -6,7 +6,6 @@ import {
   useAnimatedStyle,
   useSharedValue,
   withSequence,
-  withSpring,
   withTiming,
 } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
@@ -15,6 +14,13 @@ import { WodType, getWodConfig } from '@/constants/wods';
 import { HF } from '@/constants/hf';
 import { judgeReducer, makeInitial, formatTime } from '@/components/judge/reducer';
 import { useSoundCue } from '@/hooks/use-sound-cue';
+
+// Gesture thresholds and dot travel from the "Ghost" design (see docs/ROADMAP.md).
+const SWIPE_MIN_DX = 30;
+const SWIPE_MAX_MS = 900;
+const TAP_MAX_DX = 12;
+const TAP_MAX_MS = 500;
+const DRAG_MAX = 70;
 
 export function useJudge(wodType: WodType) {
   const config = useMemo(() => getWodConfig(wodType), [wodType]);
@@ -29,8 +35,9 @@ export function useJudge(wodType: WodType) {
   judgeStateRef.current = judgeState;
 
   const counterScale = useSharedValue(1);
-  const crosshairWidth = useSharedValue(40);
   const invalidProgress = useSharedValue(0);
+  const drag = useSharedValue(0);
+  const gestureStart = useSharedValue(0);
 
   const playMinute = useSoundCue(require('@/assets/sounds/minute.wav'));
   const playEnd = useSoundCue(require('@/assets/sounds/end.wav'));
@@ -71,54 +78,60 @@ export function useJudge(wodType: WodType) {
     setLastKind('rep');
     setDropKey((k) => k + 1);
     counterScale.value = withSequence(
-      withTiming(1.08, { duration: 40, easing: Easing.out(Easing.quad) }),
-      withSpring(1, { damping: 15, stiffness: 200 }),
+      withTiming(1.045, { duration: 32 }),
+      withTiming(1, { duration: 168, easing: Easing.bezier(0.2, 0.8, 0.2, 1) }),
     );
-    crosshairWidth.value = withSequence(
-      withTiming(120, { duration: 80 }),
-      withTiming(40, { duration: 200 }),
-    );
-    invalidProgress.value = withTiming(0, { duration: 240 });
+    invalidProgress.value = withTiming(0, { duration: 200 });
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-  }, [config, counterScale, crosshairWidth, invalidProgress]);
+  }, [config, counterScale, invalidProgress]);
 
   const handleNoRep = useCallback(() => {
     dispatch({ type: 'NO_REP' });
     setLastKind('noRep');
     setDropKey((k) => k + 1);
     counterScale.value = withSequence(
-      withTiming(1.05, { duration: 60 }),
-      withSpring(1, { damping: 10, stiffness: 200 }),
+      withTiming(1.045, { duration: 32 }),
+      withTiming(1, { duration: 168, easing: Easing.bezier(0.2, 0.8, 0.2, 1) }),
     );
-    invalidProgress.value = withTiming(1, { duration: 100 });
+    invalidProgress.value = withTiming(1, { duration: 200 });
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
   }, [counterScale, invalidProgress]);
 
-  const pan = Gesture.Pan().onEnd((evt) => {
-    'worklet';
-    if (evt.translationX < -20) {
-      scheduleOnRN(handleNoRep);
-    } else {
-      scheduleOnRN(handleRep);
-    }
-  });
+  // Swipe right = rep, swipe left = no-rep, quick tap = rep; anything slower or shorter is ignored.
+  const pan = Gesture.Pan()
+    .onBegin(() => {
+      'worklet';
+      gestureStart.value = Date.now();
+    })
+    .onUpdate((evt) => {
+      'worklet';
+      drag.value = Math.max(-DRAG_MAX, Math.min(DRAG_MAX, evt.translationX));
+    })
+    .onEnd((evt) => {
+      'worklet';
+      if (Date.now() - gestureStart.value >= SWIPE_MAX_MS) return;
+      if (evt.translationX < -SWIPE_MIN_DX) scheduleOnRN(handleNoRep);
+      else if (evt.translationX > SWIPE_MIN_DX) scheduleOnRN(handleRep);
+    })
+    .onFinalize(() => {
+      'worklet';
+      drag.value = withTiming(0, { duration: 300, easing: Easing.bezier(0.2, 0.8, 0.2, 1) });
+    });
 
-  const tap = Gesture.Tap().onEnd(() => {
-    'worklet';
-    scheduleOnRN(handleRep);
-  });
+  const tap = Gesture.Tap()
+    .maxDuration(TAP_MAX_MS)
+    .maxDistance(TAP_MAX_DX)
+    .onEnd((_evt, success) => {
+      'worklet';
+      if (success) scheduleOnRN(handleRep);
+    });
 
   const gesture = Gesture.Exclusive(pan, tap);
 
-  const { session, done, log, invalidSticky } = judgeState;
+  const { session, done } = judgeState;
   const target = config.getTarget(session);
   const exerciseName = config.getExerciseName(session);
   const kpi = config.getKpi(session);
-  const sectionLabel = config.getSectionLabel(session);
-  const segments = config.getSegments(session, done);
-  const hint = config.getHint(session, done);
-  const repsCount = log.filter((e) => e.ok).length;
-  const noRepsCount = log.filter((e) => !e.ok).length;
 
   const timerStr = useMemo(() => {
     if (config.timerMode === 'remaining') return formatTime(Math.max(0, config.totalSeconds - elapsed));
@@ -135,8 +148,6 @@ export function useJudge(wodType: WodType) {
     color: interpolateColor(invalidProgress.value, [0, 1], [HF.ink, HF.accent]),
   }));
 
-  const crosshairStyle = useAnimatedStyle(() => ({ width: crosshairWidth.value }));
-
   const exerciseNameStyle = useAnimatedStyle(() => ({
     color: interpolateColor(invalidProgress.value, [0, 1], [HF.ink, HF.accent]),
   }));
@@ -145,30 +156,25 @@ export function useJudge(wodType: WodType) {
     backgroundColor: interpolateColor(invalidProgress.value, [0, 1], [HF.hairlineStrong, HF.accent]),
   }));
 
+  const dotStyle = useAnimatedStyle(() => ({
+    backgroundColor: interpolateColor(invalidProgress.value, [0, 1], [HF.muted, HF.accent]),
+  }));
+
   return {
-    isRunning,
     startTimer: () => setIsRunning(true),
-    toggleTimer: () => setIsRunning((r) => !r),
-    resetTimer: () => { setElapsed(0); setIsRunning(false); },
     timerStr,
     timerLabel,
     done,
     target,
     exerciseName,
     kpi,
-    sectionLabel,
-    segments,
-    hint,
-    invalidSticky,
-    log,
-    repsCount,
-    noRepsCount,
     gesture,
+    drag,
     dropKey,
     lastKind,
     counterStyle,
-    crosshairStyle,
     exerciseNameStyle,
     railStyle,
+    dotStyle,
   };
 }

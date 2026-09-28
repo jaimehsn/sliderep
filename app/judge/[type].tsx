@@ -1,8 +1,7 @@
 import { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { GestureDetector } from 'react-native-gesture-handler';
 import {
   useFonts,
   BarlowCondensed_400Regular,
@@ -18,14 +17,11 @@ import { HF } from '@/constants/hf';
 import { WodType, getWodConfig } from '@/constants/wods';
 import { useJudge } from '@/hooks/use-judge';
 import { StartOverlay } from '@/components/judge/start-overlay';
-import { TimerStrip } from '@/components/judge/timer-strip';
+import { JudgeHeader } from '@/components/judge/judge-header';
+import { ExerciseName } from '@/components/judge/exercise-name';
+import { SwipeBand } from '@/components/judge/swipe-band';
+import { CountReadout } from '@/components/judge/count-readout';
 import { SideRails } from '@/components/judge/side-rails';
-import { DropStrip } from '@/components/judge/drop-strip';
-import { SegBar } from '@/components/judge/seg-bar';
-import { HeroCounter } from '@/components/judge/hero-counter';
-import { InvalidBadge } from '@/components/judge/invalid-badge';
-import { EventLog } from '@/components/judge/event-log';
-import { GestureFooter } from '@/components/judge/gesture-footer';
 
 const VALID_TYPES: WodType[] = ['forTime', 'amrap', 'emom', 'chipper'];
 
@@ -62,83 +58,40 @@ export default function JudgeScreen() {
 
   return (
     <View style={[styles.root, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+      <SideRails railStyle={judge.railStyle} kind={judge.lastKind} dropKey={judge.dropKey} />
 
-      <TimerStrip
-        timerLabel={judge.timerLabel}
-        timerStr={judge.timerStr}
-        isRunning={judge.isRunning}
-        kpi={judge.kpi}
-        onPress={judge.toggleTimer}
-        onLongPress={judge.resetTimer}
+      <JudgeHeader timerLabel={judge.timerLabel} timerStr={judge.timerStr} kpi={judge.kpi} />
+
+      <View style={styles.exerciseZone}>
+        <ExerciseName name={judge.exerciseName} animatedStyle={judge.exerciseNameStyle} />
+      </View>
+
+      <SwipeBand
+        gesture={judge.gesture}
+        drag={judge.drag}
+        dotColorStyle={judge.dotStyle}
+        kind={judge.lastKind}
+        dropKey={judge.dropKey}
       />
 
-      <GestureDetector gesture={judge.gesture}>
-        <View style={styles.gestureArea}>
-
-          <SideRails railStyle={judge.railStyle} />
-
-          {judge.lastKind != null && (
-            <DropStrip key={judge.dropKey} kind={judge.lastKind} />
-          )}
-
-          <View style={styles.sectionRow}>
-            <Text style={styles.sectionLabel}>{judge.sectionLabel}</Text>
-          </View>
-
-          <View style={styles.segBarWrap}>
-            <SegBar items={judge.segments} />
-          </View>
-
-          <HeroCounter
-            exerciseName={judge.exerciseName}
-            done={judge.done}
-            target={judge.target}
-            hint={judge.hint}
-            counterStyle={judge.counterStyle}
-            crosshairStyle={judge.crosshairStyle}
-            exerciseNameStyle={judge.exerciseNameStyle}
-          />
-
-          {judge.invalidSticky && <InvalidBadge />}
-
-          <EventLog
-            log={judge.log}
-            repsCount={judge.repsCount}
-            noRepsCount={judge.noRepsCount}
-          />
-
-          <GestureFooter />
-
-        </View>
-      </GestureDetector>
-
+      <View style={styles.countZone}>
+        <CountReadout done={judge.done} target={judge.target} counterStyle={judge.counterStyle} />
+      </View>
     </View>
   );
 }
 
+// Proportions of the "Ghost" design (360×740): header 140 · exercise 92 · band 220 · count 288.
+// Header and band are fixed; the two zones around the band share the rest of the height.
 const styles = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: HF.bg,
   },
-  gestureArea: {
-    flex: 1,
-    position: 'relative',
-    overflow: 'hidden',
+  exerciseZone: {
+    flex: 92,
   },
-  sectionRow: {
-    paddingHorizontal: 20,
-    paddingTop: 14,
-  },
-  sectionLabel: {
-    fontFamily: 'IBMPlexMono_400Regular',
-    fontSize: 10,
-    color: HF.muted,
-    letterSpacing: 1.5,
-    textTransform: 'uppercase',
-  },
-  segBarWrap: {
-    paddingHorizontal: 20,
-    paddingTop: 12,
+  countZone: {
+    flex: 288,
   },
 });

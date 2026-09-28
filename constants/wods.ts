@@ -1,11 +1,7 @@
 export type WodType = 'forTime' | 'amrap' | 'emom' | 'chipper';
 
-export type SegItem = {
-  name: string;
-  target: number;
-  filled: number;
-  isCurrent: boolean;
-};
+/** Header progress: `current` of `total` (e.g. round 2/3), or just `current` when there is no total (AMRAP). */
+export type WodKpi = { label: string; current: number; total: number | null };
 
 export type WodSession = {
   roundIdx: number;
@@ -28,10 +24,7 @@ export type WodConfig = {
   initialSession: WodSession;
   getTarget: (s: WodSession) => number;
   getExerciseName: (s: WodSession) => string;
-  getKpi: (s: WodSession) => { label: string; value: string; sub: string };
-  getSectionLabel: (s: WodSession) => string;
-  getSegments: (s: WodSession, done: number) => SegItem[];
-  getHint: (s: WodSession, done: number) => string;
+  getKpi: (s: WodSession) => WodKpi;
   advance: (s: WodSession) => WodSession;
   isComplete: (s: WodSession) => boolean;
 };
@@ -56,22 +49,9 @@ const forTimeConfig: WodConfig = {
   getExerciseName: (s) => FRAN_EXERCISES[s.exIdx] ?? 'DONE',
   getKpi: (s) => ({
     label: 'round',
-    value: `${s.roundIdx + 1}/${FRAN_ROUNDS.length}`,
-    sub: 'FRAN',
+    current: Math.min(s.roundIdx + 1, FRAN_ROUNDS.length),
+    total: FRAN_ROUNDS.length,
   }),
-  getSectionLabel: (s) => `round ${s.roundIdx + 1} — in progress`,
-  getSegments: (s, done) =>
-    FRAN_EXERCISES.map((name, i) => ({
-      name,
-      target: FRAN_ROUNDS[s.roundIdx]?.[i] ?? 0,
-      filled: i < s.exIdx ? (FRAN_ROUNDS[s.roundIdx]?.[i] ?? 0) : i === s.exIdx ? done : 0,
-      isCurrent: i === s.exIdx,
-    })),
-  getHint: (s, done) => {
-    const target = FRAN_ROUNDS[s.roundIdx]?.[s.exIdx] ?? 0;
-    const next = FRAN_EXERCISES[s.exIdx + 1] ?? `round ${s.roundIdx + 2}`;
-    return `${Math.max(target - done, 0)} reps to go · next: ${next}`;
-  },
   advance: (s) => {
     const nextEx = s.exIdx + 1;
     if (nextEx >= FRAN_EXERCISES.length) {
@@ -101,24 +81,7 @@ const amrapConfig: WodConfig = {
   initialSession: { roundIdx: 0, exIdx: 0, completedRounds: 0, minuteIdx: 0, stationIdx: 0 },
   getTarget: (s) => CINDY_REPS[s.exIdx] ?? 0,
   getExerciseName: (s) => CINDY_EXERCISES[s.exIdx] ?? 'DONE',
-  getKpi: (s) => ({
-    label: 'rounds',
-    value: `${s.completedRounds}`,
-    sub: 'completed',
-  }),
-  getSectionLabel: (s) => `round ${s.roundIdx + 1} — in progress`,
-  getSegments: (s, done) =>
-    CINDY_EXERCISES.map((name, i) => ({
-      name,
-      target: CINDY_REPS[i],
-      filled: i < s.exIdx ? CINDY_REPS[i] : i === s.exIdx ? done : 0,
-      isCurrent: i === s.exIdx,
-    })),
-  getHint: (s, done) => {
-    const target = CINDY_REPS[s.exIdx] ?? 0;
-    const next = CINDY_EXERCISES[s.exIdx + 1] ?? `round ${s.roundIdx + 2}`;
-    return `${Math.max(target - done, 0)} reps to go · next: ${next}`;
-  },
+  getKpi: (s) => ({ label: 'rounds', current: s.completedRounds, total: null }),
   advance: (s) => {
     const nextEx = s.exIdx + 1;
     if (nextEx >= CINDY_EXERCISES.length) {
@@ -136,7 +99,6 @@ const EMOM_MINUTES = [
   { ex: 'KB SWINGS', target: 15 },
 ];
 const TOTAL_MINUTES = 10;
-const EMOM_WINDOW = 4;
 
 const emomConfig: WodConfig = {
   mode: 'EMOM · 10',
@@ -153,27 +115,9 @@ const emomConfig: WodConfig = {
   getExerciseName: (s) => EMOM_MINUTES[s.minuteIdx % EMOM_MINUTES.length].ex,
   getKpi: (s) => ({
     label: 'minute',
-    value: `${s.minuteIdx + 1}/${TOTAL_MINUTES}`,
-    sub: 'every minute',
+    current: Math.min(s.minuteIdx + 1, TOTAL_MINUTES),
+    total: TOTAL_MINUTES,
   }),
-  getSectionLabel: (s) => `minute ${s.minuteIdx + 1} — in progress`,
-  getSegments: (s, done) =>
-    Array.from({ length: EMOM_WINDOW }, (_, k) => {
-      const mi = s.minuteIdx + k;
-      if (mi >= TOTAL_MINUTES) return null;
-      const mEx = EMOM_MINUTES[mi % EMOM_MINUTES.length];
-      return {
-        name: `M${String(mi + 1).padStart(2, '0')} ${mEx.ex.split(' ')[0]}`,
-        target: mEx.target,
-        filled: k === 0 ? done : 0,
-        isCurrent: k === 0,
-      };
-    }).filter((x): x is SegItem => x !== null),
-  getHint: (s, done) => {
-    const target = EMOM_MINUTES[s.minuteIdx % EMOM_MINUTES.length].target;
-    const nextEx = EMOM_MINUTES[(s.minuteIdx + 1) % EMOM_MINUTES.length].ex;
-    return `${Math.max(target - done, 0)} reps · then ${nextEx}`;
-  },
   advance: (s) => ({ ...s, minuteIdx: s.minuteIdx + 1 }),
   isComplete: (s) => s.minuteIdx >= TOTAL_MINUTES,
 };
@@ -192,7 +136,6 @@ const CHIPPER_EXERCISES = [
   { name: 'BURPEES', target: 50 },
   { name: 'DOUBLE UNDERS', target: 50 },
 ];
-const CHIPPER_WINDOW = 3;
 
 const chipperConfig: WodConfig = {
   mode: 'CHIPPER',
@@ -206,22 +149,9 @@ const chipperConfig: WodConfig = {
   getExerciseName: (s) => CHIPPER_EXERCISES[s.stationIdx]?.name ?? 'DONE',
   getKpi: (s) => ({
     label: 'station',
-    value: `${s.stationIdx + 1}/${CHIPPER_EXERCISES.length}`,
-    sub: 'FILTHY FIFTY',
+    current: Math.min(s.stationIdx + 1, CHIPPER_EXERCISES.length),
+    total: CHIPPER_EXERCISES.length,
   }),
-  getSectionLabel: (s) => `station ${s.stationIdx + 1} — in progress`,
-  getSegments: (s, done) =>
-    Array.from({ length: CHIPPER_WINDOW }, (_, k) => {
-      const i = s.stationIdx + k;
-      if (i >= CHIPPER_EXERCISES.length) return null;
-      const e = CHIPPER_EXERCISES[i];
-      return { name: e.name, target: e.target, filled: k === 0 ? done : 0, isCurrent: k === 0 };
-    }).filter((x): x is SegItem => x !== null),
-  getHint: (s, done) => {
-    const target = CHIPPER_EXERCISES[s.stationIdx]?.target ?? 0;
-    const next = CHIPPER_EXERCISES[s.stationIdx + 1]?.name ?? 'complete';
-    return `${Math.max(target - done, 0)} reps · then ${next}`;
-  },
   advance: (s) => ({ ...s, stationIdx: s.stationIdx + 1 }),
   isComplete: (s) => s.stationIdx >= CHIPPER_EXERCISES.length,
 };

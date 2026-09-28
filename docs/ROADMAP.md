@@ -7,7 +7,7 @@ Working agreement: work is split in two tracks. **Track A** (foundations) is def
 - Android app, personal use for now (scope may change later: iOS, stores).
 - **One judge counts one athlete's reps at a time**, minimizing visual attention.
 - UI language: **English**.
-- Visual style: current tokens in `constants/hf.ts` (dark + mono) are the reference.
+- Visual style: current tokens in `constants/hf.ts` (dark + mono) are the reference. The judging screen follows the **"Ghost · base"** design from Claude Design (see *Design: screens and routes*); its handoff bundle is kept locally in `design/`, which is git-ignored.
 - Package manager: **pnpm**.
 - No tests for now (verify with `pnpm exec tsc --noEmit`, `pnpm lint`, `pnpm exec expo export`, and manual device checks).
 
@@ -113,7 +113,7 @@ Conceptual draft (not code):
 
 ### WOD format as data (decided)
 
-Today a format is a `WodConfig` made of functions (`constants/wods.ts`: `getTarget`, `advance`, `isComplete`, `getKpi`, `getSegments`, `getHint`…), and the reducer advances on reaching the target (`components/judge/reducer.ts:10`). Rereading the code showed a **real EMOM bug**: it advances a minute on reaching the target (`reducer.ts:10`) **and** every 60 s (`hooks/use-judge.ts:45`), so it skips minutes. "When does it advance" must be an explicit format rule.
+Today a format is a `WodConfig` made of functions (`constants/wods.ts`: `getTarget`, `advance`, `isComplete`, `getKpi`…), and the reducer advances on reaching the target (`components/judge/reducer.ts:10`). Rereading the code showed a **real EMOM bug**: it advances a minute on reaching the target (`reducer.ts:10`) **and** every 60 s (`hooks/use-judge.ts:45`), so it skips minutes. "When does it advance" must be an explicit format rule.
 
 **Expressiveness: composable primitives.** A **closed** vocabulary expressed as data. A new format is created by combining primitives **without writing code**; only a new primitive needs code. No formula language.
 
@@ -150,7 +150,7 @@ Current formats as compositions:
 Assumptions (not confirmed, to validate when they matter):
 - **For Time with time cap:** score = time; if the cap runs out unfinished, score = total reps completed. **AMRAP:** rounds + partial reps.
 - **Missed interval** (the minute ends before the target): its partial reps are kept in the log.
-- **Presentation** (KPI, section label, segment window, hint) is **derived from the structure** by the engine, with optional overrides; today these are `WodConfig` functions. Open: how the "CHIPPER" label (`mode` in the current UI) is shown after unifying with For Time.
+- **Presentation** (header KPI and pips, exercise name, count and reps left — all that the Ghost judging screen shows) is **derived from the structure** by the engine, with optional overrides; today only `getKpi` / `getExerciseName` / `getTarget` remain as `WodConfig` functions (the section label, segment bar and hint were removed with the Ghost design). Open: how the "CHIPPER" label (`mode` in the current UI) is shown after unifying with For Time.
 - A rest is a timed step that advances by clock only.
 
 Consequences:
@@ -247,7 +247,9 @@ Today only `/` (WOD list, `app/index.tsx`) and `/judge/[type]` (`app/judge/[type
 
 **The adjustment window is only the result screen, once, right after finishing.** After leaving it, it cannot be reopened.
 
-**Judging controls:** a **✕ in the timer strip** (outside the gesture area) opens "Abort session? Data will be lost". In AMRAP / EMOM a **Finish** button appears in the same place when the clock reaches 0. Android's back button also asks for confirmation.
+**Judging controls:** a **✕** outside the swipe band opens "Abort session? Data will be lost". In AMRAP / EMOM a **Finish** button appears in the same place when the clock reaches 0. Android's back button also asks for confirmation. *The timer strip this used to live in no longer exists (Ghost design): its exact spot in the new header is decided when B16 is done.*
+
+**Judging screen layout ("Ghost · base", implemented):** top to bottom — header (timer on the left; round / minute / station value and pips on the right; pips only when the format has a total, so not in AMRAP) · exercise name · **swipe band** · count with "left" and "of target". Proportions of the 360×740 design: header 140 fixed, exercise zone 92 (flex), band 220 fixed, count zone 288 (flex). **Only the band receives gestures**: swipe right ≥ 30 px within 900 ms = rep, swipe left ≥ 30 px within 900 ms = no-rep, tap (≤ 12 px, ≤ 500 ms) = rep; anything else is ignored. The header is not interactive (no pause, no reset). Removed as too noisy: segment bar, event log, "invalid · retry" badge, hint, section label, gesture footer. Deliberate deviations from the design: flat translucent colour instead of `linear-gradient` (no `expo-linear-gradient`), no glow on the rails, pixel `lineHeight` (~0.9 × size) to avoid glyph clipping on Android, and the vertical divider beside the count is 80 px (the design's `margin: 70px 0` left it ~8 px tall).
 
 **Unsaved-session warning:** a banner in the **setup** (when the judged athlete is anonymous: "This session won't be saved") and another on the **result**.
 
@@ -291,6 +293,8 @@ Assumptions (not confirmed):
 
 ## Track B — Short-term tasks (after Track A setup)
 
+**Ghost UI restructure** — ✅ **done** (outside the numbered backlog, done before B6). The judging screen was rebuilt from the "Ghost · base" Claude Design handoff: new `judge-header`, `round-pips`, `exercise-name`, `swipe-band`, `count-readout` and a rewritten `side-rails`; removed `timer-strip`, `seg-bar`, `hero-counter`, `dot-trail`, `event-log`, `invalid-badge`, `gesture-footer`, `drop-strip`. `WodConfig.getKpi` now returns `{ label, current, total | null }`, and `getSectionLabel`, `getSegments`, `getHint` and `SegItem` were deleted. `useJudge` no longer returns the timer toggles, log, counts, segments or hint, and its gestures use the design's thresholds (details in *Design: screens and routes*). `start-overlay` and the WOD list were not part of the design and are unchanged.
+
 ### Independent of Track A
 
 1. **Housekeeping** — ✅ **done**
@@ -314,7 +318,7 @@ Assumptions (not confirmed):
 13. **Route by WOD id** — replace the format-keyed route `/judge/[type]` and the `WOD_KEYS` / `VALID_TYPES` / `WOD_TYPES` lists with lookups by WOD id (depends on the format engine, see WOD format as data).
 14. **Session flow screens** — `session/wod` (pick the WOD), then `session/setup`: the owner picks their role (judge / judged), scans the other person's QR or leaves them anonymous; shows the "This session won't be saved" banner when the judged athlete is anonymous; blocks self-judging. Expands B10/B11.
 15. **Persist finished session** — a single atomic save at finish, only when the judged athlete is registered; nothing is persisted while judging (no drafts, no aborted sessions). Depends on B17.
-16. **Remove pause/reset, add abort** — drop the timer's tap-to-pause and long-press-reset (`TimerStrip` `onPress`/`onLongPress`, `toggleTimer`/`resetTimer` in `hooks/use-judge.ts`); add an **abort** action with confirmation that discards the session. Control: a **✕ in the timer strip** (outside the gesture area) with "Abort session? Data will be lost"; Android back also confirms; in AMRAP / EMOM a **Finish** button appears in the same place at 0.
+16. **Remove pause/reset, add abort** — 🟡 **half done**. ✅ Pause and reset are gone: the Ghost restructure removed the timer's tap-to-pause and long-press-reset (`TimerStrip`, `toggleTimer`, `resetTimer`). ⏳ Still pending: add an **abort** action with confirmation that discards the session ("Abort session? Data will be lost"; Android back also confirms), and, in AMRAP / EMOM, a **Finish** button when the clock reaches 0. The new header has no spot for the ✕ yet — choose one (outside the swipe band) when doing this task.
 17. **Storage layer** — `pnpm exec expo install expo-sqlite`; open the DB with `SQLiteProvider`; set `foreign_keys = ON` and WAL; migration runner based on `PRAGMA user_version` (forward-only, transactional); schema v1 (see Storage & persistence). Thin typed repositories, no ORM.
 18. **Seed built-ins by migration** — the four current WODs become built-in `formats` (For Time, AMRAP, Intervals), `exercises` and `workouts`, inserted by an append-only migration (Chipper becomes a 1-round For Time).
 19. **Local profile** — create (required before creating any content), edit alias, delete-what's-mine with the retention rule (own sessions and own content go; foreign sessions pending delivery stay; own content still referenced by them is kept without an owner).
@@ -335,4 +339,4 @@ Undo last rep, keep-awake, tests, iOS / store release, volume buttons as rep / n
 - ~~EMOM timing desync~~ — fixed, see B3.
 - ~~EMOM double advance: a minute advances on reaching the target and every 60 s, so minutes are skipped~~ — fixed, see B3.
 - No final state: the timer keeps running after completion / at 00:00 — see B6.
-- Timer tap pauses and long-press resets the clock, but the gesture keeps counting reps while paused and the reset does not clear the reps (`hooks/use-judge.ts:129-131`) — see B16.
+- ~~Timer tap pauses and long-press resets the clock, but the gesture keeps counting reps while paused and the reset does not clear the reps~~ — fixed: pause and reset were removed with the Ghost restructure (see B16 for the abort that remains).
