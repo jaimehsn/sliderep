@@ -7,9 +7,11 @@ export type JudgeState = {
   done: number;
   log: LogEntry[];
   invalidSticky: boolean;
+  finished: boolean;
 };
 
 export type JudgeAction =
   | { type: 'REP'; config: WodConfig }
   | { type: 'NO_REP' }
+  | { type: 'FINISH' }
   | { type: 'RESET'; initial: JudgeState };

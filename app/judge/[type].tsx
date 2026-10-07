@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
@@ -62,9 +62,9 @@ export default function JudgeScreen() {
 
       <JudgeHeader timerLabel={judge.timerLabel} timerStr={judge.timerStr} kpi={judge.kpi} />
 
-      <View style={styles.exerciseZone}>
+      <Pressable style={styles.exerciseZone} onPress={judge.confirmFinish}>
         <ExerciseName name={judge.exerciseName} animatedStyle={judge.exerciseNameStyle} />
-      </View>
+      </Pressable>
 
       <SwipeBand
         gesture={judge.gesture}

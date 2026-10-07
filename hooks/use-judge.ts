@@ -29,6 +29,7 @@ export function useJudge(wodType: WodType) {
   const [isRunning, setIsRunning] = useState(false);
   const [dropKey, setDropKey] = useState(0);
   const [lastKind, setLastKind] = useState<'rep' | 'noRep' | null>(null);
+  const [awaitingFinish, setAwaitingFinish] = useState(false);
 
   const [judgeState, dispatch] = useReducer(judgeReducer, config, makeInitial);
   const judgeStateRef = useRef(judgeState);
@@ -49,13 +50,20 @@ export function useJudge(wodType: WodType) {
   }, [isRunning]);
 
   useEffect(() => {
-    if (wodType !== 'emom') return;
+    if (wodType !== 'emom' || awaitingFinish || judgeState.finished) return;
     const totalMinutes = Math.ceil(config.totalSeconds / 60);
     const minuteIdx = Math.min(Math.floor(elapsed / 60), totalMinutes);
     const prev = judgeStateRef.current;
     if (minuteIdx === prev.session.minuteIdx) return;
-    if (minuteIdx >= totalMinutes) playEnd();
-    else playMinute();
+    if (minuteIdx >= totalMinutes) {
+      // Last minute just ended: freeze and wait for the judge to confirm,
+      // keeping this minute's partial reps instead of resetting done to 0.
+      playEnd();
+      setIsRunning(false);
+      setAwaitingFinish(true);
+      return;
+    }
+    playMinute();
     dispatch({
       type: 'RESET',
       initial: {
@@ -63,17 +71,32 @@ export function useJudge(wodType: WodType) {
         done: 0,
         log: prev.log,
         invalidSticky: false,
+        finished: false,
       },
     });
-  }, [elapsed, wodType, config, playMinute, playEnd]);
+  }, [elapsed, wodType, config, playMinute, playEnd, awaitingFinish, judgeState.finished]);
 
   useEffect(() => {
     if (config.timerMode !== 'remaining' || config.totalSeconds <= 0) return;
     if (elapsed !== config.totalSeconds) return;
     playEnd();
+    setIsRunning(false);
+    setAwaitingFinish(true);
   }, [elapsed, config, playEnd]);
 
+  // For Time / Chipper finish on the last rep (see reducer); freeze the clock there too.
+  useEffect(() => {
+    if (judgeState.finished) setIsRunning(false);
+  }, [judgeState.finished]);
+
+  const confirmFinish = useCallback(() => {
+    if (!awaitingFinish) return;
+    dispatch({ type: 'FINISH' });
+    setAwaitingFinish(false);
+  }, [awaitingFinish]);
+
   const handleRep = useCallback(() => {
+    if (judgeStateRef.current.finished) return;
     dispatch({ type: 'REP', config });
     setLastKind('rep');
     setDropKey((k) => k + 1);
@@ -86,6 +109,7 @@ export function useJudge(wodType: WodType) {
   }, [config, counterScale, invalidProgress]);
 
   const handleNoRep = useCallback(() => {
+    if (judgeStateRef.current.finished) return;
     dispatch({ type: 'NO_REP' });
     setLastKind('noRep');
     setDropKey((k) => k + 1);
@@ -130,7 +154,11 @@ export function useJudge(wodType: WodType) {
 
   const { session, done } = judgeState;
   const target = config.getTarget(session);
-  const exerciseName = config.getExerciseName(session);
+  const exerciseName = judgeState.finished
+    ? 'DONE'
+    : awaitingFinish
+      ? 'TIME'
+      : config.getExerciseName(session);
   const kpi = config.getKpi(session);
 
   const timerStr = useMemo(() => {
@@ -168,6 +196,8 @@ export function useJudge(wodType: WodType) {
     target,
     exerciseName,
     kpi,
+    finished: judgeState.finished,
+    confirmFinish,
     gesture,
     drag,
     dropKey,

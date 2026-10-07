@@ -308,7 +308,7 @@ Assumptions (not confirmed):
 
 ### Depends on Track A (session/data model shapes them)
 
-6. **End-of-WOD state** — For Time / Chipper finish automatically on the last rep (stop timer, freeze final time). AMRAP / EMOM show "TIME" and the judge confirms the end (to count partial reps of the last round). Today the app just sits there.
+6. **End-of-WOD state** — ✅ **done**. Two paths, by `timerMode`. Rep-driven (For Time, Chipper, `elapsed`): on the last rep, the reducer detects the advanced session would satisfy `isComplete` and instead stays on the final round/station with `done` at its final value and `finished: true` — no confirmation needed, the clock freezes in the same render (`hooks/use-judge.ts` effect on `judgeState.finished`). Clock-driven (AMRAP, EMOM — `remaining`/`minLeft`): when the clock reaches its limit, the timer freezes and a local `awaitingFinish` state shows "TIME" in the exercise-name zone while **still counting reps** (the last partial round); a tap there (now a `Pressable`, `app/judge/[type].tsx`) dispatches `FINISH`. Once `finished`, the reducer ignores further `REP`/`NO_REP` and the hook skips their animations/haptics. The header's ✕/Finish spot is still open — that's B16, untouched here.
 7. **Splits** — `LogEntry` (`components/judge/types.ts`, `reducer.ts`) gains `t` (ms on the session clock). Splits, positions and scores are **derived** by replaying the raw log with the engine; **no position is stored** in the event (see Exercise sessions).
 8. **Result screen** — main score per format (time for For Time / Chipper, rounds + partial reps for AMRAP) plus splits per exercise/round. Reuse `formatTime` from `reducer.ts` and the `HF` tokens. EMOM / interval score (decided): intervals completed out of total + total valid reps, both derived from the log.
 9. **`WodConfig` → declarative, serializable `WodDefinition`** (blocks, lines, reps, duration; each line may carry an optional descriptive `repDescription`) plus a **versioned, built-in `Format` described by composable primitives** and an **interpreter** that runs a sequence of blocks; the current WODs become data (Chipper becomes a 1-round For Time). No editor yet.
@@ -338,5 +338,5 @@ Undo last rep, keep-awake, tests, iOS / store release, volume buttons as rep / n
 - ~~Tap is announced ("tap = rep" in the footer) but does not count~~ — fixed, see B2.
 - ~~EMOM timing desync~~ — fixed, see B3.
 - ~~EMOM double advance: a minute advances on reaching the target and every 60 s, so minutes are skipped~~ — fixed, see B3.
-- No final state: the timer keeps running after completion / at 00:00 — see B6.
+- ~~No final state: the timer keeps running after completion / at 00:00~~ — fixed, see B6.
 - ~~Timer tap pauses and long-press resets the clock, but the gesture keeps counting reps while paused and the reset does not clear the reps~~ — fixed: pause and reset were removed with the Ghost restructure (see B16 for the abort that remains).

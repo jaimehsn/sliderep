@@ -50,7 +50,7 @@ The judging screen follows the **"Ghost · base"** design from Claude Design (a 
 - `reducer.ts` + `types.ts` — state machine for the judging session (`REP`, `NO_REP`, `RESET` actions)
 - `judge-header.tsx` — timer (elapsed / countdown / per-minute depending on WOD type) on the left; round / minute / station progress with `round-pips.tsx` on the right. Not interactive.
 - `round-pips.tsx` — row of squares: done (filled), current (ink outline), pending (hairline outline)
-- `exercise-name.tsx` — current exercise name, shrinks to fit, turns accent after a no-rep
+- `exercise-name.tsx` — current exercise name, shrinks to fit, turns accent after a no-rep; shows "TIME" when the clock has ended and awaits the judge's confirmation, or "DONE" once finished. Its wrapping zone (`app/judge/[type].tsx`) is a `Pressable` that confirms the end of AMRAP/EMOM WODs on tap — the only tap target outside the swipe band, since there is no header control for it yet (B16)
 - `swipe-band.tsx` — the only interactive surface: swipe right = rep, swipe left = no-rep, tap = rep; edge ticks, a breathing dot that follows the finger and a travel line after each gesture
 - `count-readout.tsx` — large rep count, plus reps left and the target
 - `side-rails.tsx` — full-height edge lines (accent after a no-rep) and a strip that sweeps inward after each gesture
