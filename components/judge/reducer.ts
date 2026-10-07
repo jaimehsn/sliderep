@@ -7,7 +7,7 @@ export function judgeReducer(state: JudgeState, action: JudgeAction): JudgeState
       if (state.finished) return state;
       const target = action.config.getTarget(state.session);
       const newDone = state.done + 1;
-      const newLog: LogEntry[] = [...state.log, { id: Date.now() + Math.random(), ok: true }];
+      const newLog: LogEntry[] = [...state.log, { id: Date.now() + Math.random(), ok: true, t: action.t }];
       const shouldAdvance =
         action.config.advanceMode === 'onTarget' &&
         newDone >= target &&
@@ -25,7 +25,7 @@ export function judgeReducer(state: JudgeState, action: JudgeAction): JudgeState
     }
     case 'NO_REP':
       if (state.finished) return state;
-      return { ...state, log: [...state.log, { id: Date.now() + Math.random(), ok: false }], invalidSticky: true };
+      return { ...state, log: [...state.log, { id: Date.now() + Math.random(), ok: false, t: action.t }], invalidSticky: true };
     case 'FINISH':
       return { ...state, finished: true };
     case 'RESET':

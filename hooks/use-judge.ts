@@ -35,6 +35,11 @@ export function useJudge(wodType: WodType) {
   const judgeStateRef = useRef(judgeState);
   judgeStateRef.current = judgeState;
 
+  // Session clock: ms since judging started (right after the countdown), independent
+  // of the second-granularity `elapsed` counter used for the visible timer.
+  const sessionStartRef = useRef<number | null>(null);
+  const getT = () => Date.now() - (sessionStartRef.current ?? Date.now());
+
   const counterScale = useSharedValue(1);
   const invalidProgress = useSharedValue(0);
   const drag = useSharedValue(0);
@@ -89,6 +94,11 @@ export function useJudge(wodType: WodType) {
     if (judgeState.finished) setIsRunning(false);
   }, [judgeState.finished]);
 
+  const startTimer = useCallback(() => {
+    sessionStartRef.current = Date.now();
+    setIsRunning(true);
+  }, []);
+
   const confirmFinish = useCallback(() => {
     if (!awaitingFinish) return;
     dispatch({ type: 'FINISH' });
@@ -97,7 +107,7 @@ export function useJudge(wodType: WodType) {
 
   const handleRep = useCallback(() => {
     if (judgeStateRef.current.finished) return;
-    dispatch({ type: 'REP', config });
+    dispatch({ type: 'REP', config, t: getT() });
     setLastKind('rep');
     setDropKey((k) => k + 1);
     counterScale.value = withSequence(
@@ -110,7 +120,7 @@ export function useJudge(wodType: WodType) {
 
   const handleNoRep = useCallback(() => {
     if (judgeStateRef.current.finished) return;
-    dispatch({ type: 'NO_REP' });
+    dispatch({ type: 'NO_REP', t: getT() });
     setLastKind('noRep');
     setDropKey((k) => k + 1);
     counterScale.value = withSequence(
@@ -189,7 +199,7 @@ export function useJudge(wodType: WodType) {
   }));
 
   return {
-    startTimer: () => setIsRunning(true),
+    startTimer,
     timerStr,
     timerLabel,
     done,
