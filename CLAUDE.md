@@ -47,7 +47,7 @@ File-based routing via Expo Router. All routes live in `app/`:
 
 The judging screen follows the **"Ghost · base"** design from Claude Design (a local copy of the handoff bundle lives in `design/`, which is git-ignored). Layout, top to bottom: header · exercise name · swipe band · count. Only the swipe band receives gestures.
 
-- `reducer.ts` + `types.ts` — state machine for the judging session (`REP`, `NO_REP`, `FINISH`, `RESET` actions). Each logged event (`LogEntry`) carries `t`: ms on the session clock, which starts when judging begins (right after the countdown) — the raw data splits will later be derived from
+- `reducer.ts` + `types.ts` — state machine for the judging session (`REP`, `NO_REP`, `FINISH`, `RESET` actions). Each logged event (`LogEntry`) carries `t`: ms on the session clock, which starts when judging begins (right after the countdown) — this raw log is what `components/result/` replays into splits and a score
 - `judge-header.tsx` — timer (elapsed / countdown / per-minute depending on WOD type) on the left; round / minute / station progress with `round-pips.tsx` on the right. Not interactive.
 - `round-pips.tsx` — row of squares: done (filled), current (ink outline), pending (hairline outline)
 - `exercise-name.tsx` — current exercise name, shrinks to fit, turns accent after a no-rep; shows "TIME" when the clock has ended and awaits the judge's confirmation, or "DONE" once finished. Its wrapping zone (`app/judge/[type].tsx`) is a `Pressable` that confirms the end of AMRAP/EMOM WODs on tap — the only tap target outside the swipe band, since there is no header control for it yet (B16)
@@ -55,6 +55,13 @@ The judging screen follows the **"Ghost · base"** design from Claude Design (a 
 - `count-readout.tsx` — large rep count, plus reps left and the target
 - `side-rails.tsx` — full-height edge lines (accent after a no-rep) and a strip that sweeps inward after each gesture
 - `start-overlay.tsx` — pre-judging WOD summary and 10-second countdown (with sound cues)
+
+### Result Screen (`components/result/`)
+
+Shown by `app/judge/[type].tsx` in place of the judging layout once `judge.finished` — still the same route; there is no separate `session/result` route yet (that's B13/B21).
+
+- `replay.ts` — `deriveResult(config, log)`: pure, derives score + splits from the raw log by replaying it against the existing `WodConfig` functions (`getTarget`, `getExerciseName`, `getKpi`, `advance`, `isComplete`, `advanceMode`). Nothing is stored; everything here is recomputed from `WOD + log` (see `docs/ROADMAP.md` → Exercise sessions).
+- `result-screen.tsx` — renders the `WodResult`: score, then a scrollable split list.
 
 ### Hooks
 

@@ -208,6 +208,7 @@ export function useJudge(wodType: WodType) {
     kpi,
     finished: judgeState.finished,
     confirmFinish,
+    log: judgeState.log,
     gesture,
     drag,
     dropKey,

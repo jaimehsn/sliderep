@@ -22,6 +22,7 @@ import { ExerciseName } from '@/components/judge/exercise-name';
 import { SwipeBand } from '@/components/judge/swipe-band';
 import { CountReadout } from '@/components/judge/count-readout';
 import { SideRails } from '@/components/judge/side-rails';
+import { ResultScreen } from '@/components/result/result-screen';
 
 const VALID_TYPES: WodType[] = ['forTime', 'amrap', 'emom', 'chipper'];
 
@@ -52,6 +53,14 @@ export default function JudgeScreen() {
           config={getWodConfig(wodType)}
           onDone={() => { setPhase('judging'); judge.startTimer(); }}
         />
+      </View>
+    );
+  }
+
+  if (judge.finished) {
+    return (
+      <View style={[styles.root, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+        <ResultScreen config={getWodConfig(wodType)} log={judge.log} />
       </View>
     );
   }
