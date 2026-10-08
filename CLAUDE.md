@@ -35,8 +35,10 @@ pnpm reset-project     # Reset to blank Expo template
 ### Routing
 
 File-based routing via Expo Router. All routes live in `app/`:
-- `app/index.tsx` — WOD selection screen (list of available workouts); has a "MY QR" button to `/my-qr`
-- `app/judge/[id].tsx` — Judge screen for a specific WOD (`fran` | `cindy` | `everyMinute` | `filthyFifty`)
+- `app/index.tsx` — entry screen with a "SELECT WORKOUT" button to `/session/wod` and a "MY QR" button to `/my-qr`. Minimal stand-in for the real hub (B21)
+- `app/session/wod.tsx` — pick a WOD; each card pushes to `/session/setup`
+- `app/session/setup.tsx` — the owner picks their role (judge / judged), then scans the other person's QR or skips (`components/session/scan-person.tsx`), then hands off to `/judge/[id]` with `role` and `otherAlias` as route params. Shows "This session won't be saved" when judging and skipping (the only direction that's actually unsaved — see `docs/ROADMAP.md`'s Users table). No `session/_layout.tsx`/session context yet (B21) — everything here is plain route params
+- `app/judge/[id].tsx` — Judge screen for a specific WOD (`fran` | `cindy` | `everyMinute` | `filthyFifty`); `ready` → judging → finished only. Redirects to `/session/setup` if reached without a resolved `role` param (e.g. a direct deep link)
 - `app/my-qr.tsx` — shows the local athlete's QR (`constants/profile.ts`'s `STUB_PROFILE` — fixed, not persisted; the real local profile is B19). Deliberately high-contrast (white/black), inverted from the app's usual dark theme, for camera reliability
 - `app/_layout.tsx` — root layout wrapping the full app with navigation stack
 
@@ -57,15 +59,18 @@ The judging screen follows the **"Ghost · base"** design from Claude Design (a 
 - `swipe-band.tsx` — the only interactive surface: swipe right = rep, swipe left = no-rep, tap = rep; edge ticks, a breathing dot that follows the finger and a travel line after each gesture
 - `count-readout.tsx` — large rep count, plus reps left and the target
 - `side-rails.tsx` — full-height edge lines (accent after a no-rep) and a strip that sweeps inward after each gesture
-- `start-overlay.tsx` — pre-judging WOD summary and 10-second countdown (with sound cues); shows who's being judged (`athleteAlias` prop)
-- `scan-athlete.tsx` — first thing `app/judge/[id].tsx` shows (`'scan'` phase, before `'ready'`): "SCAN QR" (requests camera permission then, via `expo-camera`'s `CameraView`) or "SKIP — ANONYMOUS". Blocks self-judging by comparing the scanned `athleteId` to `constants/profile.ts`'s `STUB_PROFILE.athleteId`. Not persisted — the result is only held in `app/judge/[id].tsx`'s local state and shown in `start-overlay.tsx` / `result-screen.tsx`
+- `start-overlay.tsx` — pre-judging WOD summary and 10-second countdown (with sound cues); shows who's being judged, flipped by the `role` prop (`athleteAlias` + `role: 'judge'|'judged'` → "Judging X" / "Judged by X")
+
+### Session Setup Components (`components/session/`)
+
+- `scan-person.tsx` — `ScanPerson`: used by `app/session/setup.tsx` after the role choice. "SCAN QR" (requests camera permission then, via `expo-camera`'s `CameraView`) or "SKIP — ANONYMOUS". Blocks self-scanning by comparing the scanned id to `constants/profile.ts`'s `STUB_PROFILE.athleteId` (role-agnostic: the owner's own id doesn't change). Not persisted — the result is only held in `app/session/setup.tsx`'s local state, threaded to `/judge/[id]` as route params
 
 ### Result Screen (`components/result/`)
 
 Shown by `app/judge/[id].tsx` in place of the judging layout once `judge.finished` — still the same route; there is no separate `session/result` route yet (that's B21).
 
 - `replay.ts` — `deriveResult(config, log)`: pure, derives score + splits from the raw log by replaying it against the existing `WodConfig` functions (`getTarget`, `getExerciseName`, `getKpi`, `advance`, `isComplete`, `advanceMode`). Nothing is stored; everything here is recomputed from `WOD + log` (see `docs/ROADMAP.md` → Exercise sessions).
-- `result-screen.tsx` — renders the `WodResult`: score, then a scrollable split list.
+- `result-screen.tsx` — renders the `WodResult`: score, then a scrollable split list. Also takes `athleteAlias` + `role` to flip "Judging X" / "Judged by X", same as `start-overlay.tsx`.
 
 ### Shared UI
 

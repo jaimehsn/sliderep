@@ -11,6 +11,8 @@ export type { WodSession, WodKpi, WodExercise, WodConfig } from './wod-engine';
 
 export type WodId = 'fran' | 'cindy' | 'everyMinute' | 'filthyFifty';
 
+export const WOD_IDS: WodId[] = ['fran', 'cindy', 'everyMinute', 'filthyFifty'];
+
 // ─── For Time: FRAN 21-15-9 ──────────────────────────────────────────────────
 
 const FRAN: WodDefinition = {

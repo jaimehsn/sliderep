@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import {
   useFonts,
   BarlowCondensed_400Regular,
@@ -13,10 +13,9 @@ import {
 } from '@expo-google-fonts/ibm-plex-mono';
 
 import { HF } from '@/constants/hf';
-import { WodId, getWodConfig } from '@/constants/wods';
+import { WodId, WOD_IDS, getWodConfig } from '@/constants/wods';
 import { useJudge } from '@/hooks/use-judge';
 import { Screen } from '@/components/screen';
-import { ScanAthlete } from '@/components/judge/scan-athlete';
 import { StartOverlay } from '@/components/judge/start-overlay';
 import { JudgeHeader } from '@/components/judge/judge-header';
 import { ExerciseName } from '@/components/judge/exercise-name';
@@ -25,11 +24,16 @@ import { CountReadout } from '@/components/judge/count-readout';
 import { SideRails } from '@/components/judge/side-rails';
 import { ResultScreen } from '@/components/result/result-screen';
 
-const VALID_IDS: WodId[] = ['fran', 'cindy', 'everyMinute', 'filthyFifty'];
-
 export default function JudgeScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const wodId: WodId = VALID_IDS.includes(id as WodId) ? (id as WodId) : 'fran';
+  const { id, role, otherAlias } = useLocalSearchParams<{
+    id: string;
+    role?: string;
+    otherAlias?: string;
+  }>();
+  const wodId: WodId = WOD_IDS.includes(id as WodId) ? (id as WodId) : 'fran';
+  const resolvedRole: 'judge' | 'judged' = role === 'judged' ? 'judged' : 'judge';
+  const otherAliasResolved = otherAlias ? otherAlias : null;
+  const needsSetup = role !== 'judge' && role !== 'judged';
 
   const [fontsLoaded] = useFonts({
     BarlowCondensed_400Regular,
@@ -40,19 +44,16 @@ export default function JudgeScreen() {
   });
 
   const judge = useJudge(wodId);
-  const [phase, setPhase] = useState<'scan' | 'ready' | 'judging'>('scan');
-  const [athlete, setAthlete] = useState<{ athleteId: string; alias: string } | null>(null);
+  const [phase, setPhase] = useState<'ready' | 'judging'>('ready');
 
-  if (!fontsLoaded) {
+  useEffect(() => {
+    if (needsSetup) {
+      router.replace({ pathname: '/session/setup', params: { wodId: id } });
+    }
+  }, [needsSetup, id]);
+
+  if (!fontsLoaded || needsSetup) {
     return <View style={{ flex: 1, backgroundColor: HF.bg }} />;
-  }
-
-  if (phase === 'scan') {
-    return (
-      <Screen style={styles.root}>
-        <ScanAthlete onDone={(a) => { setAthlete(a); setPhase('ready'); }} />
-      </Screen>
-    );
   }
 
   if (phase === 'ready') {
@@ -60,7 +61,8 @@ export default function JudgeScreen() {
       <Screen style={styles.root} minBottomPadding={24}>
         <StartOverlay
           config={getWodConfig(wodId)}
-          athleteAlias={athlete?.alias ?? null}
+          athleteAlias={otherAliasResolved}
+          role={resolvedRole}
           onDone={() => { setPhase('judging'); judge.startTimer(); }}
         />
       </Screen>
@@ -70,7 +72,12 @@ export default function JudgeScreen() {
   if (judge.finished) {
     return (
       <Screen style={styles.root}>
-        <ResultScreen config={getWodConfig(wodId)} log={judge.log} athleteAlias={athlete?.alias ?? null} />
+        <ResultScreen
+          config={getWodConfig(wodId)}
+          log={judge.log}
+          athleteAlias={otherAliasResolved}
+          role={resolvedRole}
+        />
       </Screen>
     );
   }

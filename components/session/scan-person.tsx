@@ -4,14 +4,15 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import { HF } from '@/constants/hf';
 import { parseQrPayload, STUB_PROFILE } from '@/constants/profile';
 
-type ScannedAthlete = { athleteId: string; alias: string };
+export type ScannedPerson = { id: string; alias: string };
 
 type Props = {
-  onDone: (athlete: ScannedAthlete | null) => void;
+  title: string;
+  onDone: (person: ScannedPerson | null) => void;
 };
 
-/** Pre-judging step: scan the judged athlete's "My QR", or skip and stay anonymous. */
-export function ScanAthlete({ onDone }: Props) {
+/** Session-setup step: scan the other person's "My QR", or skip and stay anonymous. */
+export function ScanPerson({ title, onDone }: Props) {
   const [permission, requestPermission] = useCameraPermissions();
   const [scanning, setScanning] = useState(false);
   const [selfError, setSelfError] = useState(false);
@@ -36,7 +37,7 @@ export function ScanAthlete({ onDone }: Props) {
       return;
     }
     lockedRef.current = true;
-    onDone({ athleteId: payload.athleteId, alias: payload.alias });
+    onDone({ id: payload.athleteId, alias: payload.alias });
   };
 
   if (scanning) {
@@ -50,7 +51,7 @@ export function ScanAthlete({ onDone }: Props) {
         />
         {selfError && (
           <View style={styles.errorBanner}>
-            <Text style={styles.errorText}>That&rsquo;s your own QR — scan the athlete&rsquo;s instead</Text>
+            <Text style={styles.errorText}>That&rsquo;s your own QR — scan the other person&rsquo;s instead</Text>
           </View>
         )}
         <Pressable
@@ -65,7 +66,7 @@ export function ScanAthlete({ onDone }: Props) {
 
   return (
     <View style={[styles.root, styles.center]}>
-      <Text style={styles.title}>WHO ARE YOU JUDGING?</Text>
+      <Text style={styles.title}>{title}</Text>
       {permission != null && !permission.granted && !permission.canAskAgain && (
         <Text style={styles.hint}>Camera access was denied — you can still continue anonymously.</Text>
       )}

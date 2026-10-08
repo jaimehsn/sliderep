@@ -8,6 +8,7 @@ import { useSoundCue } from '@/hooks/use-sound-cue';
 type Props = {
   config: WodConfig;
   athleteAlias?: string | null;
+  role?: 'judge' | 'judged';
   onDone: () => void;
 };
 
@@ -16,7 +17,10 @@ function formatDuration(seconds: number): string {
   return `${m} min`;
 }
 
-export function StartOverlay({ config, athleteAlias, onDone }: Props) {
+export function StartOverlay({ config, athleteAlias, role = 'judge', onDone }: Props) {
+  const judgingLabel = role === 'judged'
+    ? (athleteAlias ? `Judged by ${athleteAlias}` : 'Judged by anonymous')
+    : (athleteAlias ? `Judging ${athleteAlias}` : 'Judging anonymous');
   const [phase, setPhase] = useState<'ready' | 'countdown'>('ready');
   const [count, setCount] = useState(10);
   const onDoneRef = useRef(onDone);
@@ -53,7 +57,7 @@ export function StartOverlay({ config, athleteAlias, onDone }: Props) {
             <View>
               <Text style={styles.mode}>{config.mode}</Text>
               <Text style={styles.name}>{config.name}</Text>
-              <Text style={styles.judging}>{athleteAlias ? `Judging ${athleteAlias}` : 'Judging anonymous'}</Text>
+              <Text style={styles.judging}>{judgingLabel}</Text>
             </View>
           </View>
         </View>
@@ -75,7 +79,7 @@ export function StartOverlay({ config, athleteAlias, onDone }: Props) {
             {config.totalSeconds > 0 && (
               <Text style={styles.duration}>{formatDuration(config.totalSeconds)}</Text>
             )}
-            <Text style={styles.judging}>{athleteAlias ? `Judging ${athleteAlias}` : 'Judging anonymous'}</Text>
+            <Text style={styles.judging}>{judgingLabel}</Text>
           </View>
           <Pressable
             onPress={() => router.back()}

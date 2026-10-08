@@ -10,17 +10,21 @@ type Props = {
   config: WodConfig;
   log: LogEntry[];
   athleteAlias?: string | null;
+  role?: 'judge' | 'judged';
 };
 
-export function ResultScreen({ config, log, athleteAlias }: Props) {
+export function ResultScreen({ config, log, athleteAlias, role = 'judge' }: Props) {
   const result = useMemo(() => deriveResult(config, log), [config, log]);
+  const judgingLabel = role === 'judged'
+    ? (athleteAlias ? `Judged by ${athleteAlias}` : 'Judged by anonymous')
+    : (athleteAlias ? `Judging ${athleteAlias}` : 'Judging anonymous');
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.mode}>{config.mode}</Text>
         <Text style={styles.name}>{config.name}</Text>
-        <Text style={styles.judging}>{athleteAlias ? `Judging ${athleteAlias}` : 'Judging anonymous'}</Text>
+        <Text style={styles.judging}>{judgingLabel}</Text>
       </View>
 
       <View style={styles.scoreBlock}>
