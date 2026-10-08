@@ -40,7 +40,8 @@ File-based routing via Expo Router. All routes live in `app/`:
 
 ### WOD System
 
-- `constants/wods.ts` — defines `WodConfig` and `WodSession` types, plus the four WOD configs (`forTime`, `amrap`, `emom`, `chipper`). Each config implements a common interface: `getTarget`, `getExerciseName`, `getKpi` (header progress: `label`, `current`, `total | null`), `advance`, `isComplete`, plus `advanceMode` (`onTarget` | `onClock`).
+- `constants/wod-engine.ts` — the interpreter ("format = behavior"). `Format` (built-in, versioned: `repeat: rounds | cycle | perInterval`, `advance`, `timer`, `stop`, `score`) + `WodDefinition`/`Block`/`WodLine` (declarative WOD content) + `buildWodConfig(definition, format): WodConfig`, which derives `getTarget`/`getExerciseName`/`getKpi`/`advance`/`isComplete`/`advanceMode` generically. Also owns the `WodConfig`/`WodSession`/`WodKpi`/`WodExercise` types (re-exported from `wods.ts`). Scoped to what the 4 built-in WODs need — no rest steps, multi-block WODs or time caps yet.
+- `constants/wods.ts` — defines `WodType` and the four built-in `WodDefinition`s (`forTime`→FRAN, `amrap`→CINDY, `emom`→the EMOM workout, `chipper`→Filthy Fifty, unified with For Time as a 1-round WOD). `getWodConfig(type)` looks up `{ definition, format }` and calls `buildWodConfig`.
 - `constants/hf.ts` — design tokens (colors, etc.) used throughout the UI
 
 ### Judge Screen Components (`components/judge/`)
