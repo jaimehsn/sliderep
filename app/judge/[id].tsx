@@ -13,7 +13,7 @@ import {
 } from '@expo-google-fonts/ibm-plex-mono';
 
 import { HF } from '@/constants/hf';
-import { WodType, getWodConfig } from '@/constants/wods';
+import { WodId, getWodConfig } from '@/constants/wods';
 import { useJudge } from '@/hooks/use-judge';
 import { Screen } from '@/components/screen';
 import { ScanAthlete } from '@/components/judge/scan-athlete';
@@ -25,11 +25,11 @@ import { CountReadout } from '@/components/judge/count-readout';
 import { SideRails } from '@/components/judge/side-rails';
 import { ResultScreen } from '@/components/result/result-screen';
 
-const VALID_TYPES: WodType[] = ['forTime', 'amrap', 'emom', 'chipper'];
+const VALID_IDS: WodId[] = ['fran', 'cindy', 'everyMinute', 'filthyFifty'];
 
 export default function JudgeScreen() {
-  const { type } = useLocalSearchParams<{ type: string }>();
-  const wodType: WodType = VALID_TYPES.includes(type as WodType) ? (type as WodType) : 'forTime';
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const wodId: WodId = VALID_IDS.includes(id as WodId) ? (id as WodId) : 'fran';
 
   const [fontsLoaded] = useFonts({
     BarlowCondensed_400Regular,
@@ -39,7 +39,7 @@ export default function JudgeScreen() {
     IBMPlexMono_500Medium,
   });
 
-  const judge = useJudge(wodType);
+  const judge = useJudge(wodId);
   const [phase, setPhase] = useState<'scan' | 'ready' | 'judging'>('scan');
   const [athlete, setAthlete] = useState<{ athleteId: string; alias: string } | null>(null);
 
@@ -59,7 +59,7 @@ export default function JudgeScreen() {
     return (
       <Screen style={styles.root} minBottomPadding={24}>
         <StartOverlay
-          config={getWodConfig(wodType)}
+          config={getWodConfig(wodId)}
           athleteAlias={athlete?.alias ?? null}
           onDone={() => { setPhase('judging'); judge.startTimer(); }}
         />
@@ -70,7 +70,7 @@ export default function JudgeScreen() {
   if (judge.finished) {
     return (
       <Screen style={styles.root}>
-        <ResultScreen config={getWodConfig(wodType)} log={judge.log} athleteAlias={athlete?.alias ?? null} />
+        <ResultScreen config={getWodConfig(wodId)} log={judge.log} athleteAlias={athlete?.alias ?? null} />
       </Screen>
     );
   }

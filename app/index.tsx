@@ -10,15 +10,15 @@ import { IBMPlexMono_400Regular } from '@expo-google-fonts/ibm-plex-mono';
 
 import { Screen } from '@/components/screen';
 import { HF } from '@/constants/hf';
-import { WodType, getWodConfig } from '@/constants/wods';
+import { WodId, getWodConfig } from '@/constants/wods';
 
-const WOD_KEYS: WodType[] = ['forTime', 'amrap', 'emom', 'chipper'];
+const WOD_KEYS: WodId[] = ['fran', 'cindy', 'everyMinute', 'filthyFifty'];
 
-const WOD_DESCRIPTIONS: Record<WodType, string> = {
-  forTime: '21-15-9 · thrusters + pull-ups',
-  amrap:   '12 min · pull-ups, push-ups, air squats',
-  emom:    '10 min · burpees + kb swings',
-  chipper: '10 stations · 50 reps each',
+const WOD_DESCRIPTIONS: Record<WodId, string> = {
+  fran:        '21-15-9 · thrusters + pull-ups',
+  cindy:       '12 min · pull-ups, push-ups, air squats',
+  everyMinute: '10 min · burpees + kb swings',
+  filthyFifty: '10 stations · 50 reps each',
 };
 
 export default function WodSelectScreen() {

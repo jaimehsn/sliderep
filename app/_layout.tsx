@@ -8,7 +8,7 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="index" />
-        <Stack.Screen name="judge/[type]" />
+        <Stack.Screen name="judge/[id]" />
         <Stack.Screen name="+not-found" />
       </Stack>
       <StatusBar style="light" />

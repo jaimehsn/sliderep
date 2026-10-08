@@ -9,7 +9,7 @@ import {
 
 export type { WodSession, WodKpi, WodExercise, WodConfig } from './wod-engine';
 
-export type WodType = 'forTime' | 'amrap' | 'emom' | 'chipper';
+export type WodId = 'fran' | 'cindy' | 'everyMinute' | 'filthyFifty';
 
 // ─── For Time: FRAN 21-15-9 ──────────────────────────────────────────────────
 
@@ -88,14 +88,14 @@ const FILTHY_FIFTY: WodDefinition = {
 
 // ─── Registry ────────────────────────────────────────────────────────────────
 
-const REGISTRY: Record<WodType, { definition: WodDefinition; format: Format }> = {
-  forTime: { definition: FRAN, format: FOR_TIME_FORMAT },
-  amrap: { definition: CINDY, format: AMRAP_FORMAT },
-  emom: { definition: EMOM_WORKOUT, format: EMOM_FORMAT },
-  chipper: { definition: FILTHY_FIFTY, format: FOR_TIME_FORMAT },
+const REGISTRY: Record<WodId, { definition: WodDefinition; format: Format }> = {
+  fran: { definition: FRAN, format: FOR_TIME_FORMAT },
+  cindy: { definition: CINDY, format: AMRAP_FORMAT },
+  everyMinute: { definition: EMOM_WORKOUT, format: EMOM_FORMAT },
+  filthyFifty: { definition: FILTHY_FIFTY, format: FOR_TIME_FORMAT },
 };
 
-export function getWodConfig(type: WodType) {
-  const { definition, format } = REGISTRY[type];
+export function getWodConfig(id: WodId) {
+  const { definition, format } = REGISTRY[id];
   return buildWodConfig(definition, format);
 }

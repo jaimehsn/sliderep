@@ -36,14 +36,14 @@ pnpm reset-project     # Reset to blank Expo template
 
 File-based routing via Expo Router. All routes live in `app/`:
 - `app/index.tsx` — WOD selection screen (list of available workouts); has a "MY QR" button to `/my-qr`
-- `app/judge/[type].tsx` — Judge screen for a specific WOD type (`forTime` | `amrap` | `emom` | `chipper`)
+- `app/judge/[id].tsx` — Judge screen for a specific WOD (`fran` | `cindy` | `everyMinute` | `filthyFifty`)
 - `app/my-qr.tsx` — shows the local athlete's QR (`constants/profile.ts`'s `STUB_PROFILE` — fixed, not persisted; the real local profile is B19). Deliberately high-contrast (white/black), inverted from the app's usual dark theme, for camera reliability
 - `app/_layout.tsx` — root layout wrapping the full app with navigation stack
 
 ### WOD System
 
 - `constants/wod-engine.ts` — the interpreter ("format = behavior"). `Format` (built-in, versioned: `repeat: rounds | cycle | perInterval`, `advance`, `timer`, `stop`, `score`) + `WodDefinition`/`Block`/`WodLine` (declarative WOD content) + `buildWodConfig(definition, format): WodConfig`, which derives `getTarget`/`getExerciseName`/`getKpi`/`advance`/`isComplete`/`advanceMode` generically. Also owns the `WodConfig`/`WodSession`/`WodKpi`/`WodExercise` types (re-exported from `wods.ts`). Scoped to what the 4 built-in WODs need — no rest steps, multi-block WODs or time caps yet.
-- `constants/wods.ts` — defines `WodType` and the four built-in `WodDefinition`s (`forTime`→FRAN, `amrap`→CINDY, `emom`→the EMOM workout, `chipper`→Filthy Fifty, unified with For Time as a 1-round WOD). `getWodConfig(type)` looks up `{ definition, format }` and calls `buildWodConfig`.
+- `constants/wods.ts` — defines `WodId` (`'fran' | 'cindy' | 'everyMinute' | 'filthyFifty'`, also each `WodDefinition`'s own `id`) and the four built-in `WodDefinition`s (`fran`→FRAN, `cindy`→CINDY, `everyMinute`→the EMOM workout, `filthyFifty`→Filthy Fifty, unified with For Time as a 1-round WOD). `getWodConfig(id)` looks up `{ definition, format }` and calls `buildWodConfig`.
 - `constants/hf.ts` — design tokens (colors, etc.) used throughout the UI
 
 ### Judge Screen Components (`components/judge/`)
@@ -53,16 +53,16 @@ The judging screen follows the **"Ghost · base"** design from Claude Design (a 
 - `reducer.ts` + `types.ts` — state machine for the judging session (`REP`, `NO_REP`, `FINISH`, `RESET` actions). Each logged event (`LogEntry`) carries `t`: ms on the session clock, which starts when judging begins (right after the countdown) — this raw log is what `components/result/` replays into splits and a score
 - `judge-header.tsx` — timer (elapsed / countdown / per-minute depending on WOD type) on the left; round / minute / station progress with `round-pips.tsx` on the right. Not interactive.
 - `round-pips.tsx` — row of squares: done (filled), current (ink outline), pending (hairline outline)
-- `exercise-name.tsx` — current exercise name, shrinks to fit, turns accent after a no-rep; shows "TIME" when the clock has ended and awaits the judge's confirmation, or "DONE" once finished. Its wrapping zone (`app/judge/[type].tsx`) is a `Pressable` that confirms the end of AMRAP/EMOM WODs on tap — the only tap target outside the swipe band, since there is no header control for it yet (B16)
+- `exercise-name.tsx` — current exercise name, shrinks to fit, turns accent after a no-rep; shows "TIME" when the clock has ended and awaits the judge's confirmation, or "DONE" once finished. Its wrapping zone (`app/judge/[id].tsx`) is a `Pressable` that confirms the end of AMRAP/EMOM WODs on tap — the only tap target outside the swipe band, since there is no header control for it yet (B16)
 - `swipe-band.tsx` — the only interactive surface: swipe right = rep, swipe left = no-rep, tap = rep; edge ticks, a breathing dot that follows the finger and a travel line after each gesture
 - `count-readout.tsx` — large rep count, plus reps left and the target
 - `side-rails.tsx` — full-height edge lines (accent after a no-rep) and a strip that sweeps inward after each gesture
 - `start-overlay.tsx` — pre-judging WOD summary and 10-second countdown (with sound cues); shows who's being judged (`athleteAlias` prop)
-- `scan-athlete.tsx` — first thing `app/judge/[type].tsx` shows (`'scan'` phase, before `'ready'`): "SCAN QR" (requests camera permission then, via `expo-camera`'s `CameraView`) or "SKIP — ANONYMOUS". Blocks self-judging by comparing the scanned `athleteId` to `constants/profile.ts`'s `STUB_PROFILE.athleteId`. Not persisted — the result is only held in `app/judge/[type].tsx`'s local state and shown in `start-overlay.tsx` / `result-screen.tsx`
+- `scan-athlete.tsx` — first thing `app/judge/[id].tsx` shows (`'scan'` phase, before `'ready'`): "SCAN QR" (requests camera permission then, via `expo-camera`'s `CameraView`) or "SKIP — ANONYMOUS". Blocks self-judging by comparing the scanned `athleteId` to `constants/profile.ts`'s `STUB_PROFILE.athleteId`. Not persisted — the result is only held in `app/judge/[id].tsx`'s local state and shown in `start-overlay.tsx` / `result-screen.tsx`
 
 ### Result Screen (`components/result/`)
 
-Shown by `app/judge/[type].tsx` in place of the judging layout once `judge.finished` — still the same route; there is no separate `session/result` route yet (that's B13/B21).
+Shown by `app/judge/[id].tsx` in place of the judging layout once `judge.finished` — still the same route; there is no separate `session/result` route yet (that's B21).
 
 - `replay.ts` — `deriveResult(config, log)`: pure, derives score + splits from the raw log by replaying it against the existing `WodConfig` functions (`getTarget`, `getExerciseName`, `getKpi`, `advance`, `isComplete`, `advanceMode`). Nothing is stored; everything here is recomputed from `WOD + log` (see `docs/ROADMAP.md` → Exercise sessions).
 - `result-screen.tsx` — renders the `WodResult`: score, then a scrollable split list.

@@ -10,7 +10,7 @@ import {
 } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 import * as Haptics from 'expo-haptics';
-import { WodType, getWodConfig } from '@/constants/wods';
+import { WodId, getWodConfig } from '@/constants/wods';
 import { HF } from '@/constants/hf';
 import { judgeReducer, makeInitial, formatTime } from '@/components/judge/reducer';
 import { useSoundCue } from '@/hooks/use-sound-cue';
@@ -22,8 +22,8 @@ const TAP_MAX_DX = 12;
 const TAP_MAX_MS = 500;
 const DRAG_MAX = 70;
 
-export function useJudge(wodType: WodType) {
-  const config = useMemo(() => getWodConfig(wodType), [wodType]);
+export function useJudge(wodId: WodId) {
+  const config = useMemo(() => getWodConfig(wodId), [wodId]);
 
   const [elapsed, setElapsed] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
@@ -55,7 +55,7 @@ export function useJudge(wodType: WodType) {
   }, [isRunning]);
 
   useEffect(() => {
-    if (wodType !== 'emom' || awaitingFinish || judgeState.finished) return;
+    if (config.advanceMode !== 'onClock' || awaitingFinish || judgeState.finished) return;
     const totalMinutes = Math.ceil(config.totalSeconds / 60);
     const minuteIdx = Math.min(Math.floor(elapsed / 60), totalMinutes);
     const prev = judgeStateRef.current;
@@ -79,7 +79,7 @@ export function useJudge(wodType: WodType) {
         finished: false,
       },
     });
-  }, [elapsed, wodType, config, playMinute, playEnd, awaitingFinish, judgeState.finished]);
+  }, [elapsed, config, playMinute, playEnd, awaitingFinish, judgeState.finished]);
 
   useEffect(() => {
     if (config.timerMode !== 'remaining' || config.totalSeconds <= 0) return;

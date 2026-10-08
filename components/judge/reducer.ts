@@ -1,4 +1,4 @@
-import { WodConfig, WodType } from '@/constants/wods';
+import { WodConfig } from '@/constants/wods';
 import { JudgeAction, JudgeState, LogEntry } from './types';
 
 export function judgeReducer(state: JudgeState, action: JudgeAction): JudgeState {
@@ -43,10 +43,3 @@ export function formatTime(seconds: number): string {
   const sec = s % 60;
   return `${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
 }
-
-export const WOD_TYPES: { key: WodType; label: string }[] = [
-  { key: 'forTime', label: 'FOR TIME' },
-  { key: 'amrap',   label: 'AMRAP' },
-  { key: 'emom',    label: 'EMOM' },
-  { key: 'chipper', label: 'CHIPPER' },
-];
