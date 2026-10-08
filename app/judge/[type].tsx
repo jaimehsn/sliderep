@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   useFonts,
   BarlowCondensed_400Regular,
@@ -16,6 +15,7 @@ import {
 import { HF } from '@/constants/hf';
 import { WodType, getWodConfig } from '@/constants/wods';
 import { useJudge } from '@/hooks/use-judge';
+import { Screen } from '@/components/screen';
 import { StartOverlay } from '@/components/judge/start-overlay';
 import { JudgeHeader } from '@/components/judge/judge-header';
 import { ExerciseName } from '@/components/judge/exercise-name';
@@ -27,7 +27,6 @@ import { ResultScreen } from '@/components/result/result-screen';
 const VALID_TYPES: WodType[] = ['forTime', 'amrap', 'emom', 'chipper'];
 
 export default function JudgeScreen() {
-  const insets = useSafeAreaInsets();
   const { type } = useLocalSearchParams<{ type: string }>();
   const wodType: WodType = VALID_TYPES.includes(type as WodType) ? (type as WodType) : 'forTime';
 
@@ -48,25 +47,25 @@ export default function JudgeScreen() {
 
   if (phase === 'ready') {
     return (
-      <View style={[styles.root, { paddingTop: insets.top, paddingBottom: Math.max(insets.bottom, 24) }]}>
+      <Screen style={styles.root} minBottomPadding={24}>
         <StartOverlay
           config={getWodConfig(wodType)}
           onDone={() => { setPhase('judging'); judge.startTimer(); }}
         />
-      </View>
+      </Screen>
     );
   }
 
   if (judge.finished) {
     return (
-      <View style={[styles.root, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+      <Screen style={styles.root}>
         <ResultScreen config={getWodConfig(wodType)} log={judge.log} />
-      </View>
+      </Screen>
     );
   }
 
   return (
-    <View style={[styles.root, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+    <Screen style={styles.root}>
       <SideRails railStyle={judge.railStyle} kind={judge.lastKind} dropKey={judge.dropKey} />
 
       <JudgeHeader timerLabel={judge.timerLabel} timerStr={judge.timerStr} kpi={judge.kpi} />
@@ -86,7 +85,7 @@ export default function JudgeScreen() {
       <View style={styles.countZone}>
         <CountReadout done={judge.done} target={judge.target} counterStyle={judge.counterStyle} />
       </View>
-    </View>
+    </Screen>
   );
 }
 

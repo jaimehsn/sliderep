@@ -1,17 +1,18 @@
 import { Link, Stack } from 'expo-router';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text } from 'react-native';
+import { Screen } from '@/components/screen';
 import { HF } from '@/constants/hf';
 
 export default function NotFoundScreen() {
   return (
     <>
       <Stack.Screen options={{ title: 'Not Found', headerShown: true }} />
-      <View style={styles.container}>
+      <Screen style={styles.container}>
         <Text style={styles.title}>Screen not found</Text>
         <Link href="/" style={styles.link}>
           <Text style={styles.linkText}>Back to home</Text>
         </Link>
-      </View>
+      </Screen>
     </>
   );
 }

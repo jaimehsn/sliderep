@@ -20,6 +20,7 @@ Planned work and open design topics (data model, persistence, short-term tasks) 
 
 ```bash
 pnpm start             # Start Expo dev server
+pnpm start:clear       # Start Expo dev server with the Metro cache cleared
 pnpm android           # Run on Android emulator
 pnpm ios               # Run on iOS simulator
 pnpm web               # Run in browser
@@ -34,8 +35,9 @@ pnpm reset-project     # Reset to blank Expo template
 ### Routing
 
 File-based routing via Expo Router. All routes live in `app/`:
-- `app/index.tsx` — WOD selection screen (list of available workouts)
+- `app/index.tsx` — WOD selection screen (list of available workouts); has a "MY QR" button to `/my-qr`
 - `app/judge/[type].tsx` — Judge screen for a specific WOD type (`forTime` | `amrap` | `emom` | `chipper`)
+- `app/my-qr.tsx` — shows the local athlete's QR (`constants/profile.ts`'s `STUB_PROFILE` — fixed, not persisted; the real local profile is B19). Deliberately high-contrast (white/black), inverted from the app's usual dark theme, for camera reliability
 - `app/_layout.tsx` — root layout wrapping the full app with navigation stack
 
 ### WOD System
@@ -63,6 +65,10 @@ Shown by `app/judge/[type].tsx` in place of the judging layout once `judge.finis
 
 - `replay.ts` — `deriveResult(config, log)`: pure, derives score + splits from the raw log by replaying it against the existing `WodConfig` functions (`getTarget`, `getExerciseName`, `getKpi`, `advance`, `isComplete`, `advanceMode`). Nothing is stored; everything here is recomputed from `WOD + log` (see `docs/ROADMAP.md` → Exercise sessions).
 - `result-screen.tsx` — renders the `WodResult`: score, then a scrollable split list.
+
+### Shared UI
+
+- `components/screen.tsx` — `Screen`: root wrapper every top-level screen uses instead of a bare `View`. Applies `useSafeAreaInsets()` as padding (status bar, notch, gesture bar) to its normal-flow children. **Don't rely on this padding to offset a `position: 'absolute'` child** — confirmed on `my-qr.tsx` that it doesn't (the close button stayed under the status bar until it was moved into normal flow, see that file); give any top-corner interactive element its own header row in normal flow instead, like `my-qr.tsx` and `start-overlay.tsx` do. `minBottomPadding` gives a floor for screens whose last element needs room even with a zero inset. Doesn't set a background color — screens still own their own theme via `style` (`my-qr.tsx` is intentionally inverted, light-on-dark).
 
 ### Hooks
 
