@@ -9,9 +9,10 @@ import { deriveResult } from '@/components/result/replay';
 type Props = {
   config: WodConfig;
   log: LogEntry[];
+  athleteAlias?: string | null;
 };
 
-export function ResultScreen({ config, log }: Props) {
+export function ResultScreen({ config, log, athleteAlias }: Props) {
   const result = useMemo(() => deriveResult(config, log), [config, log]);
 
   return (
@@ -19,6 +20,7 @@ export function ResultScreen({ config, log }: Props) {
       <View style={styles.header}>
         <Text style={styles.mode}>{config.mode}</Text>
         <Text style={styles.name}>{config.name}</Text>
+        <Text style={styles.judging}>{athleteAlias ? `Judging ${athleteAlias}` : 'Judging anonymous'}</Text>
       </View>
 
       <View style={styles.scoreBlock}>
@@ -73,6 +75,13 @@ const styles = StyleSheet.create({
     color: HF.ink,
     letterSpacing: 1,
     textTransform: 'uppercase',
+  },
+  judging: {
+    fontFamily: 'IBMPlexMono_400Regular',
+    fontSize: 11,
+    color: HF.muted,
+    letterSpacing: 1,
+    marginTop: 6,
   },
   scoreBlock: {
     alignItems: 'center',

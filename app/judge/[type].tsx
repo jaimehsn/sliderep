@@ -16,6 +16,7 @@ import { HF } from '@/constants/hf';
 import { WodType, getWodConfig } from '@/constants/wods';
 import { useJudge } from '@/hooks/use-judge';
 import { Screen } from '@/components/screen';
+import { ScanAthlete } from '@/components/judge/scan-athlete';
 import { StartOverlay } from '@/components/judge/start-overlay';
 import { JudgeHeader } from '@/components/judge/judge-header';
 import { ExerciseName } from '@/components/judge/exercise-name';
@@ -39,10 +40,19 @@ export default function JudgeScreen() {
   });
 
   const judge = useJudge(wodType);
-  const [phase, setPhase] = useState<'ready' | 'judging'>('ready');
+  const [phase, setPhase] = useState<'scan' | 'ready' | 'judging'>('scan');
+  const [athlete, setAthlete] = useState<{ athleteId: string; alias: string } | null>(null);
 
   if (!fontsLoaded) {
     return <View style={{ flex: 1, backgroundColor: HF.bg }} />;
+  }
+
+  if (phase === 'scan') {
+    return (
+      <Screen style={styles.root}>
+        <ScanAthlete onDone={(a) => { setAthlete(a); setPhase('ready'); }} />
+      </Screen>
+    );
   }
 
   if (phase === 'ready') {
@@ -50,6 +60,7 @@ export default function JudgeScreen() {
       <Screen style={styles.root} minBottomPadding={24}>
         <StartOverlay
           config={getWodConfig(wodType)}
+          athleteAlias={athlete?.alias ?? null}
           onDone={() => { setPhase('judging'); judge.startTimer(); }}
         />
       </Screen>
@@ -59,7 +70,7 @@ export default function JudgeScreen() {
   if (judge.finished) {
     return (
       <Screen style={styles.root}>
-        <ResultScreen config={getWodConfig(wodType)} log={judge.log} />
+        <ResultScreen config={getWodConfig(wodType)} log={judge.log} athleteAlias={athlete?.alias ?? null} />
       </Screen>
     );
   }

@@ -57,7 +57,8 @@ The judging screen follows the **"Ghost · base"** design from Claude Design (a 
 - `swipe-band.tsx` — the only interactive surface: swipe right = rep, swipe left = no-rep, tap = rep; edge ticks, a breathing dot that follows the finger and a travel line after each gesture
 - `count-readout.tsx` — large rep count, plus reps left and the target
 - `side-rails.tsx` — full-height edge lines (accent after a no-rep) and a strip that sweeps inward after each gesture
-- `start-overlay.tsx` — pre-judging WOD summary and 10-second countdown (with sound cues)
+- `start-overlay.tsx` — pre-judging WOD summary and 10-second countdown (with sound cues); shows who's being judged (`athleteAlias` prop)
+- `scan-athlete.tsx` — first thing `app/judge/[type].tsx` shows (`'scan'` phase, before `'ready'`): "SCAN QR" (requests camera permission then, via `expo-camera`'s `CameraView`) or "SKIP — ANONYMOUS". Blocks self-judging by comparing the scanned `athleteId` to `constants/profile.ts`'s `STUB_PROFILE.athleteId`. Not persisted — the result is only held in `app/judge/[type].tsx`'s local state and shown in `start-overlay.tsx` / `result-screen.tsx`
 
 ### Result Screen (`components/result/`)
 
