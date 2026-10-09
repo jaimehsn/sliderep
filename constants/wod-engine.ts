@@ -24,6 +24,8 @@ export type WodConfig = {
   totalSeconds: number;
   /** onTarget: advance() fires as soon as the target is reached. onClock: only the clock advances (extra reps are ignored). */
   advanceMode: 'onTarget' | 'onClock';
+  /** The built-in Format's version — stored on a saved session so replay always uses the pinned engine semantics. */
+  engineVersion: number;
   exercises: WodExercise[];
   initialSession: WodSession;
   getTarget: (s: WodSession) => number;
@@ -175,6 +177,7 @@ export function buildWodConfig(definition: WodDefinition, format: Format): WodCo
     timerMode,
     totalSeconds: block.durationSeconds ?? 0,
     advanceMode: format.advance,
+    engineVersion: format.version,
     exercises: summarize(format, block),
     initialSession: { roundIdx: 0, exIdx: 0, completedRounds: 0, minuteIdx: 0 },
     getTarget,

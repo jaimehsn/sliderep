@@ -37,10 +37,10 @@ pnpm reset-project     # Reset to blank Expo template
 File-based routing via Expo Router. All routes live in `app/`:
 - `app/index.tsx` — entry screen with a "SELECT WORKOUT" button to `/session/wod` and a "MY QR" button to `/my-qr`. Minimal stand-in for the real hub (B21)
 - `app/session/wod.tsx` — pick a WOD; each card pushes to `/session/setup`
-- `app/session/setup.tsx` — the owner picks their role (judge / judged), then scans the other person's QR or skips (`components/session/scan-person.tsx`), then hands off to `/judge/[id]` with `role` and `otherAlias` as route params. Shows "This session won't be saved" when judging and skipping (the only direction that's actually unsaved — see `docs/ROADMAP.md`'s Users table). No `session/_layout.tsx`/session context yet (B21) — everything here is plain route params
-- `app/judge/[id].tsx` — Judge screen for a specific WOD (`fran` | `cindy` | `everyMinute` | `filthyFifty`); `ready` → judging → finished only. Redirects to `/session/setup` if reached without a resolved `role` param (e.g. a direct deep link)
+- `app/session/setup.tsx` — the owner picks their role (judge / judged), then scans the other person's QR or skips (`components/session/scan-person.tsx`), then hands off to `/judge/[id]` with `role`, `otherId` and `otherAlias` as route params. Shows "This session won't be saved" when judging and skipping (the only direction that's actually unsaved — see `docs/ROADMAP.md`'s Users table). No `session/_layout.tsx`/session context yet (B21) — everything here is plain route params
+- `app/judge/[id].tsx` — Judge screen for a specific WOD (`fran` | `cindy` | `everyMinute` | `filthyFifty`); `ready` → judging → finished only. Redirects to `/session/setup` if reached without a resolved `role` param (e.g. a direct deep link). Derives `judgedAthleteId`/`judgedAlias`/`judgeId` from `role` + `otherId`/`otherAlias` and, once `judge.finished`, saves the session via `db/sessions.ts`'s `saveSession` — only when `judgedAthleteId` is non-null (an anonymous judged athlete is never saved, per the Users table)
 - `app/my-qr.tsx` — shows the local athlete's QR (`constants/profile.ts`'s `STUB_PROFILE` — fixed, not persisted; the real local profile is B19). Deliberately high-contrast (white/black), inverted from the app's usual dark theme, for camera reliability
-- `app/_layout.tsx` — root layout wrapping the full app with navigation stack
+- `app/_layout.tsx` — root layout wrapping the full app with navigation stack; also opens the SQLite database (`SQLiteProvider`, `db/migrations.ts`'s `migrateDbIfNeeded`)
 
 ### WOD System
 
@@ -70,7 +70,12 @@ The judging screen follows the **"Ghost · base"** design from Claude Design (a 
 Shown by `app/judge/[id].tsx` in place of the judging layout once `judge.finished` — still the same route; there is no separate `session/result` route yet (that's B21).
 
 - `replay.ts` — `deriveResult(config, log)`: pure, derives score + splits from the raw log by replaying it against the existing `WodConfig` functions (`getTarget`, `getExerciseName`, `getKpi`, `advance`, `isComplete`, `advanceMode`). Nothing is stored; everything here is recomputed from `WOD + log` (see `docs/ROADMAP.md` → Exercise sessions).
-- `result-screen.tsx` — renders the `WodResult`: score, then a scrollable split list. Also takes `athleteAlias` + `role` to flip "Judging X" / "Judged by X", same as `start-overlay.tsx`.
+- `result-screen.tsx` — renders the `WodResult`: score, then a scrollable split list. Also takes `athleteAlias` + `role` to flip "Judging X" / "Judged by X", same as `start-overlay.tsx`, and a `saved: 'own' | 'foreign' | 'none'` prop that renders the decided banner copy ("Saved in your history" / "Saved on this phone — will be delivered to X once sync exists" / "Not saved").
+
+### Storage (`db/`)
+
+- `migrations.ts` — `migrateDbIfNeeded(db)`, passed as `SQLiteProvider`'s `onInit` in `app/_layout.tsx`. Schema v1 (`PRAGMA user_version`-based, forward-only): all tables from `docs/ROADMAP.md`'s Storage & persistence schema draft are created up front, but only `sessions` has a consumer today — `device`, `athlete_profile`, `formats`, `exercises`, `workouts` stay empty until B18/B19. `sessions.wodId` deliberately has **no** `REFERENCES workouts(id)` yet, since `workouts` is empty until B18 seeds it; add that FK once B18 lands.
+- `sessions.ts` — `saveSession(db, input)`: a single `withTransactionAsync` insert. Ids are a short local string (timestamp + random base36), not a real UUID — the ROADMAP's UUIDv7 is an unconfirmed assumption, not a decision, and this is revisable later without migrating rows.
 
 ### Shared UI
 

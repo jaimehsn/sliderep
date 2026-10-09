@@ -42,6 +42,7 @@ export default function SessionSetupScreen() {
       params: {
         id: resolvedWodId,
         role: role as Role,
+        otherId: person?.id ?? '',
         otherAlias: person?.alias ?? '',
       },
     });

@@ -11,13 +11,18 @@ type Props = {
   log: LogEntry[];
   athleteAlias?: string | null;
   role?: 'judge' | 'judged';
+  saved: 'own' | 'foreign' | 'none';
 };
 
-export function ResultScreen({ config, log, athleteAlias, role = 'judge' }: Props) {
+export function ResultScreen({ config, log, athleteAlias, role = 'judge', saved }: Props) {
   const result = useMemo(() => deriveResult(config, log), [config, log]);
   const judgingLabel = role === 'judged'
     ? (athleteAlias ? `Judged by ${athleteAlias}` : 'Judged by anonymous')
     : (athleteAlias ? `Judging ${athleteAlias}` : 'Judging anonymous');
+  const savedLabel =
+    saved === 'own' ? 'Saved in your history' :
+    saved === 'foreign' ? `Saved on this phone — will be delivered to ${athleteAlias} once sync exists` :
+    'Not saved';
 
   return (
     <View style={styles.container}>
@@ -25,6 +30,7 @@ export function ResultScreen({ config, log, athleteAlias, role = 'judge' }: Prop
         <Text style={styles.mode}>{config.mode}</Text>
         <Text style={styles.name}>{config.name}</Text>
         <Text style={styles.judging}>{judgingLabel}</Text>
+        <Text style={styles.saved}>{savedLabel}</Text>
       </View>
 
       <View style={styles.scoreBlock}>
@@ -86,6 +92,13 @@ const styles = StyleSheet.create({
     color: HF.muted,
     letterSpacing: 1,
     marginTop: 6,
+  },
+  saved: {
+    fontFamily: 'IBMPlexMono_400Regular',
+    fontSize: 11,
+    color: HF.accent,
+    letterSpacing: 1,
+    marginTop: 4,
   },
   scoreBlock: {
     alignItems: 'center',
