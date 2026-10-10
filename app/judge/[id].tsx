@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Alert, BackHandler, StyleSheet, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import {
@@ -60,11 +60,31 @@ export default function JudgeScreen() {
   const startedAtRef = useRef<number | null>(null);
   const savedRef = useRef(false);
 
+  const handleAbort = useCallback(() => {
+    Alert.alert(
+      'Abort session?',
+      'Data will be lost.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Abort', style: 'destructive', onPress: () => router.back() },
+      ],
+    );
+  }, []);
+
   useEffect(() => {
     if (needsSetup) {
       router.replace({ pathname: '/session/setup', params: { wodId: id } });
     }
   }, [needsSetup, id]);
+
+  useEffect(() => {
+    if (phase !== 'judging' || judge.finished) return;
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      handleAbort();
+      return true;
+    });
+    return () => sub.remove();
+  }, [phase, judge.finished, handleAbort]);
 
   useEffect(() => {
     if (!judge.finished || savedRef.current || judgedAthleteId == null) return;
@@ -116,11 +136,16 @@ export default function JudgeScreen() {
     <Screen style={styles.root}>
       <SideRails railStyle={judge.railStyle} kind={judge.lastKind} dropKey={judge.dropKey} />
 
-      <JudgeHeader timerLabel={judge.timerLabel} timerStr={judge.timerStr} kpi={judge.kpi} />
+      <JudgeHeader
+        timerLabel={judge.timerLabel}
+        timerStr={judge.timerStr}
+        kpi={judge.kpi}
+        onAbortPress={handleAbort}
+      />
 
-      <Pressable style={styles.exerciseZone} onPress={judge.confirmFinish}>
+      <View style={styles.exerciseZone}>
         <ExerciseName name={judge.exerciseName} animatedStyle={judge.exerciseNameStyle} />
-      </Pressable>
+      </View>
 
       <SwipeBand
         gesture={judge.gesture}

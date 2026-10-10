@@ -1,3 +1,8 @@
+import { formatTime, judgeReducer, makeInitial } from '@/components/judge/reducer';
+import { HF } from '@/constants/hf';
+import { WodId, getWodConfig } from '@/constants/wods';
+import { useSoundCue } from '@/hooks/use-sound-cue';
+import * as Haptics from 'expo-haptics';
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { Gesture } from 'react-native-gesture-handler';
 import {
@@ -9,11 +14,6 @@ import {
   withTiming,
 } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
-import * as Haptics from 'expo-haptics';
-import { WodId, getWodConfig } from '@/constants/wods';
-import { HF } from '@/constants/hf';
-import { judgeReducer, makeInitial, formatTime } from '@/components/judge/reducer';
-import { useSoundCue } from '@/hooks/use-sound-cue';
 
 // Gesture thresholds and dot travel from the "Ghost" design (see docs/ROADMAP.md).
 const SWIPE_MIN_DX = 30;
@@ -29,7 +29,6 @@ export function useJudge(wodId: WodId) {
   const [isRunning, setIsRunning] = useState(false);
   const [dropKey, setDropKey] = useState(0);
   const [lastKind, setLastKind] = useState<'rep' | 'noRep' | null>(null);
-  const [awaitingFinish, setAwaitingFinish] = useState(false);
 
   const [judgeState, dispatch] = useReducer(judgeReducer, config, makeInitial);
   const judgeStateRef = useRef(judgeState);
@@ -55,17 +54,18 @@ export function useJudge(wodId: WodId) {
   }, [isRunning]);
 
   useEffect(() => {
-    if (config.advanceMode !== 'onClock' || awaitingFinish || judgeState.finished) return;
+    if (config.advanceMode !== 'onClock' || judgeState.finished) return;
     const totalMinutes = Math.ceil(config.totalSeconds / 60);
     const minuteIdx = Math.min(Math.floor(elapsed / 60), totalMinutes);
     const prev = judgeStateRef.current;
     if (minuteIdx === prev.session.minuteIdx) return;
     if (minuteIdx >= totalMinutes) {
-      // Last minute just ended: freeze and wait for the judge to confirm,
-      // keeping this minute's partial reps instead of resetting done to 0.
+      // Last minute just ended: auto-finish, keeping this minute's partial
+      // reps instead of resetting done to 0 — same as For Time/Chipper
+      // finishing automatically on the last rep, no manual confirmation.
       playEnd();
       setIsRunning(false);
-      setAwaitingFinish(true);
+      dispatch({ type: 'FINISH' });
       return;
     }
     playMinute();
@@ -79,14 +79,14 @@ export function useJudge(wodId: WodId) {
         finished: false,
       },
     });
-  }, [elapsed, config, playMinute, playEnd, awaitingFinish, judgeState.finished]);
+  }, [elapsed, config, playMinute, playEnd, judgeState.finished]);
 
   useEffect(() => {
     if (config.timerMode !== 'remaining' || config.totalSeconds <= 0) return;
     if (elapsed !== config.totalSeconds) return;
     playEnd();
     setIsRunning(false);
-    setAwaitingFinish(true);
+    dispatch({ type: 'FINISH' });
   }, [elapsed, config, playEnd]);
 
   // For Time / Chipper finish on the last rep (see reducer); freeze the clock there too.
@@ -99,12 +99,6 @@ export function useJudge(wodId: WodId) {
     setIsRunning(true);
   }, []);
 
-  const confirmFinish = useCallback(() => {
-    if (!awaitingFinish) return;
-    dispatch({ type: 'FINISH' });
-    setAwaitingFinish(false);
-  }, [awaitingFinish]);
-
   const handleRep = useCallback(() => {
     if (judgeStateRef.current.finished) return;
     dispatch({ type: 'REP', config, t: getT() });
@@ -115,7 +109,7 @@ export function useJudge(wodId: WodId) {
       withTiming(1, { duration: 168, easing: Easing.bezier(0.2, 0.8, 0.2, 1) }),
     );
     invalidProgress.value = withTiming(0, { duration: 200 });
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Rigid);
   }, [config, counterScale, invalidProgress]);
 
   const handleNoRep = useCallback(() => {
@@ -164,11 +158,7 @@ export function useJudge(wodId: WodId) {
 
   const { session, done } = judgeState;
   const target = config.getTarget(session);
-  const exerciseName = judgeState.finished
-    ? 'DONE'
-    : awaitingFinish
-      ? 'TIME'
-      : config.getExerciseName(session);
+  const exerciseName = judgeState.finished ? 'DONE' : config.getExerciseName(session);
   const kpi = config.getKpi(session);
 
   const timerStr = useMemo(() => {
@@ -207,7 +197,6 @@ export function useJudge(wodId: WodId) {
     exerciseName,
     kpi,
     finished: judgeState.finished,
-    confirmFinish,
     log: judgeState.log,
     gesture,
     drag,

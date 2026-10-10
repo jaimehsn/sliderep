@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { HF } from '@/constants/hf';
 import { WodKpi } from '@/constants/wods';
 import { RoundPips } from './round-pips';
@@ -7,15 +7,20 @@ type Props = {
   timerLabel: string;
   timerStr: string;
   kpi: WodKpi;
+  onAbortPress: () => void;
 };
 
-export function JudgeHeader({ timerLabel, timerStr, kpi }: Props) {
+export function JudgeHeader({ timerLabel, timerStr, kpi, onAbortPress }: Props) {
   return (
     <View style={styles.container}>
-      <View>
+      <Pressable
+        onPress={onAbortPress}
+        hitSlop={12}
+        style={({ pressed }) => [pressed && styles.timerPressed]}
+      >
         <Text style={[styles.tag, styles.timerTag]}>{timerLabel}</Text>
         <Text style={styles.time}>{timerStr}</Text>
-      </View>
+      </Pressable>
       <View style={styles.right}>
         <Text style={[styles.tag, styles.kpiTag]}>{kpi.label}</Text>
         <Text style={styles.value}>
@@ -50,6 +55,9 @@ const styles = StyleSheet.create({
   },
   timerTag: {
     marginBottom: 4,
+  },
+  timerPressed: {
+    opacity: 0.55,
   },
   kpiTag: {
     marginBottom: 6,
