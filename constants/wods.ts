@@ -101,3 +101,8 @@ export function getWodConfig(id: WodId) {
   const { definition, format } = REGISTRY[id];
   return buildWodConfig(definition, format);
 }
+
+/** Raw declarative data behind a WOD id — used by the seed migration (B18), which needs the content itself, not the interpreted `WodConfig`. */
+export function getWodDefinition(id: WodId): { definition: WodDefinition; format: Format } {
+  return REGISTRY[id];
+}

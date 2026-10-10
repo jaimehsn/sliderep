@@ -109,7 +109,7 @@ export function useJudge(wodId: WodId) {
       withTiming(1, { duration: 168, easing: Easing.bezier(0.2, 0.8, 0.2, 1) }),
     );
     invalidProgress.value = withTiming(0, { duration: 200 });
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Rigid);
+    Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics.Confirm);
   }, [config, counterScale, invalidProgress]);
 
   const handleNoRep = useCallback(() => {
@@ -122,7 +122,7 @@ export function useJudge(wodId: WodId) {
       withTiming(1, { duration: 168, easing: Easing.bezier(0.2, 0.8, 0.2, 1) }),
     );
     invalidProgress.value = withTiming(1, { duration: 200 });
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics.Reject);
   }, [counterScale, invalidProgress]);
 
   // Swipe right = rep, swipe left = no-rep, quick tap = rep; anything slower or shorter is ignored.

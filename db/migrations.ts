@@ -1,18 +1,16 @@
 import { SQLiteDatabase } from 'expo-sqlite';
+import { buildBuiltinSeed } from './seed-builtins';
 
-// Schema v1 (docs/ROADMAP.md → Storage & persistence). Only `sessions` has a
-// consumer today (B15); `device`, `athlete_profile`, `formats`, `exercises`
-// and `workouts` are created empty, ahead of B18/B19. `sessions.wodId` has no
-// `REFERENCES workouts(id)` yet, since `workouts` stays empty until B18 seeds
-// it — add the FK once that migration lands.
-const DATABASE_VERSION = 1;
+// Schema v1 (docs/ROADMAP.md → Storage & persistence): `device`, `athlete_profile`,
+// `formats`, `exercises`, `workouts` are created empty, ahead of B18/B19.
+// Schema v2 (B18): seeds the 4 built-in WODs into `formats`/`exercises`/`workouts`,
+// then rebuilds `sessions` to add the `wodId -> workouts(id)` FK that v1 couldn't
+// declare yet (workouts was still empty).
+const DATABASE_VERSION = 2;
 
 export async function migrateDbIfNeeded(db: SQLiteDatabase): Promise<void> {
-  await db.execAsync('PRAGMA foreign_keys = ON;');
-
   const row = await db.getFirstAsync<{ user_version: number }>('PRAGMA user_version');
   let version = row?.user_version ?? 0;
-  if (version >= DATABASE_VERSION) return;
 
   if (version === 0) {
     await db.execAsync(`
@@ -84,7 +82,61 @@ export async function migrateDbIfNeeded(db: SQLiteDatabase): Promise<void> {
       );
     `);
     version = 1;
+    await db.execAsync(`PRAGMA user_version = ${version}`);
   }
 
-  await db.execAsync(`PRAGMA user_version = ${version}`);
+  if (version === 1) {
+    const { formats, exercises, workouts } = buildBuiltinSeed(Date.now());
+
+    // foreign_keys can't be toggled mid-transaction, and rebuilding `sessions`
+    // (SQLite has no ALTER TABLE ADD CONSTRAINT) needs it off meanwhile.
+    await db.execAsync('PRAGMA foreign_keys = OFF;');
+    await db.withTransactionAsync(async () => {
+      for (const f of formats) {
+        await db.runAsync(
+          'INSERT INTO formats (id, version, definition, engineVersion, origin) VALUES (?, ?, ?, ?, ?)',
+          [f.id, f.version, f.definition, f.engineVersion, f.origin],
+        );
+      }
+      for (const e of exercises) {
+        await db.runAsync(
+          'INSERT INTO exercises (id, name, origin, createdAt) VALUES (?, ?, ?, ?)',
+          [e.id, e.name, e.origin, e.createdAt],
+        );
+      }
+      for (const w of workouts) {
+        await db.runAsync(
+          'INSERT INTO workouts (id, name, blocks, scoringBlock, origin, createdAt) VALUES (?, ?, ?, ?, ?, ?)',
+          [w.id, w.name, w.blocks, w.scoringBlock, w.origin, w.createdAt],
+        );
+      }
+
+      // Rebuild `sessions` to add the wodId -> workouts(id) FK, now that
+      // workouts has rows; preserves any session saved under schema v1.
+      await db.execAsync(`
+        CREATE TABLE sessions_new (
+          id TEXT PRIMARY KEY,
+          wodId TEXT NOT NULL REFERENCES workouts(id),
+          engineVersion INTEGER NOT NULL,
+          judgedAthleteId TEXT NOT NULL,
+          judgedAlias TEXT NOT NULL,
+          judgeId TEXT,
+          verification TEXT NOT NULL,
+          startedAt INTEGER NOT NULL,
+          endT INTEGER NOT NULL,
+          events TEXT NOT NULL,
+          createdAt INTEGER NOT NULL
+        );
+        INSERT INTO sessions_new SELECT * FROM sessions;
+        DROP TABLE sessions;
+        ALTER TABLE sessions_new RENAME TO sessions;
+      `);
+    });
+    await db.execAsync('PRAGMA foreign_keys = ON;');
+
+    version = 2;
+    await db.execAsync(`PRAGMA user_version = ${version}`);
+  }
+
+  await db.execAsync('PRAGMA foreign_keys = ON;');
 }
