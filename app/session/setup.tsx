@@ -13,6 +13,7 @@ import { Screen } from '@/components/screen';
 import { HF } from '@/constants/hf';
 import { WodId, WOD_IDS, getWodConfig } from '@/constants/wods';
 import { ScanPerson, ScannedPerson } from '@/components/session/scan-person';
+import { useProfile } from '@/hooks/use-profile';
 
 type Role = 'judge' | 'judged';
 type Phase = 'role' | 'scan' | 'banner';
@@ -31,6 +32,7 @@ export default function SessionSetupScreen() {
 
   const [phase, setPhase] = useState<Phase>('role');
   const [role, setRole] = useState<Role | null>(null);
+  const { profile } = useProfile();
 
   if (!fontsLoaded) {
     return <View style={{ flex: 1, backgroundColor: HF.bg }} />;
@@ -107,6 +109,7 @@ export default function SessionSetupScreen() {
         <ScanPerson
           title={role === 'judged' ? 'WHO IS JUDGING YOU?' : 'WHO ARE YOU JUDGING?'}
           onDone={handleScanDone}
+          selfId={profile?.id ?? null}
         />
       )}
 

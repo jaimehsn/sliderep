@@ -34,10 +34,10 @@ export default function WodSelectScreen() {
             <Text style={styles.subtitle}>select a workout</Text>
           </View>
           <Pressable
-            onPress={() => router.push('/my-qr')}
+            onPress={() => router.push('/profile')}
             style={({ pressed }) => [styles.qrBtn, pressed && styles.qrBtnPressed]}
           >
-            <Text style={styles.qrBtnText}>MY QR</Text>
+            <Text style={styles.qrBtnText}>PROFILE</Text>
           </Pressable>
         </View>
       </View>

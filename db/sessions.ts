@@ -16,7 +16,7 @@ export type SaveSessionInput = {
 // Short local id (timestamp + random base36) — not a real UUID. The ROADMAP
 // marks UUIDv7 as an unconfirmed assumption, not a decision; this is just
 // text, so it's revisable later without migrating existing rows.
-function makeId(): string {
+export function makeId(): string {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 }
 

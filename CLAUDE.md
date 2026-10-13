@@ -35,11 +35,12 @@ pnpm reset-project     # Reset to blank Expo template
 ### Routing
 
 File-based routing via Expo Router. All routes live in `app/`:
-- `app/index.tsx` — entry screen with a "SELECT WORKOUT" button to `/session/wod` and a "MY QR" button to `/my-qr`. Minimal stand-in for the real hub (B21)
+- `app/index.tsx` — entry screen with a "SELECT WORKOUT" button to `/session/wod` and a "PROFILE" button to `/profile`. Minimal stand-in for the real hub (B21)
 - `app/session/wod.tsx` — pick a WOD; each card pushes to `/session/setup`
-- `app/session/setup.tsx` — the owner picks their role (judge / judged), then scans the other person's QR or skips (`components/session/scan-person.tsx`), then hands off to `/judge/[id]` with `role`, `otherId` and `otherAlias` as route params. Shows "This session won't be saved" when judging and skipping (the only direction that's actually unsaved — see `docs/ROADMAP.md`'s Users table). No `session/_layout.tsx`/session context yet (B21) — everything here is plain route params
-- `app/judge/[id].tsx` — Judge screen for a specific WOD (`fran` | `cindy` | `everyMinute` | `filthyFifty`); `ready` → judging → finished only. Redirects to `/session/setup` if reached without a resolved `role` param (e.g. a direct deep link). Derives `judgedAthleteId`/`judgedAlias`/`judgeId` from `role` + `otherId`/`otherAlias` and, once `judge.finished`, saves the session via `db/sessions.ts`'s `saveSession` — only when `judgedAthleteId` is non-null (an anonymous judged athlete is never saved, per the Users table)
-- `app/my-qr.tsx` — shows the local athlete's QR (`constants/profile.ts`'s `STUB_PROFILE` — fixed, not persisted; the real local profile is B19). Deliberately high-contrast (white/black), inverted from the app's usual dark theme, for camera reliability
+- `app/session/setup.tsx` — the owner picks their role (judge / judged), then scans the other person's QR or skips (`components/session/scan-person.tsx`), then hands off to `/judge/[id]` with `role`, `otherId` and `otherAlias` as route params. Shows "This session won't be saved" when judging and skipping (the only direction that's actually unsaved — see `docs/ROADMAP.md`'s Users table). Reads `hooks/use-profile.ts`'s local profile to pass `selfId` to `ScanPerson` (self-scan block). No `session/_layout.tsx`/session context yet (B21) — everything here is plain route params
+- `app/judge/[id].tsx` — Judge screen for a specific WOD (`fran` | `cindy` | `everyMinute` | `filthyFifty`); `ready` → judging → finished only. Redirects to `/session/setup` if reached without a resolved `role` param (e.g. a direct deep link). Derives `judgedAthleteId`/`judgedAlias`/`judgeId` from `role` + `otherId`/`otherAlias` and the local profile (`hooks/use-profile.ts`, nullable since B19 — a profile-less device judging as `judged` saves nothing) and, once `judge.finished`, saves the session via `db/sessions.ts`'s `saveSession` — only when `judgedAthleteId` is non-null (an anonymous judged athlete is never saved, per the Users table)
+- `app/profile.tsx` — create the local profile (alias only), edit its alias, or delete it (own sessions go, foreign ones stay — `db/profile.ts`'s `deleteProfile`). One combined screen for B19; the ROADMAP's draft `settings.tsx`/`profile-create.tsx` split is deferred to B25. Links to `/my-qr` when a profile exists
+- `app/my-qr.tsx` — shows the local athlete's QR, read from `hooks/use-profile.ts` (redirects to `/profile` if there isn't one yet). Deliberately high-contrast (white/black), inverted from the app's usual dark theme, for camera reliability
 - `app/_layout.tsx` — root layout wrapping the full app with navigation stack; also opens the SQLite database (`SQLiteProvider`, `db/migrations.ts`'s `migrateDbIfNeeded`)
 
 ### WOD System
@@ -63,7 +64,7 @@ The judging screen follows the **"Ghost · base"** design from Claude Design (a 
 
 ### Session Setup Components (`components/session/`)
 
-- `scan-person.tsx` — `ScanPerson`: used by `app/session/setup.tsx` after the role choice. "SCAN QR" (requests camera permission then, via `expo-camera`'s `CameraView`) or "SKIP — ANONYMOUS". Blocks self-scanning by comparing the scanned id to `constants/profile.ts`'s `STUB_PROFILE.athleteId` (role-agnostic: the owner's own id doesn't change). Not persisted — the result is only held in `app/session/setup.tsx`'s local state, threaded to `/judge/[id]` as route params
+- `scan-person.tsx` — `ScanPerson`: used by `app/session/setup.tsx` after the role choice. "SCAN QR" (requests camera permission then, via `expo-camera`'s `CameraView`) or "SKIP — ANONYMOUS". Blocks self-scanning by comparing the scanned id to a `selfId` prop (the local profile's id, passed down from `hooks/use-profile.ts`; `null` when there's no profile yet — role-agnostic, the owner's own id doesn't change). Not persisted — the result is only held in `app/session/setup.tsx`'s local state, threaded to `/judge/[id]` as route params
 
 ### Result Screen (`components/result/`)
 
@@ -76,7 +77,8 @@ Shown by `app/judge/[id].tsx` in place of the judging layout once `judge.finishe
 
 - `migrations.ts` — `migrateDbIfNeeded(db)`, passed as `SQLiteProvider`'s `onInit` in `app/_layout.tsx`. `PRAGMA user_version`-based, forward-only, cascading (a fresh install runs every block in one call). Schema v1: all tables from `docs/ROADMAP.md`'s Storage & persistence schema draft are created up front, though only `sessions` has a consumer at that point. Schema v2 (B18): seeds `formats`/`exercises`/`workouts` via `seed-builtins.ts`, then rebuilds `sessions` (SQLite has no `ALTER TABLE ADD CONSTRAINT`) to add `wodId REFERENCES workouts(id)`, preserving any v1 rows — `device`/`athlete_profile` still wait for B19. `PRAGMA foreign_keys` is forced `OFF` around that rebuild (can't toggle mid-transaction) and set `ON` once, unconditionally, at the very end of the function.
 - `seed-builtins.ts` — `buildBuiltinSeed(createdAt)`: pure function deriving the built-in `formats`/`exercises`/`workouts` rows from `constants/wods.ts`'s `getWodDefinition(id)` + `constants/wod-engine.ts`'s `Format`s — not transcribed by hand, so it can't drift from what the app actually runs on. Exercise ids are a local `slugify(name)`; workout ids reuse the existing `WodId` strings (`sessions.wodId` already stores them, since B15).
-- `sessions.ts` — `saveSession(db, input)`: a single `withTransactionAsync` insert. Ids are a short local string (timestamp + random base36), not a real UUID — the ROADMAP's UUIDv7 is an unconfirmed assumption, not a decision, and this is revisable later without migrating rows.
+- `sessions.ts` — `saveSession(db, input)`: a single `withTransactionAsync` insert. Ids are a short local string (timestamp + random base36, `makeId()` — exported, reused by `profile.ts`), not a real UUID — the ROADMAP's UUIDv7 is an unconfirmed assumption, not a decision, and this is revisable later without migrating rows.
+- `profile.ts` — `getProfile`/`createProfile`/`updateAlias`/`deleteProfile` against the single-row `athlete_profile` table (B19). `deleteProfile` applies the decided retention rule in one transaction: deletes this profile's own sessions (and their `session_adjustments`) by `judgedAthleteId`, keeps foreign ones. Wrapped for screens by `hooks/use-profile.ts`'s `useProfile()` (`{ profile, loaded, refresh }`).
 
 ### Shared UI
 
@@ -86,6 +88,7 @@ Shown by `app/judge/[id].tsx` in place of the judging layout once `judge.finishe
 
 - `hooks/use-judge.ts` — encapsulates the judging session state using `useReducer`, wiring the WOD config to the reducer; owns the timer, the gestures (`Pan` + `Tap`, thresholds from the design) and the animated styles
 - `hooks/use-sound-cue.ts` — wraps a short local sound (`expo-audio`) in a stable, fire-and-forget `play()` callback
+- `hooks/use-profile.ts` — `useProfile()`: loads the local `AthleteProfile` (`db/profile.ts`) on mount, exposes `{ profile, loaded, refresh }`. No shared context yet (B21) — every screen that needs it calls this independently
 
 ### Path Alias
 

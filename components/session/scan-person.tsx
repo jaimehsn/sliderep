@@ -2,17 +2,19 @@ import { useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { HF } from '@/constants/hf';
-import { parseQrPayload, STUB_PROFILE } from '@/constants/profile';
+import { parseQrPayload } from '@/constants/profile';
 
 export type ScannedPerson = { id: string; alias: string };
 
 type Props = {
   title: string;
   onDone: (person: ScannedPerson | null) => void;
+  /** This device's own athlete id, to block scanning your own QR. `null`/`undefined` when there's no local profile yet — nothing to block against. */
+  selfId?: string | null;
 };
 
 /** Session-setup step: scan the other person's "My QR", or skip and stay anonymous. */
-export function ScanPerson({ title, onDone }: Props) {
+export function ScanPerson({ title, onDone, selfId }: Props) {
   const [permission, requestPermission] = useCameraPermissions();
   const [scanning, setScanning] = useState(false);
   const [selfError, setSelfError] = useState(false);
@@ -32,7 +34,7 @@ export function ScanPerson({ title, onDone }: Props) {
     if (lockedRef.current) return;
     const payload = parseQrPayload(data);
     if (!payload) return; // not a SlideRep QR — keep scanning, no fuss
-    if (payload.athleteId === STUB_PROFILE.athleteId) {
+    if (selfId != null && payload.athleteId === selfId) {
       setSelfError(true);
       return;
     }

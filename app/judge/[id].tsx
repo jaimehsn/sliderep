@@ -15,8 +15,8 @@ import {
 
 import { HF } from '@/constants/hf';
 import { WodId, WOD_IDS, getWodConfig } from '@/constants/wods';
-import { STUB_PROFILE } from '@/constants/profile';
 import { useJudge } from '@/hooks/use-judge';
+import { useProfile } from '@/hooks/use-profile';
 import { Screen } from '@/components/screen';
 import { StartOverlay } from '@/components/judge/start-overlay';
 import { JudgeHeader } from '@/components/judge/judge-header';
@@ -40,11 +40,12 @@ export default function JudgeScreen() {
   const otherAliasResolved = otherAlias ? otherAlias : null;
   const needsSetup = role !== 'judge' && role !== 'judged';
 
-  const judgedAthleteId = resolvedRole === 'judge' ? otherIdResolved : STUB_PROFILE.athleteId;
-  const judgedAlias = resolvedRole === 'judge' ? (otherAliasResolved ?? '') : STUB_PROFILE.alias;
-  const judgeId = resolvedRole === 'judge' ? STUB_PROFILE.athleteId : otherIdResolved;
+  const { profile, loaded: profileLoaded } = useProfile();
+  const judgedAthleteId = resolvedRole === 'judge' ? otherIdResolved : (profile?.id ?? null);
+  const judgedAlias = resolvedRole === 'judge' ? (otherAliasResolved ?? '') : (profile?.alias ?? '');
+  const judgeId = resolvedRole === 'judge' ? (profile?.id ?? null) : otherIdResolved;
   const savedState: 'own' | 'foreign' | 'none' =
-    judgedAthleteId == null ? 'none' : judgedAthleteId === STUB_PROFILE.athleteId ? 'own' : 'foreign';
+    judgedAthleteId == null ? 'none' : judgedAthleteId === profile?.id ? 'own' : 'foreign';
 
   const [fontsLoaded] = useFonts({
     BarlowCondensed_400Regular,
@@ -101,7 +102,7 @@ export default function JudgeScreen() {
     }).catch((err) => console.error('Failed to save session', err));
   }, [judge.finished, judgedAthleteId, judgedAlias, judgeId, wodId, judge.log, db]);
 
-  if (!fontsLoaded || needsSetup) {
+  if (!fontsLoaded || !profileLoaded || needsSetup) {
     return <View style={{ flex: 1, backgroundColor: HF.bg }} />;
   }
 

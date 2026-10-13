@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -8,7 +9,7 @@ import {
 } from '@expo-google-fonts/barlow-condensed';
 import { IBMPlexMono_400Regular } from '@expo-google-fonts/ibm-plex-mono';
 import { Screen } from '@/components/screen';
-import { STUB_PROFILE } from '@/constants/profile';
+import { useProfile } from '@/hooks/use-profile';
 
 // High-contrast by design, unlike the rest of the app: camera QR readers are
 // far more reliable with dark modules on a light background.
@@ -21,10 +22,19 @@ export default function MyQrScreen() {
     BarlowCondensed_700Bold,
     IBMPlexMono_400Regular,
   });
+  const { profile, loaded } = useProfile();
 
-  if (!fontsLoaded) {
+  useEffect(() => {
+    if (loaded && !profile) {
+      router.replace('/profile');
+    }
+  }, [loaded, profile]);
+
+  if (!fontsLoaded || !loaded || !profile) {
     return <View style={{ flex: 1, backgroundColor: QR_BG }} />;
   }
+
+  const payload = { v: 1 as const, athleteId: profile.id, alias: profile.alias };
 
   return (
     <Screen style={styles.root}>
@@ -42,10 +52,10 @@ export default function MyQrScreen() {
 
       <View style={styles.center}>
         <View style={styles.qrFrame}>
-          <QRCode value={JSON.stringify(STUB_PROFILE)} size={240} color={QR_INK} backgroundColor={QR_BG} />
+          <QRCode value={JSON.stringify(payload)} size={240} color={QR_INK} backgroundColor={QR_BG} />
         </View>
-        <Text style={styles.alias}>{STUB_PROFILE.alias}</Text>
-        <Text style={styles.id}>id: {STUB_PROFILE.athleteId}</Text>
+        <Text style={styles.alias}>{profile.alias}</Text>
+        <Text style={styles.id}>id: {profile.id}</Text>
       </View>
     </Screen>
   );
