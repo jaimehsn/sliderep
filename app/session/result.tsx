@@ -42,6 +42,7 @@ export default function ResultRouteScreen() {
   const judgedAthleteId = setup == null ? null : setup.role === 'judge' ? setup.otherId : (profile?.id ?? null);
   const judgedAlias = setup == null ? '' : setup.role === 'judge' ? (setup.otherAlias ?? '') : (profile?.alias ?? '');
   const judgeId = setup == null ? null : setup.role === 'judge' ? (profile?.id ?? null) : setup.otherId;
+  const judgeAlias = setup == null ? null : setup.role === 'judge' ? (profile?.alias ?? null) : setup.otherAlias;
   const savedState: 'own' | 'foreign' | 'none' =
     judgedAthleteId == null ? 'none' : judgedAthleteId === profile?.id ? 'own' : 'foreign';
   const canAdjust = setup?.role === 'judge' && judgeId != null;
@@ -55,11 +56,12 @@ export default function ResultRouteScreen() {
       judgedAthleteId,
       judgedAlias,
       judgeId,
+      judgeAlias,
       startedAt: outcome.startedAt,
       endT: outcome.endT,
       events: outcome.log.map((e) => ({ t: e.t, kind: e.ok ? 'rep' as const : 'noRep' as const })),
     }).then(setSessionId).catch((err) => console.error('Failed to save session', err));
-  }, [setup, outcome, profileLoaded, judgedAthleteId, judgedAlias, judgeId, db, setSessionId]);
+  }, [setup, outcome, profileLoaded, judgedAthleteId, judgedAlias, judgeId, judgeAlias, db, setSessionId]);
 
   if (!fontsLoaded || !profileLoaded || !setup || !outcome) {
     return <View style={{ flex: 1, backgroundColor: HF.bg }} />;

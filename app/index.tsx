@@ -72,14 +72,20 @@ export default function HubScreen() {
 
       <View style={styles.divider} />
 
-      {/* Hub sections — coming in B23/B24/B25 */}
+      {/* Hub sections */}
       <View style={styles.sections}>
+        <Pressable
+          style={({ pressed }) => [styles.sectionBtn, pressed && styles.sectionBtnPressed]}
+          onPress={() => router.push('/history')}
+        >
+          <Text style={styles.sectionLabel}>HISTORY</Text>
+          <Text style={styles.sectionSub}>your sessions</Text>
+        </Pressable>
         {[
-          { label: 'HISTORY', sub: 'your sessions' },
           { label: 'LIBRARY', sub: 'wods & exercises' },
           { label: 'SETTINGS', sub: 'profile & version' },
         ].map(({ label, sub }) => (
-          <Pressable key={label} style={styles.sectionBtn} disabled>
+          <Pressable key={label} style={[styles.sectionBtn, styles.sectionBtnDisabled]} disabled>
             <Text style={styles.sectionLabel}>{label}</Text>
             <Text style={styles.sectionSub}>coming soon</Text>
           </Pressable>
@@ -175,6 +181,11 @@ const styles = StyleSheet.create({
   sectionBtn: {
     paddingHorizontal: 24,
     paddingVertical: 20,
+  },
+  sectionBtnPressed: {
+    opacity: 0.5,
+  },
+  sectionBtnDisabled: {
     opacity: 0.3,
   },
   sectionLabel: {

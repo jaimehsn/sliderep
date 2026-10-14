@@ -7,7 +7,10 @@ import { buildBuiltinSeed } from './seed-builtins';
 // then rebuilds `sessions` to add the `wodId -> workouts(id)` FK that v1 couldn't
 // declare yet (workouts was still empty).
 // Schema v3 (B22): adds `app_state`, a single-row table for the `firstRunDone` flag.
-const DATABASE_VERSION = 3;
+// Schema v4 (B23): adds `sessions.judgeAlias` — an alias snapshot for the judge,
+// symmetric to the existing `judgedAlias`, so History's detail view (opened long
+// after the live session context is gone) has something to show.
+const DATABASE_VERSION = 4;
 
 export async function migrateDbIfNeeded(db: SQLiteDatabase): Promise<void> {
   const row = await db.getFirstAsync<{ user_version: number }>('PRAGMA user_version');
@@ -147,6 +150,12 @@ export async function migrateDbIfNeeded(db: SQLiteDatabase): Promise<void> {
       );
     `);
     version = 3;
+    await db.execAsync(`PRAGMA user_version = ${version}`);
+  }
+
+  if (version === 3) {
+    await db.execAsync('ALTER TABLE sessions ADD COLUMN judgeAlias TEXT;');
+    version = 4;
     await db.execAsync(`PRAGMA user_version = ${version}`);
   }
 
