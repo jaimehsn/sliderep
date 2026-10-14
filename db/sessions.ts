@@ -13,6 +13,12 @@ export type SaveSessionInput = {
   events: StoredEvent[];
 };
 
+export type StoredSession = SaveSessionInput & {
+  id: string;
+  verification: 'unverified';
+  createdAt: number;
+};
+
 // Short local id (timestamp + random base36) — not a real UUID. The ROADMAP
 // marks UUIDv7 as an unconfirmed assumption, not a decision; this is just
 // text, so it's revisable later without migrating existing rows.
@@ -20,7 +26,7 @@ export function makeId(): string {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
-export async function saveSession(db: SQLiteDatabase, input: SaveSessionInput): Promise<void> {
+export async function saveSession(db: SQLiteDatabase, input: SaveSessionInput): Promise<string> {
   const id = makeId();
   const createdAt = Date.now();
   await db.withTransactionAsync(async () => {
@@ -42,4 +48,15 @@ export async function saveSession(db: SQLiteDatabase, input: SaveSessionInput): 
       ],
     );
   });
+  return id;
+}
+
+export async function getSession(db: SQLiteDatabase, id: string): Promise<StoredSession | null> {
+  const row = await db.getFirstAsync<Omit<StoredSession, 'events'> & { events: string }>(
+    `SELECT id, wodId, engineVersion, judgedAthleteId, judgedAlias, judgeId, verification, startedAt, endT, events, createdAt
+       FROM sessions WHERE id = ?`,
+    [id],
+  );
+  if (!row) return null;
+  return { ...row, events: JSON.parse(row.events) };
 }

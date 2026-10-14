@@ -2,7 +2,14 @@ import { WodConfig, WodSession } from '@/constants/wods';
 import { LogEntry } from '@/components/judge/types';
 import { formatTime } from '@/components/judge/reducer';
 
-/** One row of the result screen's split list. Times are ms on the session clock; null where not applicable. */
+/**
+ * One row of the result screen's split list. Times are ms on the session
+ * clock; null where not applicable. `roundIdx`/`exIdx` identify the position
+ * (for onClock WODs, `roundIdx` is the minute index and `exIdx` is always 0 —
+ * see `db/session-adjustments.ts`) — only consumed by `session/adjust.tsx` to
+ * know which position a tapped row corresponds to; the plain result screen
+ * ignores them.
+ */
 export type Split = {
   label: string;
   reps: number;
@@ -10,6 +17,8 @@ export type Split = {
   completed: boolean;
   cumulativeMs: number | null;
   lapMs: number | null;
+  roundIdx: number;
+  exIdx: number;
 };
 
 export type WodResult = {
@@ -29,7 +38,7 @@ function titleCase(s: string): string {
  * `advance()`). Split labels want the round in progress, so they read `roundIdx`
  * directly for that one case; every other format's kpi.current already is it.
  */
-function splitLabel(config: WodConfig, session: WodSession): string {
+export function splitLabel(config: WodConfig, session: WodSession): string {
   const kpi = config.getKpi(session);
   const isCumulativeTotal = kpi.label === 'rounds';
   const number = isCumulativeTotal ? session.roundIdx + 1 : kpi.current;
@@ -57,6 +66,8 @@ function deriveOnClock(config: WodConfig, log: LogEntry[]): WodResult {
       completed,
       cumulativeMs: null,
       lapMs: null,
+      roundIdx: m,
+      exIdx: 0,
     });
   }
 
@@ -89,6 +100,8 @@ function deriveOnTarget(config: WodConfig, log: LogEntry[]): WodResult {
         completed: true,
         cumulativeMs: entry.t,
         lapMs: entry.t - lastSplitT,
+        roundIdx: session.roundIdx,
+        exIdx: session.exIdx,
       });
       lastSplitT = entry.t;
       const nextSession = config.advance(session);
@@ -109,6 +122,8 @@ function deriveOnTarget(config: WodConfig, log: LogEntry[]): WodResult {
       completed: false,
       cumulativeMs: null,
       lapMs: null,
+      roundIdx: session.roundIdx,
+      exIdx: session.exIdx,
     });
   }
 

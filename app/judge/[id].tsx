@@ -60,6 +60,8 @@ export default function JudgeScreen() {
   const [phase, setPhase] = useState<'ready' | 'judging'>('ready');
   const startedAtRef = useRef<number | null>(null);
   const savedRef = useRef(false);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const canAdjust = resolvedRole === 'judge' && judgeId != null;
 
   const handleAbort = useCallback(() => {
     Alert.alert(
@@ -99,7 +101,7 @@ export default function JudgeScreen() {
       startedAt: startedAtRef.current ?? Date.now(),
       endT: judge.log.at(-1)?.t ?? 0,
       events: judge.log.map((e) => ({ t: e.t, kind: e.ok ? 'rep' as const : 'noRep' as const })),
-    }).catch((err) => console.error('Failed to save session', err));
+    }).then(setSessionId).catch((err) => console.error('Failed to save session', err));
   }, [judge.finished, judgedAthleteId, judgedAlias, judgeId, wodId, judge.log, db]);
 
   if (!fontsLoaded || !profileLoaded || needsSetup) {
@@ -128,6 +130,8 @@ export default function JudgeScreen() {
           athleteAlias={otherAliasResolved}
           role={resolvedRole}
           saved={savedState}
+          sessionId={sessionId}
+          canAdjust={canAdjust}
         />
       </Screen>
     );

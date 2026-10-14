@@ -1,10 +1,13 @@
-import { useMemo } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { router, useFocusEffect } from 'expo-router';
+import { useSQLiteContext } from 'expo-sqlite';
 import { HF } from '@/constants/hf';
 import { WodConfig } from '@/constants/wods';
 import { LogEntry } from '@/components/judge/types';
 import { formatTime } from '@/components/judge/reducer';
-import { deriveResult } from '@/components/result/replay';
+import { deriveAdjustedResult } from '@/components/result/adjust';
+import { AdjustmentChange, getAdjustments } from '@/db/session-adjustments';
 
 type Props = {
   config: WodConfig;
@@ -12,10 +15,26 @@ type Props = {
   athleteAlias?: string | null;
   role?: 'judge' | 'judged';
   saved: 'own' | 'foreign' | 'none';
+  sessionId?: string | null;
+  canAdjust?: boolean;
 };
 
-export function ResultScreen({ config, log, athleteAlias, role = 'judge', saved }: Props) {
-  const result = useMemo(() => deriveResult(config, log), [config, log]);
+export function ResultScreen({ config, log, athleteAlias, role = 'judge', saved, sessionId = null, canAdjust = false }: Props) {
+  const db = useSQLiteContext();
+  const [changes, setChanges] = useState<AdjustmentChange[]>([]);
+  const [packagesUsed, setPackagesUsed] = useState(0);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!sessionId) return;
+      getAdjustments(db, sessionId).then((rows) => {
+        setChanges(rows.flatMap((r) => r.changes));
+        setPackagesUsed(rows.length);
+      });
+    }, [db, sessionId]),
+  );
+
+  const result = deriveAdjustedResult(config, log, changes);
   const judgingLabel = role === 'judged'
     ? (athleteAlias ? `Judged by ${athleteAlias}` : 'Judged by anonymous')
     : (athleteAlias ? `Judging ${athleteAlias}` : 'Judging anonymous');
@@ -31,6 +50,14 @@ export function ResultScreen({ config, log, athleteAlias, role = 'judge', saved 
         <Text style={styles.name}>{config.name}</Text>
         <Text style={styles.judging}>{judgingLabel}</Text>
         <Text style={styles.saved}>{savedLabel}</Text>
+        {canAdjust && sessionId != null && packagesUsed < 3 && (
+          <Pressable
+            onPress={() => router.push({ pathname: '/session/adjust', params: { sessionId } })}
+            style={({ pressed }) => [styles.adjustBtn, pressed && styles.adjustBtnPressed]}
+          >
+            <Text style={styles.adjustBtnText}>ADJUST RESULT</Text>
+          </Pressable>
+        )}
       </View>
 
       <View style={styles.scoreBlock}>
@@ -99,6 +126,23 @@ const styles = StyleSheet.create({
     color: HF.accent,
     letterSpacing: 1,
     marginTop: 4,
+  },
+  adjustBtn: {
+    alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderColor: HF.hairlineStrong,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginTop: 12,
+  },
+  adjustBtnPressed: {
+    opacity: 0.5,
+  },
+  adjustBtnText: {
+    fontFamily: 'IBMPlexMono_400Regular',
+    fontSize: 10,
+    color: HF.inkDim,
+    letterSpacing: 1.5,
   },
   scoreBlock: {
     alignItems: 'center',
