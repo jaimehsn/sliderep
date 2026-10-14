@@ -14,6 +14,7 @@ import { HF } from '@/constants/hf';
 import { WodId, WOD_IDS, getWodConfig } from '@/constants/wods';
 import { ScanPerson, ScannedPerson } from '@/components/session/scan-person';
 import { useProfile } from '@/hooks/use-profile';
+import { useSession } from '@/hooks/use-session';
 
 type Role = 'judge' | 'judged';
 type Phase = 'role' | 'scan' | 'banner';
@@ -33,21 +34,20 @@ export default function SessionSetupScreen() {
   const [phase, setPhase] = useState<Phase>('role');
   const [role, setRole] = useState<Role | null>(null);
   const { profile } = useProfile();
+  const { setSetup } = useSession();
 
   if (!fontsLoaded) {
     return <View style={{ flex: 1, backgroundColor: HF.bg }} />;
   }
 
-  function navigateToJudge(person: ScannedPerson | null) {
-    router.replace({
-      pathname: '/judge/[id]',
-      params: {
-        id: resolvedWodId,
-        role: role as Role,
-        otherId: person?.id ?? '',
-        otherAlias: person?.alias ?? '',
-      },
+  function navigateToRun(person: ScannedPerson | null) {
+    setSetup({
+      wodId: resolvedWodId,
+      role: role as Role,
+      otherId: person?.id ?? null,
+      otherAlias: person?.alias ?? null,
     });
+    router.replace('/session/run');
   }
 
   function handleScanDone(person: ScannedPerson | null) {
@@ -55,7 +55,7 @@ export default function SessionSetupScreen() {
       setPhase('banner');
       return;
     }
-    navigateToJudge(person);
+    navigateToRun(person);
   }
 
   const showBack = phase !== 'role';
@@ -119,7 +119,7 @@ export default function SessionSetupScreen() {
           <Text style={styles.subtext}>Judging anonymously — nothing is kept after you finish.</Text>
           <Pressable
             style={({ pressed }) => [styles.roleBtn, pressed && styles.btnPressed]}
-            onPress={() => navigateToJudge(null)}
+            onPress={() => navigateToRun(null)}
           >
             <Text style={styles.roleBtnText}>CONTINUE</Text>
           </Pressable>

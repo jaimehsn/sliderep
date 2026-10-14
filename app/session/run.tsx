@@ -1,10 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, BackHandler, StyleSheet, View } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
-import { useSQLiteContext } from 'expo-sqlite';
+import { router } from 'expo-router';
 import {
   useFonts,
-  BarlowCondensed_400Regular,
   BarlowCondensed_600SemiBold,
   BarlowCondensed_700Bold,
 } from '@expo-google-fonts/barlow-condensed';
@@ -14,9 +12,9 @@ import {
 } from '@expo-google-fonts/ibm-plex-mono';
 
 import { HF } from '@/constants/hf';
-import { WodId, WOD_IDS, getWodConfig } from '@/constants/wods';
+import { getWodConfig } from '@/constants/wods';
 import { useJudge } from '@/hooks/use-judge';
-import { useProfile } from '@/hooks/use-profile';
+import { useSession } from '@/hooks/use-session';
 import { Screen } from '@/components/screen';
 import { StartOverlay } from '@/components/judge/start-overlay';
 import { JudgeHeader } from '@/components/judge/judge-header';
@@ -24,44 +22,21 @@ import { ExerciseName } from '@/components/judge/exercise-name';
 import { SwipeBand } from '@/components/judge/swipe-band';
 import { CountReadout } from '@/components/judge/count-readout';
 import { SideRails } from '@/components/judge/side-rails';
-import { ResultScreen } from '@/components/result/result-screen';
-import { saveSession } from '@/db/sessions';
 
-export default function JudgeScreen() {
-  const { id, role, otherId, otherAlias } = useLocalSearchParams<{
-    id: string;
-    role?: string;
-    otherId?: string;
-    otherAlias?: string;
-  }>();
-  const wodId: WodId = WOD_IDS.includes(id as WodId) ? (id as WodId) : 'fran';
-  const resolvedRole: 'judge' | 'judged' = role === 'judged' ? 'judged' : 'judge';
-  const otherIdResolved = otherId ? otherId : null;
-  const otherAliasResolved = otherAlias ? otherAlias : null;
-  const needsSetup = role !== 'judge' && role !== 'judged';
-
-  const { profile, loaded: profileLoaded } = useProfile();
-  const judgedAthleteId = resolvedRole === 'judge' ? otherIdResolved : (profile?.id ?? null);
-  const judgedAlias = resolvedRole === 'judge' ? (otherAliasResolved ?? '') : (profile?.alias ?? '');
-  const judgeId = resolvedRole === 'judge' ? (profile?.id ?? null) : otherIdResolved;
-  const savedState: 'own' | 'foreign' | 'none' =
-    judgedAthleteId == null ? 'none' : judgedAthleteId === profile?.id ? 'own' : 'foreign';
+export default function RunScreen() {
+  const { setup, setOutcome } = useSession();
 
   const [fontsLoaded] = useFonts({
-    BarlowCondensed_400Regular,
     BarlowCondensed_600SemiBold,
     BarlowCondensed_700Bold,
     IBMPlexMono_400Regular,
     IBMPlexMono_500Medium,
   });
 
-  const db = useSQLiteContext();
-  const judge = useJudge(wodId);
+  const judge = useJudge(setup?.wodId ?? 'fran');
   const [phase, setPhase] = useState<'ready' | 'judging'>('ready');
   const startedAtRef = useRef<number | null>(null);
-  const savedRef = useRef(false);
-  const [sessionId, setSessionId] = useState<string | null>(null);
-  const canAdjust = resolvedRole === 'judge' && judgeId != null;
+  const outcomeSetRef = useRef(false);
 
   const handleAbort = useCallback(() => {
     Alert.alert(
@@ -75,10 +50,10 @@ export default function JudgeScreen() {
   }, []);
 
   useEffect(() => {
-    if (needsSetup) {
-      router.replace({ pathname: '/session/setup', params: { wodId: id } });
+    if (!setup) {
+      router.replace('/session/wod');
     }
-  }, [needsSetup, id]);
+  }, [setup]);
 
   useEffect(() => {
     if (phase !== 'judging' || judge.finished) return;
@@ -90,48 +65,30 @@ export default function JudgeScreen() {
   }, [phase, judge.finished, handleAbort]);
 
   useEffect(() => {
-    if (!judge.finished || savedRef.current || judgedAthleteId == null) return;
-    savedRef.current = true;
-    saveSession(db, {
-      wodId,
-      engineVersion: getWodConfig(wodId).engineVersion,
-      judgedAthleteId,
-      judgedAlias,
-      judgeId,
+    if (!judge.finished || outcomeSetRef.current) return;
+    outcomeSetRef.current = true;
+    setOutcome({
+      log: judge.log,
       startedAt: startedAtRef.current ?? Date.now(),
       endT: judge.log.at(-1)?.t ?? 0,
-      events: judge.log.map((e) => ({ t: e.t, kind: e.ok ? 'rep' as const : 'noRep' as const })),
-    }).then(setSessionId).catch((err) => console.error('Failed to save session', err));
-  }, [judge.finished, judgedAthleteId, judgedAlias, judgeId, wodId, judge.log, db]);
+    });
+    router.replace('/session/result');
+  }, [judge.finished, judge.log, setOutcome]);
 
-  if (!fontsLoaded || !profileLoaded || needsSetup) {
+  if (!fontsLoaded || !setup) {
     return <View style={{ flex: 1, backgroundColor: HF.bg }} />;
   }
+
+  const config = getWodConfig(setup.wodId);
 
   if (phase === 'ready') {
     return (
       <Screen style={styles.root} minBottomPadding={24}>
         <StartOverlay
-          config={getWodConfig(wodId)}
-          athleteAlias={otherAliasResolved}
-          role={resolvedRole}
+          config={config}
+          athleteAlias={setup.otherAlias}
+          role={setup.role}
           onDone={() => { startedAtRef.current = Date.now(); setPhase('judging'); judge.startTimer(); }}
-        />
-      </Screen>
-    );
-  }
-
-  if (judge.finished) {
-    return (
-      <Screen style={styles.root}>
-        <ResultScreen
-          config={getWodConfig(wodId)}
-          log={judge.log}
-          athleteAlias={otherAliasResolved}
-          role={resolvedRole}
-          saved={savedState}
-          sessionId={sessionId}
-          canAdjust={canAdjust}
         />
       </Screen>
     );

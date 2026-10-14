@@ -13,9 +13,6 @@ export default function RootLayout() {
       <SQLiteProvider databaseName="sliderep.db" onInit={migrateDbIfNeeded}>
         <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: HF.bg } }}>
           <Stack.Screen name="index" />
-          <Stack.Screen name="session/wod" />
-          <Stack.Screen name="session/setup" />
-          <Stack.Screen name="judge/[id]" />
           <Stack.Screen name="+not-found" />
         </Stack>
         <StatusBar style="light" />
