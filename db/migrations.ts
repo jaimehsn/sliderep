@@ -6,7 +6,8 @@ import { buildBuiltinSeed } from './seed-builtins';
 // Schema v2 (B18): seeds the 4 built-in WODs into `formats`/`exercises`/`workouts`,
 // then rebuilds `sessions` to add the `wodId -> workouts(id)` FK that v1 couldn't
 // declare yet (workouts was still empty).
-const DATABASE_VERSION = 2;
+// Schema v3 (B22): adds `app_state`, a single-row table for the `firstRunDone` flag.
+const DATABASE_VERSION = 3;
 
 export async function migrateDbIfNeeded(db: SQLiteDatabase): Promise<void> {
   const row = await db.getFirstAsync<{ user_version: number }>('PRAGMA user_version');
@@ -135,6 +136,17 @@ export async function migrateDbIfNeeded(db: SQLiteDatabase): Promise<void> {
     await db.execAsync('PRAGMA foreign_keys = ON;');
 
     version = 2;
+    await db.execAsync(`PRAGMA user_version = ${version}`);
+  }
+
+  if (version === 2) {
+    await db.execAsync(`
+      CREATE TABLE app_state (
+        id INTEGER PRIMARY KEY,
+        firstRunDone INTEGER NOT NULL
+      );
+    `);
+    version = 3;
     await db.execAsync(`PRAGMA user_version = ${version}`);
   }
 

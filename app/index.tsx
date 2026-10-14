@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import {
@@ -10,6 +11,7 @@ import { IBMPlexMono_400Regular } from '@expo-google-fonts/ibm-plex-mono';
 import { Screen } from '@/components/screen';
 import { HF } from '@/constants/hf';
 import { useProfile } from '@/hooks/use-profile';
+import { useFirstRun } from '@/hooks/use-first-run';
 
 export default function HubScreen() {
   const [fontsLoaded] = useFonts({
@@ -18,8 +20,22 @@ export default function HubScreen() {
     IBMPlexMono_400Regular,
   });
   const { profile, loaded: profileLoaded } = useProfile();
+  const { done: firstRunDone, loaded: firstRunLoaded, markDone } = useFirstRun();
 
-  if (!fontsLoaded || !profileLoaded) {
+  useEffect(() => {
+    if (!firstRunLoaded || !profileLoaded || firstRunDone) return;
+    if (profile) {
+      // Pre-existing profile (e.g. created before this flag existed) —
+      // nothing to prompt for, just backfill the flag silently.
+      markDone();
+      return;
+    }
+    router.push('/first-run');
+  }, [firstRunLoaded, profileLoaded, firstRunDone, profile, markDone]);
+
+  const awaitingFirstRun = firstRunLoaded && profileLoaded && !firstRunDone && !profile;
+
+  if (!fontsLoaded || !profileLoaded || !firstRunLoaded || awaitingFirstRun) {
     return <View style={{ flex: 1, backgroundColor: HF.bg }} />;
   }
 
