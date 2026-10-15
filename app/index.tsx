@@ -88,14 +88,13 @@ export default function HubScreen() {
           <Text style={styles.sectionLabel}>LIBRARY</Text>
           <Text style={styles.sectionSub}>wods & exercises</Text>
         </Pressable>
-        {[
-          { label: 'SETTINGS', sub: 'profile & version' },
-        ].map(({ label, sub }) => (
-          <Pressable key={label} style={[styles.sectionBtn, styles.sectionBtnDisabled]} disabled>
-            <Text style={styles.sectionLabel}>{label}</Text>
-            <Text style={styles.sectionSub}>coming soon</Text>
-          </Pressable>
-        ))}
+        <Pressable
+          style={({ pressed }) => [styles.sectionBtn, pressed && styles.sectionBtnPressed]}
+          onPress={() => router.push('/settings')}
+        >
+          <Text style={styles.sectionLabel}>SETTINGS</Text>
+          <Text style={styles.sectionSub}>profile & version</Text>
+        </Pressable>
       </View>
 
     </Screen>
@@ -190,9 +189,6 @@ const styles = StyleSheet.create({
   },
   sectionBtnPressed: {
     opacity: 0.5,
-  },
-  sectionBtnDisabled: {
-    opacity: 0.3,
   },
   sectionLabel: {
     fontFamily: 'BarlowCondensed_600SemiBold',
