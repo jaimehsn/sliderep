@@ -10,14 +10,7 @@ import { IBMPlexMono_400Regular } from '@expo-google-fonts/ibm-plex-mono';
 
 import { Screen } from '@/components/screen';
 import { HF } from '@/constants/hf';
-import { WodId, WOD_IDS, getWodConfig } from '@/constants/wods';
-
-const WOD_DESCRIPTIONS: Record<WodId, string> = {
-  fran:        '21-15-9 · thrusters + pull-ups',
-  cindy:       '12 min · pull-ups, push-ups, air squats',
-  everyMinute: '10 min · burpees + kb swings',
-  filthyFifty: '10 stations · 50 reps each',
-};
+import { WOD_IDS, WOD_DESCRIPTIONS, getWodConfig } from '@/constants/wods';
 
 export default function SelectWodScreen() {
   const [fontsLoaded] = useFonts({

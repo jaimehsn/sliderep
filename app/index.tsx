@@ -81,8 +81,14 @@ export default function HubScreen() {
           <Text style={styles.sectionLabel}>HISTORY</Text>
           <Text style={styles.sectionSub}>your sessions</Text>
         </Pressable>
+        <Pressable
+          style={({ pressed }) => [styles.sectionBtn, pressed && styles.sectionBtnPressed]}
+          onPress={() => router.push('/library')}
+        >
+          <Text style={styles.sectionLabel}>LIBRARY</Text>
+          <Text style={styles.sectionSub}>wods & exercises</Text>
+        </Pressable>
         {[
-          { label: 'LIBRARY', sub: 'wods & exercises' },
           { label: 'SETTINGS', sub: 'profile & version' },
         ].map(({ label, sub }) => (
           <Pressable key={label} style={[styles.sectionBtn, styles.sectionBtnDisabled]} disabled>

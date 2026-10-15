@@ -13,6 +13,13 @@ export type WodId = 'fran' | 'cindy' | 'everyMinute' | 'filthyFifty';
 
 export const WOD_IDS: WodId[] = ['fran', 'cindy', 'everyMinute', 'filthyFifty'];
 
+export const WOD_DESCRIPTIONS: Record<WodId, string> = {
+  fran:        '21-15-9 · thrusters + pull-ups',
+  cindy:       '12 min · pull-ups, push-ups, air squats',
+  everyMinute: '10 min · burpees + kb swings',
+  filthyFifty: '10 stations · 50 reps each',
+};
+
 // ─── For Time: FRAN 21-15-9 ──────────────────────────────────────────────────
 
 const FRAN: WodDefinition = {
