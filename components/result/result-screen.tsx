@@ -14,7 +14,7 @@ type Props = {
   log: LogEntry[];
   athleteAlias?: string | null;
   role?: 'judge' | 'judged';
-  saved: 'own' | 'foreign' | 'none';
+  saved: 'own' | 'foreign' | 'none' | 'saving' | 'failed';
   sessionId?: string | null;
   canAdjust?: boolean;
 };
@@ -41,6 +41,8 @@ export function ResultScreen({ config, log, athleteAlias, role = 'judge', saved,
   const savedLabel =
     saved === 'own' ? 'Saved in your history' :
     saved === 'foreign' ? `Saved on this phone — will be delivered to ${athleteAlias} once sync exists` :
+    saved === 'saving' ? 'Saving…' :
+    saved === 'failed' ? "Couldn't save this session" :
     'Not saved';
 
   return (

@@ -52,10 +52,3 @@ All data SHALL be stored only on the device. The app SHALL opt out of OS backup,
 #### Scenario: Changing phones
 - **WHEN** the owner moves to a new phone
 - **THEN** none of the sessions, adjustments or profile are carried over
-
-### Requirement: Failed saves are silent
-If saving a finished session fails, the result SHALL still be shown and no error SHALL be shown to the owner.
-
-#### Scenario: Save error
-- **WHEN** the database rejects the session insert
-- **THEN** the result is shown as usual and the session is not stored

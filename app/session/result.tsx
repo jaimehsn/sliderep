@@ -1,5 +1,5 @@
-import { useEffect, useRef } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import {
@@ -25,6 +25,7 @@ export default function ResultRouteScreen() {
   const { profile, loaded: profileLoaded } = useProfile();
   const db = useSQLiteContext();
   const savedRef = useRef(false);
+  const [saveStatus, setSaveStatus] = useState<'pending' | 'saved' | 'failed'>('pending');
 
   const [fontsLoaded] = useFonts({
     BarlowCondensed_600SemiBold,
@@ -43,8 +44,13 @@ export default function ResultRouteScreen() {
   const judgedAlias = setup == null ? '' : setup.role === 'judge' ? (setup.otherAlias ?? '') : (profile?.alias ?? '');
   const judgeId = setup == null ? null : setup.role === 'judge' ? (profile?.id ?? null) : setup.otherId;
   const judgeAlias = setup == null ? null : setup.role === 'judge' ? (profile?.alias ?? null) : setup.otherAlias;
-  const savedState: 'own' | 'foreign' | 'none' =
-    judgedAthleteId == null ? 'none' : judgedAthleteId === profile?.id ? 'own' : 'foreign';
+  // The banner follows the real save outcome: an anonymous judged athlete is
+  // never saved ('none'), otherwise it waits for saveSession to settle.
+  const savedState: 'own' | 'foreign' | 'none' | 'saving' | 'failed' =
+    judgedAthleteId == null ? 'none' :
+    saveStatus === 'pending' ? 'saving' :
+    saveStatus === 'failed' ? 'failed' :
+    judgedAthleteId === profile?.id ? 'own' : 'foreign';
   const canAdjust = setup?.role === 'judge' && judgeId != null;
 
   useEffect(() => {
@@ -60,7 +66,15 @@ export default function ResultRouteScreen() {
       startedAt: outcome.startedAt,
       endT: outcome.endT,
       events: outcome.log.map((e) => ({ t: e.t, kind: e.ok ? 'rep' as const : 'noRep' as const })),
-    }).then(setSessionId).catch((err) => console.error('Failed to save session', err));
+    })
+      .then((id) => {
+        setSessionId(id);
+        setSaveStatus('saved');
+      })
+      .catch((err) => {
+        console.error('Failed to save session', err);
+        setSaveStatus('failed');
+      });
   }, [setup, outcome, profileLoaded, judgedAthleteId, judgedAlias, judgeId, judgeAlias, db, setSessionId]);
 
   if (!fontsLoaded || !profileLoaded || !setup || !outcome) {
@@ -69,6 +83,15 @@ export default function ResultRouteScreen() {
 
   return (
     <Screen style={styles.root}>
+      <View style={styles.header}>
+        <Pressable
+          onPress={() => router.dismissTo('/')}
+          style={({ pressed }) => [styles.closeBtn, pressed && styles.closeBtnPressed]}
+          hitSlop={12}
+        >
+          <Text style={styles.closeBtnText}>✕</Text>
+        </Pressable>
+      </View>
       <ResultScreen
         config={getWodConfig(setup.wodId)}
         log={outcome.log}
@@ -86,5 +109,23 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: HF.bg,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    paddingHorizontal: 24,
+    paddingTop: 12,
+  },
+  closeBtn: {
+    marginLeft: 16,
+  },
+  closeBtnPressed: {
+    opacity: 0.4,
+  },
+  closeBtnText: {
+    fontFamily: 'IBMPlexMono_400Regular',
+    fontSize: 18,
+    color: HF.muted,
+    lineHeight: 22,
   },
 });
