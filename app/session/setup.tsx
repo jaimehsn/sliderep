@@ -17,7 +17,7 @@ import { useProfile } from '@/hooks/use-profile';
 import { useSession } from '@/hooks/use-session';
 
 type Role = 'judge' | 'judged';
-type Phase = 'role' | 'scan' | 'banner';
+type Phase = 'role' | 'scan' | 'skipBanner' | 'noProfileBanner';
 
 export default function SessionSetupScreen() {
   const { wodId } = useLocalSearchParams<{ wodId: string }>();
@@ -33,10 +33,12 @@ export default function SessionSetupScreen() {
 
   const [phase, setPhase] = useState<Phase>('role');
   const [role, setRole] = useState<Role | null>(null);
-  const { profile } = useProfile();
+  const { profile, loaded: profileLoaded } = useProfile();
   const { setSetup } = useSession();
 
-  if (!fontsLoaded) {
+  // Wait for the profile too: the no-profile warning must not fire on a fast
+  // tap before the query resolves.
+  if (!fontsLoaded || !profileLoaded) {
     return <View style={{ flex: 1, backgroundColor: HF.bg }} />;
   }
 
@@ -52,7 +54,7 @@ export default function SessionSetupScreen() {
 
   function handleScanDone(person: ScannedPerson | null) {
     if (role === 'judge' && person === null) {
-      setPhase('banner');
+      setPhase('skipBanner');
       return;
     }
     navigateToRun(person);
@@ -98,7 +100,7 @@ export default function SessionSetupScreen() {
           </Pressable>
           <Pressable
             style={({ pressed }) => [styles.roleBtn, pressed && styles.btnPressed]}
-            onPress={() => { setRole('judged'); setPhase('scan'); }}
+            onPress={() => { setRole('judged'); setPhase(profile == null ? 'noProfileBanner' : 'scan'); }}
           >
             <Text style={styles.roleBtnText}>I&rsquo;LL BE JUDGED</Text>
           </Pressable>
@@ -113,19 +115,25 @@ export default function SessionSetupScreen() {
         />
       )}
 
-      {phase === 'banner' && (
+      {/* Two "won't be saved" warnings: judge + skip (anonymous athlete), and
+          judged without a local profile (no registered athlete to save for). */}
+      {(phase === 'skipBanner' || phase === 'noProfileBanner') && (
         <View style={styles.center}>
           <Text style={styles.title}>THIS SESSION WON&rsquo;T BE SAVED</Text>
-          <Text style={styles.subtext}>Judging anonymously — nothing is kept after you finish.</Text>
+          <Text style={styles.subtext}>
+            {phase === 'skipBanner'
+              ? 'Judging anonymously — nothing is kept after you finish.'
+              : 'You have no profile — nothing is kept after you finish.'}
+          </Text>
           <Pressable
             style={({ pressed }) => [styles.roleBtn, pressed && styles.btnPressed]}
-            onPress={() => navigateToRun(null)}
+            onPress={() => (phase === 'skipBanner' ? navigateToRun(null) : setPhase('scan'))}
           >
             <Text style={styles.roleBtnText}>CONTINUE</Text>
           </Pressable>
           <Pressable
             style={({ pressed }) => [styles.skipBtn, pressed && styles.btnPressed]}
-            onPress={() => setPhase('scan')}
+            onPress={() => setPhase(phase === 'skipBanner' ? 'scan' : 'role')}
           >
             <Text style={styles.skipBtnText}>GO BACK</Text>
           </Pressable>
