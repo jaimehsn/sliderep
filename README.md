@@ -35,6 +35,7 @@ Builds run on this machine, without EAS cloud. Requirements: JDK 17 (`JAVA_HOME`
 
 ```bash
 pnpm build:apk    # release APK  → android/app/build/outputs/apk/release/app-release.apk
+pnpm build:apk:arm64  # same APK, arm64-v8a only: ~¼ the size, faster build; physical phones only (won't run on an x86_64 emulator)
 pnpm build:aab    # release AAB  → android/app/build/outputs/bundle/release/app-release.aab
 adb install -r android/app/build/outputs/apk/release/app-release.apk
 ```
