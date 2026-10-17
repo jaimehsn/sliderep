@@ -29,6 +29,22 @@ In the output, you'll find options to open the app in a
 
 You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
 
+## Local Android builds
+
+Builds run on this machine, without EAS cloud. Requirements: JDK 17 (`JAVA_HOME`) and the Android SDK (`ANDROID_HOME`, licenses accepted — Gradle downloads the NDK/CMake on first build).
+
+```bash
+pnpm build:apk    # release APK  → android/app/build/outputs/apk/release/app-release.apk
+pnpm build:aab    # release AAB  → android/app/build/outputs/bundle/release/app-release.aab
+adb install -r android/app/build/outputs/apk/release/app-release.apk
+```
+
+Both regenerate `android/` from `app.json` (`expo prebuild --clean`); the folder is git-ignored, so don't edit it by hand. The release build is signed with the template's debug keystore — fine for sideloading, not for the Play Store.
+
+`pnpm build:local` runs the EAS `preview` profile locally instead (`eas build --local`): same output format as the cloud build, but it needs `eas-cli` installed and an `eas login`.
+
+iOS can't be built locally on Linux (it needs macOS + Xcode); use EAS cloud for that.
+
 ## Get a fresh project
 
 When you're ready, run:
