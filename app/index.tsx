@@ -1,6 +1,6 @@
-import { useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import {
   useFonts,
   BarlowCondensed_600SemiBold,
@@ -19,23 +19,36 @@ export default function HubScreen() {
     BarlowCondensed_700Bold,
     IBMPlexMono_400Regular,
   });
-  const { profile, loaded: profileLoaded } = useProfile();
+  const { profile, loaded: profileLoaded, refresh: refreshProfile } = useProfile();
   const { done: firstRunDone, loaded: firstRunLoaded, markDone } = useFirstRun();
+  // Pushed at most once per launch: this screen's first-run state goes stale
+  // while the prompt covers it, so it can't tell on its own that the prompt
+  // was already shown (and left by hardware back) this launch.
+  const promptedRef = useRef(false);
+
+  // Profile may have been created/deleted on another screen while this one
+  // was covered.
+  useFocusEffect(
+    useCallback(() => {
+      refreshProfile();
+    }, [refreshProfile]),
+  );
 
   useEffect(() => {
     if (!firstRunLoaded || !profileLoaded || firstRunDone) return;
     if (profile) {
-      // Pre-existing profile (e.g. created before this flag existed) —
-      // nothing to prompt for, just backfill the flag silently.
+      // Pre-existing profile (e.g. created before this flag existed), or one
+      // just created from the prompt while our flag copy was stale — nothing
+      // to prompt for, just (re)set the flag silently; it's idempotent.
       markDone();
       return;
     }
+    if (promptedRef.current) return;
+    promptedRef.current = true;
     router.push('/first-run');
   }, [firstRunLoaded, profileLoaded, firstRunDone, profile, markDone]);
 
-  const awaitingFirstRun = firstRunLoaded && profileLoaded && !firstRunDone && !profile;
-
-  if (!fontsLoaded || !profileLoaded || !firstRunLoaded || awaitingFirstRun) {
+  if (!fontsLoaded || !profileLoaded || !firstRunLoaded) {
     return <View style={{ flex: 1, backgroundColor: HF.bg }} />;
   }
 

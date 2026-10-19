@@ -1,5 +1,6 @@
+import { useCallback } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import Constants from 'expo-constants';
 import {
   useFonts,
@@ -16,7 +17,14 @@ export default function SettingsScreen() {
     BarlowCondensed_600SemiBold,
     IBMPlexMono_400Regular,
   });
-  const { profile, loaded: profileLoaded } = useProfile();
+  const { profile, loaded: profileLoaded, refresh: refreshProfile } = useProfile();
+
+  // Reflect alias edits / create / delete made on /profile.
+  useFocusEffect(
+    useCallback(() => {
+      refreshProfile();
+    }, [refreshProfile]),
+  );
 
   if (!fontsLoaded || !profileLoaded) {
     return <View style={{ flex: 1, backgroundColor: HF.bg }} />;
