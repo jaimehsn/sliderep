@@ -10,11 +10,9 @@ import { IBMPlexMono_400Regular } from '@expo-google-fonts/ibm-plex-mono';
 
 import { Screen } from '@/components/screen';
 import { HF } from '@/constants/hf';
-import { WOD_IDS, WOD_DESCRIPTIONS, getWodConfig, getWodDefinition } from '@/constants/wods';
-
-const EXERCISE_NAMES = [...new Set(
-  WOD_IDS.flatMap((id) => getWodDefinition(id).definition.block.lines.flat().map((l) => l.exercise)),
-)].sort();
+import { WOD_IDS, WOD_DESCRIPTIONS, getWodConfig } from '@/constants/wods';
+import { EXERCISE_CATEGORIES } from '@/db/exercises';
+import { useExercises } from '@/hooks/use-exercises';
 
 export default function LibraryIndexScreen() {
   const [fontsLoaded] = useFonts({
@@ -23,6 +21,7 @@ export default function LibraryIndexScreen() {
     BarlowCondensed_700Bold,
     IBMPlexMono_400Regular,
   });
+  const { exercises, loaded: exercisesLoaded } = useExercises();
 
   if (!fontsLoaded) {
     return <View style={{ flex: 1, backgroundColor: HF.bg }} />;
@@ -74,15 +73,28 @@ export default function LibraryIndexScreen() {
           );
         })}
 
-        <Text style={[styles.sectionLabel, styles.exercisesLabel]}>EXERCISES</Text>
-        {EXERCISE_NAMES.map((name, i) => (
-          <View key={name}>
-            <View style={styles.exerciseRow}>
-              <Text style={styles.exerciseName}>{name}</Text>
-            </View>
-            {i < EXERCISE_NAMES.length - 1 && <View style={styles.separator} />}
-          </View>
-        ))}
+        {exercisesLoaded && (
+          <>
+            <Text style={[styles.sectionLabel, styles.exercisesLabel]}>EXERCISES</Text>
+            {EXERCISE_CATEGORIES.map((category) => {
+              const group = exercises.filter((e) => e.category === category);
+              if (group.length === 0) return null;
+              return (
+                <View key={category}>
+                  <Text style={styles.categoryLabel}>{category}</Text>
+                  {group.map((exercise, i) => (
+                    <View key={exercise.id}>
+                      <View style={styles.exerciseRow}>
+                        <Text style={styles.exerciseName}>{exercise.name}</Text>
+                      </View>
+                      {i < group.length - 1 && <View style={styles.separator} />}
+                    </View>
+                  ))}
+                </View>
+              );
+            })}
+          </>
+        )}
       </ScrollView>
 
     </Screen>
@@ -192,6 +204,15 @@ const styles = StyleSheet.create({
     fontSize: 28,
     color: HF.mutedDim,
     marginLeft: 16,
+  },
+  categoryLabel: {
+    fontFamily: 'IBMPlexMono_400Regular',
+    fontSize: 9,
+    color: HF.accent,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    marginTop: 16,
+    marginBottom: 2,
   },
   exerciseRow: {
     paddingVertical: 14,

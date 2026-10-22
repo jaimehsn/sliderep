@@ -1,16 +1,22 @@
 import { SQLiteDatabase } from 'expo-sqlite';
-import { buildBuiltinSeed } from './seed-builtins';
+import { V2_EXERCISES, V2_FORMATS, V2_WORKOUTS } from './seeds/v2-builtins';
+import { V5_EXISTING_CATEGORIES, V5_NEW_EXERCISES } from './seeds/v5-exercises';
 
 // Schema v1 (docs/ROADMAP.md → Storage & persistence): `device`, `athlete_profile`,
 // `formats`, `exercises`, `workouts` are created empty, ahead of B18/B19.
-// Schema v2 (B18): seeds the 4 built-in WODs into `formats`/`exercises`/`workouts`,
-// then rebuilds `sessions` to add the `wodId -> workouts(id)` FK that v1 couldn't
-// declare yet (workouts was still empty).
+// Schema v2 (B18): seeds the 4 built-in WODs into `formats`/`exercises`/`workouts`
+// (from the frozen literal snapshot in `seeds/v2-builtins.ts`), then rebuilds
+// `sessions` to add the `wodId -> workouts(id)` FK that v1 couldn't declare yet
+// (workouts was still empty).
 // Schema v3 (B22): adds `app_state`, a single-row table for the `firstRunDone` flag.
 // Schema v4 (B23): adds `sessions.judgeAlias` — an alias snapshot for the judge,
 // symmetric to the existing `judgedAlias`, so History's detail view (opened long
 // after the live session context is gone) has something to show.
-const DATABASE_VERSION = 4;
+// Schema v5: adds `exercises.category` (GYMNASTICS / WEIGHTLIFTING / MONOSTRUCTURAL,
+// required in app code — the column itself is nullable, same `ADD COLUMN` approach
+// as v4), fills it in for the 14 exercises v2 seeded and inserts the rest of the
+// built-in catalog, all from the frozen `seeds/v5-exercises.ts`.
+const DATABASE_VERSION = 5;
 
 export async function migrateDbIfNeeded(db: SQLiteDatabase): Promise<void> {
   const row = await db.getFirstAsync<{ user_version: number }>('PRAGMA user_version');
@@ -90,28 +96,28 @@ export async function migrateDbIfNeeded(db: SQLiteDatabase): Promise<void> {
   }
 
   if (version === 1) {
-    const { formats, exercises, workouts } = buildBuiltinSeed(Date.now());
+    const createdAt = Date.now();
 
     // foreign_keys can't be toggled mid-transaction, and rebuilding `sessions`
     // (SQLite has no ALTER TABLE ADD CONSTRAINT) needs it off meanwhile.
     await db.execAsync('PRAGMA foreign_keys = OFF;');
     await db.withTransactionAsync(async () => {
-      for (const f of formats) {
+      for (const f of V2_FORMATS) {
         await db.runAsync(
           'INSERT INTO formats (id, version, definition, engineVersion, origin) VALUES (?, ?, ?, ?, ?)',
           [f.id, f.version, f.definition, f.engineVersion, f.origin],
         );
       }
-      for (const e of exercises) {
+      for (const e of V2_EXERCISES) {
         await db.runAsync(
           'INSERT INTO exercises (id, name, origin, createdAt) VALUES (?, ?, ?, ?)',
-          [e.id, e.name, e.origin, e.createdAt],
+          [e.id, e.name, e.origin, createdAt],
         );
       }
-      for (const w of workouts) {
+      for (const w of V2_WORKOUTS) {
         await db.runAsync(
           'INSERT INTO workouts (id, name, blocks, scoringBlock, origin, createdAt) VALUES (?, ?, ?, ?, ?, ?)',
-          [w.id, w.name, w.blocks, w.scoringBlock, w.origin, w.createdAt],
+          [w.id, w.name, w.blocks, w.scoringBlock, w.origin, createdAt],
         );
       }
 
@@ -156,6 +162,24 @@ export async function migrateDbIfNeeded(db: SQLiteDatabase): Promise<void> {
   if (version === 3) {
     await db.execAsync('ALTER TABLE sessions ADD COLUMN judgeAlias TEXT;');
     version = 4;
+    await db.execAsync(`PRAGMA user_version = ${version}`);
+  }
+
+  if (version === 4) {
+    const createdAt = Date.now();
+    await db.withTransactionAsync(async () => {
+      await db.execAsync('ALTER TABLE exercises ADD COLUMN category TEXT;');
+      for (const e of V5_EXISTING_CATEGORIES) {
+        await db.runAsync('UPDATE exercises SET category = ? WHERE id = ?', [e.category, e.id]);
+      }
+      for (const e of V5_NEW_EXERCISES) {
+        await db.runAsync(
+          'INSERT INTO exercises (id, name, origin, category, createdAt) VALUES (?, ?, ?, ?, ?)',
+          [e.id, e.name, 'builtin', e.category, createdAt],
+        );
+      }
+    });
+    version = 5;
     await db.execAsync(`PRAGMA user_version = ${version}`);
   }
 
