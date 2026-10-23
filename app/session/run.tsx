@@ -12,9 +12,9 @@ import {
 } from '@expo-google-fonts/ibm-plex-mono';
 
 import { HF } from '@/constants/hf';
-import { getWodConfig } from '@/constants/wods';
+import { WodConfig } from '@/constants/wod-engine';
 import { useJudge } from '@/hooks/use-judge';
-import { useSession } from '@/hooks/use-session';
+import { SessionSetup, useSession } from '@/hooks/use-session';
 import { Screen } from '@/components/screen';
 import { StartOverlay } from '@/components/judge/start-overlay';
 import { JudgeHeader } from '@/components/judge/judge-header';
@@ -23,8 +23,10 @@ import { SwipeBand } from '@/components/judge/swipe-band';
 import { CountReadout } from '@/components/judge/count-readout';
 import { SideRails } from '@/components/judge/side-rails';
 
+// Guard: useJudge needs a config at mount, so the judging screen only mounts
+// once the picker's workout and setup's role/other person are both in context.
 export default function RunScreen() {
-  const { setup, setOutcome } = useSession();
+  const { workout, setup } = useSession();
 
   const [fontsLoaded] = useFonts({
     BarlowCondensed_600SemiBold,
@@ -33,7 +35,22 @@ export default function RunScreen() {
     IBMPlexMono_500Medium,
   });
 
-  const judge = useJudge(setup?.wodId ?? 'fran');
+  useEffect(() => {
+    if (!workout || !setup) {
+      router.replace('/session/wod');
+    }
+  }, [workout, setup]);
+
+  if (!fontsLoaded || !workout || !setup) {
+    return <View style={{ flex: 1, backgroundColor: HF.bg }} />;
+  }
+
+  return <RunSession config={workout.config} setup={setup} />;
+}
+
+function RunSession({ config, setup }: { config: WodConfig; setup: SessionSetup }) {
+  const { setOutcome } = useSession();
+  const judge = useJudge(config);
   const [phase, setPhase] = useState<'ready' | 'judging'>('ready');
   const startedAtRef = useRef<number | null>(null);
   const outcomeSetRef = useRef(false);
@@ -48,12 +65,6 @@ export default function RunScreen() {
       ],
     );
   }, []);
-
-  useEffect(() => {
-    if (!setup) {
-      router.replace('/session/wod');
-    }
-  }, [setup]);
 
   useEffect(() => {
     if (phase !== 'judging' || judge.finished) return;
@@ -74,12 +85,6 @@ export default function RunScreen() {
     });
     router.replace('/session/result');
   }, [judge.finished, judge.log, setOutcome]);
-
-  if (!fontsLoaded || !setup) {
-    return <View style={{ flex: 1, backgroundColor: HF.bg }} />;
-  }
-
-  const config = getWodConfig(setup.wodId);
 
   if (phase === 'ready') {
     return (

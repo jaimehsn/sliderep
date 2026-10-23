@@ -10,7 +10,8 @@ import { IBMPlexMono_400Regular } from '@expo-google-fonts/ibm-plex-mono';
 
 import { Screen } from '@/components/screen';
 import { HF } from '@/constants/hf';
-import { WOD_IDS, WOD_DESCRIPTIONS, getWodConfig } from '@/constants/wods';
+import { useSession } from '@/hooks/use-session';
+import { useWorkouts } from '@/hooks/use-workouts';
 
 export default function SelectWodScreen() {
   const [fontsLoaded] = useFonts({
@@ -19,8 +20,10 @@ export default function SelectWodScreen() {
     BarlowCondensed_700Bold,
     IBMPlexMono_400Regular,
   });
+  const { workouts, loaded } = useWorkouts();
+  const { setWorkout } = useSession();
 
-  if (!fontsLoaded) {
+  if (!fontsLoaded || !loaded) {
     return <View style={{ flex: 1, backgroundColor: HF.bg }} />;
   }
 
@@ -45,22 +48,25 @@ export default function SelectWodScreen() {
 
       {/* WOD list */}
       <View style={styles.list}>
-        {WOD_IDS.map((key, i) => {
-          const config = getWodConfig(key);
+        {workouts.map((workout, i) => {
+          const { config } = workout;
           return (
-            <View key={key}>
+            <View key={workout.id}>
               <Pressable
-                onPress={() => router.push({ pathname: '/session/setup', params: { wodId: key } })}
+                onPress={() => {
+                  setWorkout(workout);
+                  router.push('/session/setup');
+                }}
                 style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
               >
                 <View style={styles.cardBody}>
                   <Text style={styles.cardMode}>{config.mode}</Text>
                   <Text style={styles.cardName}>{config.name}</Text>
-                  <Text style={styles.cardDesc}>{WOD_DESCRIPTIONS[key]}</Text>
+                  <Text style={styles.cardDesc}>{config.description}</Text>
                 </View>
                 <Text style={styles.cardArrow}>›</Text>
               </Pressable>
-              {i < WOD_IDS.length - 1 && <View style={styles.separator} />}
+              {i < workouts.length - 1 && <View style={styles.separator} />}
             </View>
           );
         })}

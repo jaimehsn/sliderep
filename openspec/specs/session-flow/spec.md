@@ -92,7 +92,7 @@ The pre-start summary and the result SHALL label the session "Judging <alias>" w
 - **THEN** the label reads "Judged by anonymous"
 
 ### Requirement: Session flow navigation
-Within the session flow, the OS swipe-back gesture SHALL be disabled. Each step SHALL replace the previous one once passed, so going back from the run or result returns to workout selection. The result shown after judging SHALL offer a ✕ that returns to the hub. Reaching the run or result without a configured session SHALL redirect to workout selection.
+Within the session flow, the OS swipe-back gesture SHALL be disabled. Each step SHALL replace the previous one once passed, so going back from the run or result returns to workout selection. The result shown after judging SHALL offer a ✕ that returns to the hub. Reaching role selection without a chosen workout, or the run or result without a configured session, SHALL redirect to workout selection.
 
 #### Scenario: Back from the result
 - **WHEN** the owner presses hardware back on the result
@@ -104,7 +104,11 @@ Within the session flow, the OS swipe-back gesture SHALL be disabled. Each step 
 
 #### Scenario: Leaving the flow clears it
 - **WHEN** the owner leaves the session flow back to the hub
-- **THEN** the role, the other person and the judged events of that session are discarded from memory
+- **THEN** the chosen workout, the role, the other person and the judged events of that session are discarded from memory
+
+#### Scenario: Role selection without a chosen workout
+- **WHEN** role selection is opened directly, without picking a workout first
+- **THEN** workout selection is shown instead, and no workout is chosen on the owner's behalf
 
 ### Requirement: Finishing hands off to the result
 When judging finishes, the system SHALL show the result for that session's events, role and other person.

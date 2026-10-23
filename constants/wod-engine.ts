@@ -18,8 +18,11 @@ export type WodKpi = { label: string; current: number; total: number | null };
 export type WodExercise = { name: string; detail: string };
 
 export type WodConfig = {
+  /** Derived from format + content (e.g. "12-MIN AMRAP"), never hand-written. */
   mode: string;
   name: string;
+  /** One-line card description, derived from content (e.g. "21-15-9 · thrusters + pull-ups"). */
+  description: string;
   timerMode: 'elapsed' | 'remaining' | 'minLeft';
   totalSeconds: number;
   /** onTarget: advance() fires as soon as the target is reached. onClock: only the clock advances (extra reps are ignored). */
@@ -65,6 +68,13 @@ export const EMOM_FORMAT: Format = {
   id: 'emom', version: 1, repeat: 'perInterval', advance: 'onClock', timer: 'intervalCountdown', stop: 'afterIntervals', score: 'intervalsPlusReps',
 };
 
+/** Built-in formats by id — what a stored block's `formatId` resolves to. */
+export const FORMATS: Record<string, Format> = {
+  [FOR_TIME_FORMAT.id]: FOR_TIME_FORMAT,
+  [AMRAP_FORMAT.id]: AMRAP_FORMAT,
+  [EMOM_FORMAT.id]: EMOM_FORMAT,
+};
+
 // ─── WOD content ────────────────────────────────────────────────────────────
 
 export type WodLine = {
@@ -91,7 +101,6 @@ export type Block = {
 export type WodDefinition = {
   id: string;
   name: string;
-  mode: string;
   block: Block;
 };
 
@@ -116,6 +125,34 @@ function summarize(format: Format, block: Block): WodExercise[] {
   }
   // perInterval: each entry is its own interval's exercise.
   return block.lines.map((roundLines) => ({ name: roundLines[0].exercise, detail: `${roundLines[0].target} / min` }));
+}
+
+// Distinct exercise names in first-seen order, lowercased: "a + b" for two, "a, b, c" for more.
+function joinNames(block: Block): string {
+  const names = [...new Set(block.lines.flat().map((l) => l.exercise.toLowerCase()))];
+  return names.join(names.length === 2 ? ' + ' : ', ');
+}
+
+function describeMode(format: Format, block: Block): string {
+  if (format.repeat === 'rounds') return 'FOR TIME';
+  if (format.repeat === 'cycle') return `${(block.durationSeconds ?? 0) / 60}-MIN AMRAP`;
+  return `EMOM · ${block.rounds ?? 0}`;
+}
+
+function describeContent(format: Format, block: Block): string {
+  if (format.repeat === 'rounds' && block.rounds === 1) {
+    const lines = block.lines[0] ?? [];
+    const targets = new Set(lines.map((l) => l.target));
+    return targets.size === 1
+      ? `${lines.length} stations · ${lines[0].target} reps each`
+      : `${lines.length} stations`;
+  }
+  if (format.repeat === 'rounds') {
+    const uniform = block.lines.every((round) => round.every((l) => l.target === round[0]?.target));
+    const scheme = uniform ? block.lines.map((round) => round[0]?.target ?? 0).join('-') : `${block.rounds ?? 0} rounds`;
+    return `${scheme} · ${joinNames(block)}`;
+  }
+  return `${(block.durationSeconds ?? 0) / 60} min · ${joinNames(block)}`;
 }
 
 export function buildWodConfig(definition: WodDefinition, format: Format): WodConfig {
@@ -172,8 +209,9 @@ export function buildWodConfig(definition: WodDefinition, format: Format): WodCo
   }
 
   return {
-    mode: definition.mode,
+    mode: describeMode(format, block),
     name: definition.name,
+    description: describeContent(format, block),
     timerMode,
     totalSeconds: block.durationSeconds ?? 0,
     advanceMode: format.advance,

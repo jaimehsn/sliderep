@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { HF } from '@/constants/hf';
-import { WodConfig } from '@/constants/wods';
+import { WodConfig } from '@/constants/wod-engine';
 import { useSoundCue } from '@/hooks/use-sound-cue';
 
 type Props = {

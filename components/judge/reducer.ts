@@ -1,4 +1,4 @@
-import { WodConfig } from '@/constants/wods';
+import { WodConfig } from '@/constants/wod-engine';
 import { JudgeAction, JudgeState, LogEntry } from './types';
 
 export function judgeReducer(state: JudgeState, action: JudgeAction): JudgeState {

@@ -10,9 +10,9 @@ import { IBMPlexMono_400Regular } from '@expo-google-fonts/ibm-plex-mono';
 
 import { Screen } from '@/components/screen';
 import { HF } from '@/constants/hf';
-import { WOD_IDS, WOD_DESCRIPTIONS, getWodConfig } from '@/constants/wods';
 import { EXERCISE_CATEGORIES } from '@/db/exercises';
 import { useExercises } from '@/hooks/use-exercises';
+import { useWorkouts } from '@/hooks/use-workouts';
 
 export default function LibraryIndexScreen() {
   const [fontsLoaded] = useFonts({
@@ -21,9 +21,10 @@ export default function LibraryIndexScreen() {
     BarlowCondensed_700Bold,
     IBMPlexMono_400Regular,
   });
+  const { workouts, loaded: workoutsLoaded } = useWorkouts();
   const { exercises, loaded: exercisesLoaded } = useExercises();
 
-  if (!fontsLoaded) {
+  if (!fontsLoaded || !workoutsLoaded) {
     return <View style={{ flex: 1, backgroundColor: HF.bg }} />;
   }
 
@@ -53,8 +54,7 @@ export default function LibraryIndexScreen() {
         scrollIndicatorInsets={{ right: 1 }}
       >
         <Text style={styles.sectionLabel}>WORKOUTS</Text>
-        {WOD_IDS.map((id, i) => {
-          const config = getWodConfig(id);
+        {workouts.map(({ id, config }, i) => {
           return (
             <View key={id}>
               <Pressable
@@ -64,11 +64,11 @@ export default function LibraryIndexScreen() {
                 <View style={styles.cardBody}>
                   <Text style={styles.cardMode}>{config.mode}</Text>
                   <Text style={styles.cardName}>{config.name}</Text>
-                  <Text style={styles.cardDesc}>{WOD_DESCRIPTIONS[id]}</Text>
+                  <Text style={styles.cardDesc}>{config.description}</Text>
                 </View>
                 <Text style={styles.cardArrow}>›</Text>
               </Pressable>
-              {i < WOD_IDS.length - 1 && <View style={styles.separator} />}
+              {i < workouts.length - 1 && <View style={styles.separator} />}
             </View>
           );
         })}

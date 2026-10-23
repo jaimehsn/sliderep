@@ -1,6 +1,6 @@
 import { formatTime, judgeReducer, makeInitial } from '@/components/judge/reducer';
 import { HF } from '@/constants/hf';
-import { WodId, getWodConfig } from '@/constants/wods';
+import { WodConfig } from '@/constants/wod-engine';
 import { useSoundCue } from '@/hooks/use-sound-cue';
 import * as Haptics from 'expo-haptics';
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
@@ -22,9 +22,7 @@ const TAP_MAX_DX = 12;
 const TAP_MAX_MS = 500;
 const DRAG_MAX = 70;
 
-export function useJudge(wodId: WodId) {
-  const config = useMemo(() => getWodConfig(wodId), [wodId]);
-
+export function useJudge(config: WodConfig) {
   const [elapsed, setElapsed] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
   const [dropKey, setDropKey] = useState(0);

@@ -1,4 +1,4 @@
-import { WodConfig, WodSession } from '@/constants/wods';
+import { WodConfig, WodSession } from '@/constants/wod-engine';
 import { LogEntry } from '@/components/judge/types';
 import { formatTime } from '@/components/judge/reducer';
 

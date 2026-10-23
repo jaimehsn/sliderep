@@ -11,8 +11,9 @@ import { IBMPlexMono_400Regular } from '@expo-google-fonts/ibm-plex-mono';
 
 import { Screen } from '@/components/screen';
 import { HF } from '@/constants/hf';
-import { WodId, getWodConfig } from '@/constants/wods';
 import { useProfile } from '@/hooks/use-profile';
+import { WodConfig } from '@/constants/wod-engine';
+import { getWorkout } from '@/db/workouts';
 import { getOwnSessions, StoredSession } from '@/db/sessions';
 import { deriveResult } from '@/components/result/replay';
 
@@ -34,6 +35,7 @@ export default function HistoryIndexScreen() {
   const db = useSQLiteContext();
   const { profile, loaded: profileLoaded } = useProfile();
   const [sessions, setSessions] = useState<StoredSession[] | null>(null);
+  const [configs, setConfigs] = useState<Map<string, WodConfig>>(new Map());
 
   useFocusEffect(
     useCallback(() => {
@@ -42,7 +44,13 @@ export default function HistoryIndexScreen() {
         setSessions([]);
         return;
       }
-      getOwnSessions(db, profile.id).then(setSessions);
+      getOwnSessions(db, profile.id).then(async (rows) => {
+        // One load per distinct workout; every saved session's workout exists (FK).
+        const ids = [...new Set(rows.map((r) => r.wodId))];
+        const workouts = await Promise.all(ids.map((wodId) => getWorkout(db, wodId)));
+        setConfigs(new Map(workouts.flatMap((w) => (w ? [[w.id, w.config] as const] : []))));
+        setSessions(rows);
+      });
     }, [db, profile, profileLoaded]),
   );
 
@@ -74,7 +82,8 @@ export default function HistoryIndexScreen() {
       ) : (
         <View style={styles.list}>
           {sessions.map((session, i) => {
-            const config = getWodConfig(session.wodId as WodId);
+            const config = configs.get(session.wodId);
+            if (!config) return null;
             const log = session.events.map((e, idx) => ({ id: idx, ok: e.kind === 'rep', t: e.t }));
             const result = deriveResult(config, log);
             return (

@@ -13,11 +13,11 @@ import {
 } from '@expo-google-fonts/ibm-plex-mono';
 
 import { HF } from '@/constants/hf';
-import { WodId, getWodConfig } from '@/constants/wods';
 import { Screen } from '@/components/screen';
 import { useProfile } from '@/hooks/use-profile';
 import { LogEntry } from '@/components/judge/types';
 import { getSession, StoredSession } from '@/db/sessions';
+import { Workout, getWorkout } from '@/db/workouts';
 import { AdjustmentChange, SessionAdjustment, addAdjustment, getAdjustments } from '@/db/session-adjustments';
 import { deriveAdjustedResult } from '@/components/result/adjust';
 import { Split } from '@/components/result/replay';
@@ -35,6 +35,7 @@ export default function AdjustScreen() {
   });
   const [loaded, setLoaded] = useState(false);
   const [session, setSession] = useState<StoredSession | null>(null);
+  const [workout, setWorkout] = useState<Workout | null>(null);
   const [adjustments, setAdjustments] = useState<SessionAdjustment[]>([]);
   const [pending, setPending] = useState<AdjustmentChange[]>([]);
   const [editingKey, setEditingKey] = useState<string | null>(null);
@@ -44,6 +45,7 @@ export default function AdjustScreen() {
   const load = useCallback(async () => {
     if (!sessionId) return;
     const [s, rows] = await Promise.all([getSession(db, sessionId), getAdjustments(db, sessionId)]);
+    if (s) setWorkout(await getWorkout(db, s.wodId));
     setSession(s);
     setAdjustments(rows);
     setLoaded(true);
@@ -55,7 +57,7 @@ export default function AdjustScreen() {
     }, [load]),
   );
 
-  const config = useMemo(() => (session ? getWodConfig(session.wodId as WodId) : null), [session]);
+  const config = workout?.config ?? null;
   const log: LogEntry[] = useMemo(
     () => session?.events.map((e, i) => ({ id: i, ok: e.kind === 'rep', t: e.t })) ?? [],
     [session],

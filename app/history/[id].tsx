@@ -13,15 +13,16 @@ import {
 } from '@expo-google-fonts/ibm-plex-mono';
 
 import { HF } from '@/constants/hf';
-import { WodId, getWodConfig } from '@/constants/wods';
 import { Screen } from '@/components/screen';
 import { ResultScreen } from '@/components/result/result-screen';
 import { getSession, deleteSession, StoredSession } from '@/db/sessions';
+import { Workout, getWorkout } from '@/db/workouts';
 
 export default function HistoryDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const db = useSQLiteContext();
   const [session, setSession] = useState<StoredSession | null | undefined>(undefined);
+  const [workout, setWorkout] = useState<Workout | null>(null);
 
   const [fontsLoaded] = useFonts({
     BarlowCondensed_600SemiBold,
@@ -33,7 +34,11 @@ export default function HistoryDetailScreen() {
   useFocusEffect(
     useCallback(() => {
       if (!id) return;
-      getSession(db, id).then(setSession);
+      getSession(db, id).then(async (s) => {
+        // A saved session's workout always exists (FK), archived or not.
+        if (s) setWorkout(await getWorkout(db, s.wodId));
+        setSession(s);
+      });
     }, [db, id]),
   );
 
@@ -44,7 +49,7 @@ export default function HistoryDetailScreen() {
     }
   }, [session]);
 
-  if (!fontsLoaded || !session) {
+  if (!fontsLoaded || !session || !workout) {
     return <View style={{ flex: 1, backgroundColor: HF.bg }} />;
   }
 
@@ -81,7 +86,7 @@ export default function HistoryDetailScreen() {
       </View>
 
       <ResultScreen
-        config={getWodConfig(session.wodId as WodId)}
+        config={workout.config}
         log={log}
         athleteAlias={session.judgeAlias}
         role="judged"

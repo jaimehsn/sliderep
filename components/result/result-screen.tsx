@@ -3,7 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { HF } from '@/constants/hf';
-import { WodConfig } from '@/constants/wods';
+import { WodConfig } from '@/constants/wod-engine';
 import { LogEntry } from '@/components/judge/types';
 import { formatTime } from '@/components/judge/reducer';
 import { deriveAdjustedResult } from '@/components/result/adjust';

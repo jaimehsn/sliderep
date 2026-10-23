@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { HF } from '@/constants/hf';
-import { WodKpi } from '@/constants/wods';
+import { WodKpi } from '@/constants/wod-engine';
 import { RoundPips } from './round-pips';
 
 type Props = {

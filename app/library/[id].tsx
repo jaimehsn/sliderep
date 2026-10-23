@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import {
@@ -7,10 +7,11 @@ import {
   BarlowCondensed_700Bold,
 } from '@expo-google-fonts/barlow-condensed';
 import { IBMPlexMono_400Regular } from '@expo-google-fonts/ibm-plex-mono';
+import { useSQLiteContext } from 'expo-sqlite';
 
 import { Screen } from '@/components/screen';
 import { HF } from '@/constants/hf';
-import { WodId, WOD_IDS, getWodConfig } from '@/constants/wods';
+import { Workout, getWorkout } from '@/db/workouts';
 
 function formatDuration(seconds: number): string {
   const m = Math.floor(seconds / 60);
@@ -19,7 +20,8 @@ function formatDuration(seconds: number): string {
 
 export default function LibraryDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const valid = WOD_IDS.includes(id as WodId);
+  const db = useSQLiteContext();
+  const [workout, setWorkout] = useState<Workout | null>(null);
 
   const [fontsLoaded] = useFonts({
     BarlowCondensed_600SemiBold,
@@ -28,16 +30,17 @@ export default function LibraryDetailScreen() {
   });
 
   useEffect(() => {
-    if (!valid) {
-      router.replace('/library');
-    }
-  }, [valid]);
+    getWorkout(db, id).then((w) => {
+      setWorkout(w);
+      if (!w) router.replace('/library');
+    });
+  }, [db, id]);
 
-  if (!fontsLoaded || !valid) {
+  if (!fontsLoaded || !workout) {
     return <View style={{ flex: 1, backgroundColor: HF.bg }} />;
   }
 
-  const config = getWodConfig(id as WodId);
+  const { config } = workout;
 
   return (
     <Screen style={styles.root}>

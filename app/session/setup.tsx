@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router } from 'expo-router';
 import {
   useFonts,
   BarlowCondensed_400Regular,
@@ -11,7 +11,6 @@ import { IBMPlexMono_400Regular } from '@expo-google-fonts/ibm-plex-mono';
 
 import { Screen } from '@/components/screen';
 import { HF } from '@/constants/hf';
-import { WodId, WOD_IDS, getWodConfig } from '@/constants/wods';
 import { ScanPerson, ScannedPerson } from '@/components/session/scan-person';
 import { useProfile } from '@/hooks/use-profile';
 import { useSession } from '@/hooks/use-session';
@@ -20,10 +19,6 @@ type Role = 'judge' | 'judged';
 type Phase = 'role' | 'scan' | 'skipBanner' | 'noProfileBanner';
 
 export default function SessionSetupScreen() {
-  const { wodId } = useLocalSearchParams<{ wodId: string }>();
-  const resolvedWodId: WodId = WOD_IDS.includes(wodId as WodId) ? (wodId as WodId) : 'fran';
-  const config = getWodConfig(resolvedWodId);
-
   const [fontsLoaded] = useFonts({
     BarlowCondensed_400Regular,
     BarlowCondensed_600SemiBold,
@@ -34,17 +29,26 @@ export default function SessionSetupScreen() {
   const [phase, setPhase] = useState<Phase>('role');
   const [role, setRole] = useState<Role | null>(null);
   const { profile, loaded: profileLoaded } = useProfile();
-  const { setSetup } = useSession();
+  const { workout, setSetup } = useSession();
+
+  // Only reachable from the picker, which writes `workout` first; never fall
+  // back to some other workout.
+  useEffect(() => {
+    if (!workout) {
+      router.replace('/session/wod');
+    }
+  }, [workout]);
 
   // Wait for the profile too: the no-profile warning must not fire on a fast
   // tap before the query resolves.
-  if (!fontsLoaded || !profileLoaded) {
+  if (!fontsLoaded || !profileLoaded || !workout) {
     return <View style={{ flex: 1, backgroundColor: HF.bg }} />;
   }
 
+  const { config } = workout;
+
   function navigateToRun(person: ScannedPerson | null) {
     setSetup({
-      wodId: resolvedWodId,
       role: role as Role,
       otherId: person?.id ?? null,
       otherAlias: person?.alias ?? null,

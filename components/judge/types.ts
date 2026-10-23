@@ -1,4 +1,4 @@
-import { WodConfig, WodSession } from '@/constants/wods';
+import { WodConfig, WodSession } from '@/constants/wod-engine';
 
 export type LogEntry = { id: number; ok: boolean; t: number };
 
