@@ -136,11 +136,13 @@ function deriveOnTarget(config: WodConfig, log: LogEntry[]): WodResult {
     };
   }
 
-  // AMRAP: the final state carries the completedRounds tally and `done` the
-  // last round's partial reps on its current line.
+  // AMRAP: completed rounds from the final state's tally, plus every counted rep
+  // of the unfinished round (all its lines, not only the current one). Right
+  // after a round ends the state is on the next round with no reps yet: + 0.
+  const roundReps = state.tagged.filter((e) => e.counted && e.pos.roundIdx === state.pos.roundIdx).length;
   return {
     scoreLabel: 'SCORE',
-    scoreValue: `${state.pos.completedRounds} + ${state.done}`,
+    scoreValue: `${state.pos.completedRounds} + ${roundReps}`,
     splits,
   };
 }

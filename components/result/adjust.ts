@@ -100,7 +100,9 @@ function deriveAdjustedOnTarget(config: WodConfig, log: LogEntry[], changes: Adj
   }
 
   // AMRAP: completed-rounds + partial reps, grouped by roundIdx — stops counting
-  // full rounds at the first round containing any incomplete position.
+  // full rounds at the first round containing any incomplete position, and the
+  // partial reps are every rep that round's positions keep, not only the first
+  // incomplete one's.
   let completedRounds = 0;
   let partialReps = 0;
   let i = 0;
@@ -108,16 +110,10 @@ function deriveAdjustedOnTarget(config: WodConfig, log: LogEntry[], changes: Adj
     const roundIdx = resolved[i].roundIdx;
     let j = i;
     let roundComplete = true;
-    let firstIncompleteKept = 0;
-    let sawIncomplete = false;
+    let roundKept = 0;
     while (j < resolved.length && resolved[j].roundIdx === roundIdx) {
-      if (!resolved[j].completed) {
-        roundComplete = false;
-        if (!sawIncomplete) {
-          sawIncomplete = true;
-          firstIncompleteKept = resolved[j].kept.length;
-        }
-      }
+      if (!resolved[j].completed) roundComplete = false;
+      roundKept += resolved[j].kept.length;
       j++;
     }
     if (roundComplete) {
@@ -125,7 +121,7 @@ function deriveAdjustedOnTarget(config: WodConfig, log: LogEntry[], changes: Adj
       i = j;
       continue;
     }
-    partialReps = firstIncompleteKept;
+    partialReps = roundKept;
     break;
   }
 

@@ -29,7 +29,7 @@ pnpm test              # Run the engine tests (vitest, tests/ — pure TS only, 
 pnpm reset-project     # Reset to blank Expo template
 ```
 
-`tests/goldens.test.ts` pins every v1 result (score + splits, with and without adjustments) for synthetic logs in `tests/fixtures.ts`, as file snapshots in `tests/__goldens__/`, recorded on the engine as shipped — quirks included. Never re-record them with `vitest -u`: a different result means a new engine version, not an updated golden. Add a new case instead of editing a recorded one.
+`tests/goldens.test.ts` pins every v1 result (score + splits, with and without adjustments) for synthetic logs in `tests/fixtures.ts`, as file snapshots in `tests/__goldens__/`, recorded on the engine as shipped — quirks included. Never re-record them with `vitest -u`: a different result means a new engine version, not an updated golden. Add a new case instead of editing a recorded one. The one exception: a golden that pins a deviation from the spec may be corrected by hand, only on its wrong lines, in a change of its own that lists each corrected line (first used by `fix-amrap-partial-reps`, the AMRAP "+ N").
 
 ## Architecture
 

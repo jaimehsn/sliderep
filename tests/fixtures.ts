@@ -92,6 +92,15 @@ export const CASES: GoldenCase[] = [
     changes: [{ type: 'duration', newDurationSeconds: 600 }],
   },
   { name: 'cindy-empty', wodId: 'cindy', log: [] },
+  // Change fix-amrap-partial-reps: "+ N" is the whole unfinished round (CINDY rounds are 30 reps).
+  { name: 'cindy-two-lines-into-round', wodId: 'cindy', log: toLog(run(3000, 195, 3000)) },
+  { name: 'cindy-round-just-finished', wodId: 'cindy', log: toLog(run(3000, 180, 3000)) },
+  {
+    name: 'cindy-adjusted-target-up',
+    wodId: 'cindy',
+    log: toLog(run(3000, 239, 3000)),
+    changes: [{ type: 'target', roundIdx: 2, exIdx: 0, newTarget: 8 }],
+  },
 
   // EVERY MINUTE (10-min EMOM alternating 10 burpees / 15 KB swings)
   { name: 'emom-all-completed', wodId: 'everyMinute', log: toLog(perMinute(EMOM_TARGETS)) },
