@@ -1,0 +1,108 @@
+{
+  "result": {
+    "scoreLabel": "TIME",
+    "scoreValue": "08:20",
+    "splits": [
+      {
+        "label": "Station 1 — BOX JUMPS",
+        "reps": 50,
+        "target": 50,
+        "completed": true,
+        "cumulativeMs": 50000,
+        "lapMs": 50000,
+        "roundIdx": 0,
+        "exIdx": 0
+      },
+      {
+        "label": "Station 2 — JUMPING PULL-UPS",
+        "reps": 50,
+        "target": 50,
+        "completed": true,
+        "cumulativeMs": 100000,
+        "lapMs": 50000,
+        "roundIdx": 0,
+        "exIdx": 1
+      },
+      {
+        "label": "Station 3 — KB SWINGS",
+        "reps": 50,
+        "target": 50,
+        "completed": true,
+        "cumulativeMs": 150000,
+        "lapMs": 50000,
+        "roundIdx": 0,
+        "exIdx": 2
+      },
+      {
+        "label": "Station 4 — WALKING LUNGES",
+        "reps": 50,
+        "target": 50,
+        "completed": true,
+        "cumulativeMs": 200000,
+        "lapMs": 50000,
+        "roundIdx": 0,
+        "exIdx": 3
+      },
+      {
+        "label": "Station 5 — KNEES-TO-ELBOWS",
+        "reps": 50,
+        "target": 50,
+        "completed": true,
+        "cumulativeMs": 250000,
+        "lapMs": 50000,
+        "roundIdx": 0,
+        "exIdx": 4
+      },
+      {
+        "label": "Station 6 — PUSH PRESS",
+        "reps": 50,
+        "target": 50,
+        "completed": true,
+        "cumulativeMs": 300000,
+        "lapMs": 50000,
+        "roundIdx": 0,
+        "exIdx": 5
+      },
+      {
+        "label": "Station 7 — BACK EXT.",
+        "reps": 50,
+        "target": 50,
+        "completed": true,
+        "cumulativeMs": 350000,
+        "lapMs": 50000,
+        "roundIdx": 0,
+        "exIdx": 6
+      },
+      {
+        "label": "Station 8 — WALL BALL",
+        "reps": 50,
+        "target": 50,
+        "completed": true,
+        "cumulativeMs": 400000,
+        "lapMs": 50000,
+        "roundIdx": 0,
+        "exIdx": 7
+      },
+      {
+        "label": "Station 9 — BURPEES",
+        "reps": 50,
+        "target": 50,
+        "completed": true,
+        "cumulativeMs": 450000,
+        "lapMs": 50000,
+        "roundIdx": 0,
+        "exIdx": 8
+      },
+      {
+        "label": "Station 10 — DOUBLE UNDERS",
+        "reps": 50,
+        "target": 50,
+        "completed": true,
+        "cumulativeMs": 500000,
+        "lapMs": 50000,
+        "roundIdx": 0,
+        "exIdx": 9
+      }
+    ]
+  }
+}

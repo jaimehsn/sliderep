@@ -14,7 +14,8 @@
     "build:apk:arm64": "expo prebuild -p android --clean && cd android && ./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a",
     "build:aab": "expo prebuild -p android --clean && cd android && ./gradlew bundleRelease",
     "build:local": "eas build -p android --profile preview --local",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "test": "vitest run"
   },
   "dependencies": {
     "@expo-google-fonts/barlow-condensed": "^0.4.1",
@@ -50,7 +51,8 @@
     "@types/react": "~19.2.4",
     "eslint": "^9.25.0",
     "eslint-config-expo": "~57.0.2",
-    "typescript": "~6.0.3"
+    "typescript": "~6.0.3",
+    "vitest": "^5.0.5"
   },
   "private": true
 }

@@ -1,0 +1,28 @@
+{
+  "result": {
+    "scoreLabel": "TIME",
+    "scoreValue": "01:00",
+    "splits": [
+      {
+        "label": "Round 1 — THRUSTERS",
+        "reps": 21,
+        "target": 21,
+        "completed": true,
+        "cumulativeMs": 42000,
+        "lapMs": 42000,
+        "roundIdx": 0,
+        "exIdx": 0
+      },
+      {
+        "label": "Round 1 — PULL-UPS",
+        "reps": 9,
+        "target": 21,
+        "completed": false,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 0,
+        "exIdx": 1
+      }
+    ]
+  }
+}

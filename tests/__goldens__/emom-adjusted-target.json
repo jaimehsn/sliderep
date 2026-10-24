@@ -1,0 +1,214 @@
+{
+  "result": {
+    "scoreLabel": "SCORE",
+    "scoreValue": "9/10 · 122 reps",
+    "splits": [
+      {
+        "label": "Minute 1 — BURPEES",
+        "reps": 10,
+        "target": 10,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 0,
+        "exIdx": 0
+      },
+      {
+        "label": "Minute 2 — KB SWINGS",
+        "reps": 12,
+        "target": 15,
+        "completed": false,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 1,
+        "exIdx": 0
+      },
+      {
+        "label": "Minute 3 — BURPEES",
+        "reps": 10,
+        "target": 10,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 2,
+        "exIdx": 0
+      },
+      {
+        "label": "Minute 4 — KB SWINGS",
+        "reps": 15,
+        "target": 15,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 3,
+        "exIdx": 0
+      },
+      {
+        "label": "Minute 5 — BURPEES",
+        "reps": 10,
+        "target": 10,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 4,
+        "exIdx": 0
+      },
+      {
+        "label": "Minute 6 — KB SWINGS",
+        "reps": 15,
+        "target": 15,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 5,
+        "exIdx": 0
+      },
+      {
+        "label": "Minute 7 — BURPEES",
+        "reps": 10,
+        "target": 10,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 6,
+        "exIdx": 0
+      },
+      {
+        "label": "Minute 8 — KB SWINGS",
+        "reps": 15,
+        "target": 15,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 7,
+        "exIdx": 0
+      },
+      {
+        "label": "Minute 9 — BURPEES",
+        "reps": 10,
+        "target": 10,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 8,
+        "exIdx": 0
+      },
+      {
+        "label": "Minute 10 — KB SWINGS",
+        "reps": 15,
+        "target": 15,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 9,
+        "exIdx": 0
+      }
+    ]
+  },
+  "adjusted": {
+    "scoreLabel": "SCORE",
+    "scoreValue": "10/10 · 122 reps",
+    "splits": [
+      {
+        "label": "Minute 1 — BURPEES",
+        "reps": 10,
+        "target": 10,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 0,
+        "exIdx": 0
+      },
+      {
+        "label": "Minute 2 — KB SWINGS",
+        "reps": 12,
+        "target": 12,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 1,
+        "exIdx": 0
+      },
+      {
+        "label": "Minute 3 — BURPEES",
+        "reps": 10,
+        "target": 10,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 2,
+        "exIdx": 0
+      },
+      {
+        "label": "Minute 4 — KB SWINGS",
+        "reps": 15,
+        "target": 15,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 3,
+        "exIdx": 0
+      },
+      {
+        "label": "Minute 5 — BURPEES",
+        "reps": 10,
+        "target": 10,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 4,
+        "exIdx": 0
+      },
+      {
+        "label": "Minute 6 — KB SWINGS",
+        "reps": 15,
+        "target": 15,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 5,
+        "exIdx": 0
+      },
+      {
+        "label": "Minute 7 — BURPEES",
+        "reps": 10,
+        "target": 10,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 6,
+        "exIdx": 0
+      },
+      {
+        "label": "Minute 8 — KB SWINGS",
+        "reps": 15,
+        "target": 15,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 7,
+        "exIdx": 0
+      },
+      {
+        "label": "Minute 9 — BURPEES",
+        "reps": 10,
+        "target": 10,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 8,
+        "exIdx": 0
+      },
+      {
+        "label": "Minute 10 — KB SWINGS",
+        "reps": 15,
+        "target": 15,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 9,
+        "exIdx": 0
+      }
+    ]
+  }
+}

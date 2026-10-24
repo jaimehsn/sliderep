@@ -1,0 +1,38 @@
+{
+  "result": {
+    "scoreLabel": "TIME",
+    "scoreValue": "02:17",
+    "splits": [
+      {
+        "label": "Station 1 — BOX JUMPS",
+        "reps": 50,
+        "target": 50,
+        "completed": true,
+        "cumulativeMs": 50000,
+        "lapMs": 50000,
+        "roundIdx": 0,
+        "exIdx": 0
+      },
+      {
+        "label": "Station 2 — JUMPING PULL-UPS",
+        "reps": 50,
+        "target": 50,
+        "completed": true,
+        "cumulativeMs": 100000,
+        "lapMs": 50000,
+        "roundIdx": 0,
+        "exIdx": 1
+      },
+      {
+        "label": "Station 3 — KB SWINGS",
+        "reps": 37,
+        "target": 50,
+        "completed": false,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 0,
+        "exIdx": 2
+      }
+    ]
+  }
+}

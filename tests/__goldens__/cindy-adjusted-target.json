@@ -1,0 +1,494 @@
+{
+  "result": {
+    "scoreLabel": "SCORE",
+    "scoreValue": "7 + 14",
+    "splits": [
+      {
+        "label": "Round 1 — PULL-UPS",
+        "reps": 5,
+        "target": 5,
+        "completed": true,
+        "cumulativeMs": 15000,
+        "lapMs": 15000,
+        "roundIdx": 0,
+        "exIdx": 0
+      },
+      {
+        "label": "Round 1 — PUSH-UPS",
+        "reps": 10,
+        "target": 10,
+        "completed": true,
+        "cumulativeMs": 45000,
+        "lapMs": 30000,
+        "roundIdx": 0,
+        "exIdx": 1
+      },
+      {
+        "label": "Round 1 — AIR SQUATS",
+        "reps": 15,
+        "target": 15,
+        "completed": true,
+        "cumulativeMs": 90000,
+        "lapMs": 45000,
+        "roundIdx": 0,
+        "exIdx": 2
+      },
+      {
+        "label": "Round 2 — PULL-UPS",
+        "reps": 5,
+        "target": 5,
+        "completed": true,
+        "cumulativeMs": 105000,
+        "lapMs": 15000,
+        "roundIdx": 1,
+        "exIdx": 0
+      },
+      {
+        "label": "Round 2 — PUSH-UPS",
+        "reps": 10,
+        "target": 10,
+        "completed": true,
+        "cumulativeMs": 135000,
+        "lapMs": 30000,
+        "roundIdx": 1,
+        "exIdx": 1
+      },
+      {
+        "label": "Round 2 — AIR SQUATS",
+        "reps": 15,
+        "target": 15,
+        "completed": true,
+        "cumulativeMs": 180000,
+        "lapMs": 45000,
+        "roundIdx": 1,
+        "exIdx": 2
+      },
+      {
+        "label": "Round 3 — PULL-UPS",
+        "reps": 5,
+        "target": 5,
+        "completed": true,
+        "cumulativeMs": 195000,
+        "lapMs": 15000,
+        "roundIdx": 2,
+        "exIdx": 0
+      },
+      {
+        "label": "Round 3 — PUSH-UPS",
+        "reps": 10,
+        "target": 10,
+        "completed": true,
+        "cumulativeMs": 225000,
+        "lapMs": 30000,
+        "roundIdx": 2,
+        "exIdx": 1
+      },
+      {
+        "label": "Round 3 — AIR SQUATS",
+        "reps": 15,
+        "target": 15,
+        "completed": true,
+        "cumulativeMs": 270000,
+        "lapMs": 45000,
+        "roundIdx": 2,
+        "exIdx": 2
+      },
+      {
+        "label": "Round 4 — PULL-UPS",
+        "reps": 5,
+        "target": 5,
+        "completed": true,
+        "cumulativeMs": 285000,
+        "lapMs": 15000,
+        "roundIdx": 3,
+        "exIdx": 0
+      },
+      {
+        "label": "Round 4 — PUSH-UPS",
+        "reps": 10,
+        "target": 10,
+        "completed": true,
+        "cumulativeMs": 315000,
+        "lapMs": 30000,
+        "roundIdx": 3,
+        "exIdx": 1
+      },
+      {
+        "label": "Round 4 — AIR SQUATS",
+        "reps": 15,
+        "target": 15,
+        "completed": true,
+        "cumulativeMs": 360000,
+        "lapMs": 45000,
+        "roundIdx": 3,
+        "exIdx": 2
+      },
+      {
+        "label": "Round 5 — PULL-UPS",
+        "reps": 5,
+        "target": 5,
+        "completed": true,
+        "cumulativeMs": 375000,
+        "lapMs": 15000,
+        "roundIdx": 4,
+        "exIdx": 0
+      },
+      {
+        "label": "Round 5 — PUSH-UPS",
+        "reps": 10,
+        "target": 10,
+        "completed": true,
+        "cumulativeMs": 405000,
+        "lapMs": 30000,
+        "roundIdx": 4,
+        "exIdx": 1
+      },
+      {
+        "label": "Round 5 — AIR SQUATS",
+        "reps": 15,
+        "target": 15,
+        "completed": true,
+        "cumulativeMs": 450000,
+        "lapMs": 45000,
+        "roundIdx": 4,
+        "exIdx": 2
+      },
+      {
+        "label": "Round 6 — PULL-UPS",
+        "reps": 5,
+        "target": 5,
+        "completed": true,
+        "cumulativeMs": 465000,
+        "lapMs": 15000,
+        "roundIdx": 5,
+        "exIdx": 0
+      },
+      {
+        "label": "Round 6 — PUSH-UPS",
+        "reps": 10,
+        "target": 10,
+        "completed": true,
+        "cumulativeMs": 495000,
+        "lapMs": 30000,
+        "roundIdx": 5,
+        "exIdx": 1
+      },
+      {
+        "label": "Round 6 — AIR SQUATS",
+        "reps": 15,
+        "target": 15,
+        "completed": true,
+        "cumulativeMs": 540000,
+        "lapMs": 45000,
+        "roundIdx": 5,
+        "exIdx": 2
+      },
+      {
+        "label": "Round 7 — PULL-UPS",
+        "reps": 5,
+        "target": 5,
+        "completed": true,
+        "cumulativeMs": 555000,
+        "lapMs": 15000,
+        "roundIdx": 6,
+        "exIdx": 0
+      },
+      {
+        "label": "Round 7 — PUSH-UPS",
+        "reps": 10,
+        "target": 10,
+        "completed": true,
+        "cumulativeMs": 585000,
+        "lapMs": 30000,
+        "roundIdx": 6,
+        "exIdx": 1
+      },
+      {
+        "label": "Round 7 — AIR SQUATS",
+        "reps": 15,
+        "target": 15,
+        "completed": true,
+        "cumulativeMs": 630000,
+        "lapMs": 45000,
+        "roundIdx": 6,
+        "exIdx": 2
+      },
+      {
+        "label": "Round 8 — PULL-UPS",
+        "reps": 5,
+        "target": 5,
+        "completed": true,
+        "cumulativeMs": 645000,
+        "lapMs": 15000,
+        "roundIdx": 7,
+        "exIdx": 0
+      },
+      {
+        "label": "Round 8 — PUSH-UPS",
+        "reps": 10,
+        "target": 10,
+        "completed": true,
+        "cumulativeMs": 675000,
+        "lapMs": 30000,
+        "roundIdx": 7,
+        "exIdx": 1
+      },
+      {
+        "label": "Round 8 — AIR SQUATS",
+        "reps": 14,
+        "target": 15,
+        "completed": false,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 7,
+        "exIdx": 2
+      }
+    ]
+  },
+  "adjusted": {
+    "scoreLabel": "SCORE",
+    "scoreValue": "7 + 14",
+    "splits": [
+      {
+        "label": "Round 1 — PULL-UPS",
+        "reps": 3,
+        "target": 3,
+        "completed": true,
+        "cumulativeMs": 9000,
+        "lapMs": 9000,
+        "roundIdx": 0,
+        "exIdx": 0
+      },
+      {
+        "label": "Round 1 — PUSH-UPS",
+        "reps": 10,
+        "target": 10,
+        "completed": true,
+        "cumulativeMs": 45000,
+        "lapMs": 36000,
+        "roundIdx": 0,
+        "exIdx": 1
+      },
+      {
+        "label": "Round 1 — AIR SQUATS",
+        "reps": 15,
+        "target": 15,
+        "completed": true,
+        "cumulativeMs": 90000,
+        "lapMs": 45000,
+        "roundIdx": 0,
+        "exIdx": 2
+      },
+      {
+        "label": "Round 2 — PULL-UPS",
+        "reps": 5,
+        "target": 5,
+        "completed": true,
+        "cumulativeMs": 105000,
+        "lapMs": 15000,
+        "roundIdx": 1,
+        "exIdx": 0
+      },
+      {
+        "label": "Round 2 — PUSH-UPS",
+        "reps": 10,
+        "target": 10,
+        "completed": true,
+        "cumulativeMs": 135000,
+        "lapMs": 30000,
+        "roundIdx": 1,
+        "exIdx": 1
+      },
+      {
+        "label": "Round 2 — AIR SQUATS",
+        "reps": 15,
+        "target": 15,
+        "completed": true,
+        "cumulativeMs": 180000,
+        "lapMs": 45000,
+        "roundIdx": 1,
+        "exIdx": 2
+      },
+      {
+        "label": "Round 3 — PULL-UPS",
+        "reps": 5,
+        "target": 5,
+        "completed": true,
+        "cumulativeMs": 195000,
+        "lapMs": 15000,
+        "roundIdx": 2,
+        "exIdx": 0
+      },
+      {
+        "label": "Round 3 — PUSH-UPS",
+        "reps": 10,
+        "target": 10,
+        "completed": true,
+        "cumulativeMs": 225000,
+        "lapMs": 30000,
+        "roundIdx": 2,
+        "exIdx": 1
+      },
+      {
+        "label": "Round 3 — AIR SQUATS",
+        "reps": 15,
+        "target": 15,
+        "completed": true,
+        "cumulativeMs": 270000,
+        "lapMs": 45000,
+        "roundIdx": 2,
+        "exIdx": 2
+      },
+      {
+        "label": "Round 4 — PULL-UPS",
+        "reps": 5,
+        "target": 5,
+        "completed": true,
+        "cumulativeMs": 285000,
+        "lapMs": 15000,
+        "roundIdx": 3,
+        "exIdx": 0
+      },
+      {
+        "label": "Round 4 — PUSH-UPS",
+        "reps": 10,
+        "target": 10,
+        "completed": true,
+        "cumulativeMs": 315000,
+        "lapMs": 30000,
+        "roundIdx": 3,
+        "exIdx": 1
+      },
+      {
+        "label": "Round 4 — AIR SQUATS",
+        "reps": 15,
+        "target": 15,
+        "completed": true,
+        "cumulativeMs": 360000,
+        "lapMs": 45000,
+        "roundIdx": 3,
+        "exIdx": 2
+      },
+      {
+        "label": "Round 5 — PULL-UPS",
+        "reps": 5,
+        "target": 5,
+        "completed": true,
+        "cumulativeMs": 375000,
+        "lapMs": 15000,
+        "roundIdx": 4,
+        "exIdx": 0
+      },
+      {
+        "label": "Round 5 — PUSH-UPS",
+        "reps": 10,
+        "target": 10,
+        "completed": true,
+        "cumulativeMs": 405000,
+        "lapMs": 30000,
+        "roundIdx": 4,
+        "exIdx": 1
+      },
+      {
+        "label": "Round 5 — AIR SQUATS",
+        "reps": 15,
+        "target": 15,
+        "completed": true,
+        "cumulativeMs": 450000,
+        "lapMs": 45000,
+        "roundIdx": 4,
+        "exIdx": 2
+      },
+      {
+        "label": "Round 6 — PULL-UPS",
+        "reps": 5,
+        "target": 5,
+        "completed": true,
+        "cumulativeMs": 465000,
+        "lapMs": 15000,
+        "roundIdx": 5,
+        "exIdx": 0
+      },
+      {
+        "label": "Round 6 — PUSH-UPS",
+        "reps": 10,
+        "target": 10,
+        "completed": true,
+        "cumulativeMs": 495000,
+        "lapMs": 30000,
+        "roundIdx": 5,
+        "exIdx": 1
+      },
+      {
+        "label": "Round 6 — AIR SQUATS",
+        "reps": 15,
+        "target": 15,
+        "completed": true,
+        "cumulativeMs": 540000,
+        "lapMs": 45000,
+        "roundIdx": 5,
+        "exIdx": 2
+      },
+      {
+        "label": "Round 7 — PULL-UPS",
+        "reps": 5,
+        "target": 5,
+        "completed": true,
+        "cumulativeMs": 555000,
+        "lapMs": 15000,
+        "roundIdx": 6,
+        "exIdx": 0
+      },
+      {
+        "label": "Round 7 — PUSH-UPS",
+        "reps": 10,
+        "target": 10,
+        "completed": true,
+        "cumulativeMs": 585000,
+        "lapMs": 30000,
+        "roundIdx": 6,
+        "exIdx": 1
+      },
+      {
+        "label": "Round 7 — AIR SQUATS",
+        "reps": 15,
+        "target": 15,
+        "completed": true,
+        "cumulativeMs": 630000,
+        "lapMs": 45000,
+        "roundIdx": 6,
+        "exIdx": 2
+      },
+      {
+        "label": "Round 8 — PULL-UPS",
+        "reps": 5,
+        "target": 5,
+        "completed": true,
+        "cumulativeMs": 645000,
+        "lapMs": 15000,
+        "roundIdx": 7,
+        "exIdx": 0
+      },
+      {
+        "label": "Round 8 — PUSH-UPS",
+        "reps": 10,
+        "target": 10,
+        "completed": true,
+        "cumulativeMs": 675000,
+        "lapMs": 30000,
+        "roundIdx": 7,
+        "exIdx": 1
+      },
+      {
+        "label": "Round 8 — AIR SQUATS",
+        "reps": 14,
+        "target": 15,
+        "completed": false,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 7,
+        "exIdx": 2
+      }
+    ]
+  }
+}

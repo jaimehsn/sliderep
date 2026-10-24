@@ -25,8 +25,11 @@ pnpm android           # Run on Android emulator
 pnpm ios               # Run on iOS simulator
 pnpm web               # Run in browser
 pnpm lint              # Run ESLint
+pnpm test              # Run the engine tests (vitest, tests/ — pure TS only, no screens)
 pnpm reset-project     # Reset to blank Expo template
 ```
+
+`tests/goldens.test.ts` pins every v1 result (score + splits, with and without adjustments) for synthetic logs in `tests/fixtures.ts`, as file snapshots in `tests/__goldens__/`, recorded on the engine as shipped — quirks included. Never re-record them with `vitest -u`: a different result means a new engine version, not an updated golden. Add a new case instead of editing a recorded one.
 
 ## Architecture
 

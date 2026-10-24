@@ -1,10 +1,10 @@
-import { SQLiteDatabase } from 'expo-sqlite';
+import type { SQLiteDatabase } from 'expo-sqlite';
 import { Block, FORMATS, WodConfig, WodLine, buildWodConfig } from '@/constants/wod-engine';
 
 /** A workout ready to run: its stored id plus the config the engine built from it. */
 export type Workout = { id: string; config: WodConfig };
 
-type WorkoutRow = { id: string; name: string; blocks: string };
+export type WorkoutRow = { id: string; name: string; blocks: string };
 
 type StoredLine = { exerciseId: string; target: number; repDescription?: WodLine['repDescription'] };
 type StoredBlock = {
@@ -16,7 +16,8 @@ type StoredBlock = {
 
 // Strict on purpose: rows this can't read can't exist until engine v2 (change C)
 // widens the stored shape, and C widens this parser with it. A throw is a bug.
-function toWorkout(row: WorkoutRow, exerciseNames: Map<string, string>): Workout {
+// Exported for tests, which build the built-ins from the frozen v2 seed rows.
+export function parseWorkoutRow(row: WorkoutRow, exerciseNames: Map<string, string>): Workout {
   const blocks: StoredBlock[] = JSON.parse(row.blocks);
   if (blocks.length !== 1) throw new Error(`Workout ${row.id}: expected 1 block, got ${blocks.length}`);
   const [stored] = blocks;
@@ -52,7 +53,7 @@ export async function listWorkouts(db: SQLiteDatabase): Promise<Workout[]> {
     ),
     getExerciseNames(db),
   ]);
-  return rows.map((row) => toWorkout(row, names));
+  return rows.map((row) => parseWorkoutRow(row, names));
 }
 
 /** Any workout by id, archived or not — saved sessions must keep resolving theirs. */
@@ -61,5 +62,5 @@ export async function getWorkout(db: SQLiteDatabase, id: string): Promise<Workou
     db.getFirstAsync<WorkoutRow>('SELECT id, name, blocks FROM workouts WHERE id = ?', [id]),
     getExerciseNames(db),
   ]);
-  return row ? toWorkout(row, names) : null;
+  return row ? parseWorkoutRow(row, names) : null;
 }

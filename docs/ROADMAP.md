@@ -183,7 +183,7 @@ Conceptual draft (not code):
 - Transient (memory only): the in-progress session; the result screen of an unsaved session is built from it and discarded.
 
 Consequences:
-- **The engine must be deterministic** given `(WOD, engineVersion, events)`, and its semantics can never change silently. This is now load-bearing: a set of golden logs is advisable once tests are introduced.
+- **The engine must be deterministic** given `(WOD, engineVersion, events)`, and its semantics can never change silently. This is now load-bearing: golden logs exist since change `unified-engine` (`tests/goldens.test.ts`, synthetic logs, snapshots in `tests/__goldens__/`).
 - **Risk to watch:** with no recovery, and keep-awake out of scope, a screen timeout or Android killing the app mid-WOD loses the session, and JS timers may not run reliably with the screen off. Revisit keep-awake (or recovery) if this bites.
 - Session setup needs a role/QR screen (B14); persistence happens only at finish (B15).
 
