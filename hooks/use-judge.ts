@@ -1,9 +1,9 @@
-import { formatTime, judgeReducer, makeInitial } from '@/components/judge/reducer';
+import type { LogEntry } from '@/components/judge/types';
 import { HF } from '@/constants/hf';
-import { WodConfig } from '@/constants/wod-engine';
+import { EngineState, WodConfig, advanceTo, apply, initial, view } from '@/constants/wod-engine';
 import { useSoundCue } from '@/hooks/use-sound-cue';
 import * as Haptics from 'expo-haptics';
-import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Gesture } from 'react-native-gesture-handler';
 import {
   Easing,
@@ -22,18 +22,18 @@ const TAP_MAX_DX = 12;
 const TAP_MAX_MS = 500;
 const DRAG_MAX = 70;
 
+// Clock tick: only the screen waits for it — every gesture is applied at its own t.
+const TICK_MS = 250;
+
 export function useJudge(config: WodConfig) {
-  const [elapsed, setElapsed] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
   const [dropKey, setDropKey] = useState(0);
   const [lastKind, setLastKind] = useState<'rep' | 'noRep' | null>(null);
 
-  const [judgeState, dispatch] = useReducer(judgeReducer, config, makeInitial);
-  const judgeStateRef = useRef(judgeState);
-  judgeStateRef.current = judgeState;
-
-  // Session clock: ms since judging started (right after the countdown), independent
-  // of the second-granularity `elapsed` counter used for the visible timer.
+  // Engine state on the session clock (ms since judging started, right after the
+  // countdown) — the same t that stamps each event, so live = result by construction.
+  const [state, setState] = useState<EngineState>(() => initial(config));
+  const stateRef = useRef(state);
   const sessionStartRef = useRef<number | null>(null);
   const getT = () => Date.now() - (sessionStartRef.current ?? Date.now());
 
@@ -45,61 +45,48 @@ export function useJudge(config: WodConfig) {
   const playMinute = useSoundCue(require('@/assets/sounds/minute.wav'));
   const playEnd = useSoundCue(require('@/assets/sounds/end.wav'));
 
+  // Single entry point for every state change, so sounds and the clock stop
+  // follow the transition itself, whichever input caused it.
+  const commit = useCallback((next: EngineState) => {
+    const prev = stateRef.current;
+    if (next === prev) return;
+    stateRef.current = next;
+    setState(next);
+    if (next.finished && !prev.finished) {
+      // For Time / Chipper finish silently on the last rep; AMRAP/EMOM on the clock.
+      if (config.format.repeat !== 'rounds') playEnd();
+      setIsRunning(false);
+    } else if (next.pos.minuteIdx > prev.pos.minuteIdx) {
+      playMinute();
+    }
+  }, [config, playMinute, playEnd]);
+
   useEffect(() => {
     if (!isRunning) return;
-    const id = setInterval(() => setElapsed((e) => e + 1), 1000);
+    const id = setInterval(() => commit(advanceTo(config, stateRef.current, getT())), TICK_MS);
     return () => clearInterval(id);
-  }, [isRunning]);
-
-  useEffect(() => {
-    if (config.advanceMode !== 'onClock' || judgeState.finished) return;
-    const totalMinutes = Math.ceil(config.totalSeconds / 60);
-    const minuteIdx = Math.min(Math.floor(elapsed / 60), totalMinutes);
-    const prev = judgeStateRef.current;
-    if (minuteIdx === prev.session.minuteIdx) return;
-    if (minuteIdx >= totalMinutes) {
-      // Last minute just ended: auto-finish, keeping this minute's partial
-      // reps instead of resetting done to 0 — same as For Time/Chipper
-      // finishing automatically on the last rep, no manual confirmation.
-      playEnd();
-      setIsRunning(false);
-      dispatch({ type: 'FINISH' });
-      return;
-    }
-    playMinute();
-    dispatch({
-      type: 'RESET',
-      initial: {
-        session: { ...prev.session, minuteIdx },
-        done: 0,
-        log: prev.log,
-        invalidSticky: false,
-        finished: false,
-      },
-    });
-  }, [elapsed, config, playMinute, playEnd, judgeState.finished]);
-
-  useEffect(() => {
-    if (config.timerMode !== 'remaining' || config.totalSeconds <= 0) return;
-    if (elapsed !== config.totalSeconds) return;
-    playEnd();
-    setIsRunning(false);
-    dispatch({ type: 'FINISH' });
-  }, [elapsed, config, playEnd]);
-
-  // For Time / Chipper finish on the last rep (see reducer); freeze the clock there too.
-  useEffect(() => {
-    if (judgeState.finished) setIsRunning(false);
-  }, [judgeState.finished]);
+  }, [isRunning, config, commit]);
 
   const startTimer = useCallback(() => {
     sessionStartRef.current = Date.now();
     setIsRunning(true);
   }, []);
 
+  // Moves the clock to now first: a gesture after the clock-driven end is ignored
+  // (never recorded), even if the next tick hasn't landed yet.
+  const record = useCallback((ok: boolean): boolean => {
+    const t = getT();
+    const clocked = advanceTo(config, stateRef.current, t);
+    if (clocked.finished) {
+      commit(clocked);
+      return false;
+    }
+    commit(apply(config, clocked, { t, ok }));
+    return true;
+  }, [config, commit]);
+
   const handleRep = useCallback(() => {
-    if (judgeStateRef.current.finished) return;
-    dispatch({ type: 'REP', config, t: getT() });
+    if (!record(true)) return;
     setLastKind('rep');
     setDropKey((k) => k + 1);
     counterScale.value = withSequence(
@@ -108,11 +95,10 @@ export function useJudge(config: WodConfig) {
     );
     invalidProgress.value = withTiming(0, { duration: 200 });
     Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics.Confirm);
-  }, [config, counterScale, invalidProgress]);
+  }, [record, counterScale, invalidProgress]);
 
   const handleNoRep = useCallback(() => {
-    if (judgeStateRef.current.finished) return;
-    dispatch({ type: 'NO_REP', t: getT() });
+    if (!record(false)) return;
     setLastKind('noRep');
     setDropKey((k) => k + 1);
     counterScale.value = withSequence(
@@ -121,7 +107,7 @@ export function useJudge(config: WodConfig) {
     );
     invalidProgress.value = withTiming(1, { duration: 200 });
     Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics.Reject);
-  }, [counterScale, invalidProgress]);
+  }, [record, counterScale, invalidProgress]);
 
   // Swipe right = rep, swipe left = no-rep, quick tap = rep; anything slower or shorter is ignored.
   const pan = Gesture.Pan()
@@ -154,20 +140,9 @@ export function useJudge(config: WodConfig) {
 
   const gesture = Gesture.Exclusive(pan, tap);
 
-  const { session, done } = judgeState;
-  const target = config.getTarget(session);
-  const exerciseName = judgeState.finished ? 'DONE' : config.getExerciseName(session);
-  const kpi = config.getKpi(session);
-
-  const timerStr = useMemo(() => {
-    if (config.timerMode === 'remaining') return formatTime(Math.max(0, config.totalSeconds - elapsed));
-    if (config.timerMode === 'minLeft') return formatTime(Math.max(0, 60 - (elapsed % 60)));
-    return formatTime(elapsed);
-  }, [config, elapsed]);
-
-  const timerLabel =
-    config.timerMode === 'remaining' ? 'remaining' :
-    config.timerMode === 'minLeft'   ? 'min left'  : 'elapsed';
+  const { exerciseName, target, done, kpi, timerStr, timerLabel } = view(config, state);
+  // The raw input log, as saved: every recorded gesture with its session-clock t.
+  const log: LogEntry[] = useMemo(() => state.tagged.map((e, i) => ({ id: i, ok: e.ok, t: e.t })), [state.tagged]);
 
   const counterStyle = useAnimatedStyle(() => ({
     transform: [{ scale: counterScale.value }],
@@ -194,8 +169,8 @@ export function useJudge(config: WodConfig) {
     target,
     exerciseName,
     kpi,
-    finished: judgeState.finished,
-    log: judgeState.log,
+    finished: state.finished,
+    log,
     gesture,
     drag,
     dropKey,

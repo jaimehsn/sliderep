@@ -1,35 +1,20 @@
-import { WodConfig, WodSession } from '@/constants/wod-engine';
-import { LogEntry } from '@/components/judge/types';
-import { formatTime } from '@/components/judge/reducer';
+import { START_POSITION, WodConfig, WodSession, exerciseNameAt, fold, formatTime, targetAt } from '@/constants/wod-engine';
+import type { LogEntry } from '@/components/judge/types';
 import { WodResult, Split, splitLabel, deriveResult } from '@/components/result/replay';
-import { AdjustmentChange } from '@/db/session-adjustments';
+import type { AdjustmentChange } from '@/db/session-adjustments';
 
 type Tagged = { t: number; roundIdx: number; exIdx: number; originalTarget: number };
 
 /**
- * Replays the *unmodified* config/log, exactly like replay.ts's deriveOnTarget,
- * but records each counted event's position instead of only aggregating splits.
- * This is what "no re-flow" (docs/ROADMAP.md) rests on: positions are fixed by
- * this pass and never recomputed under adjusted targets — only each position's
- * own completion threshold changes.
+ * Each counted event's position from the engine fold over the *unmodified*
+ * config/log. This is what "no re-flow" (docs/ROADMAP.md) rests on: positions
+ * are fixed by this pass and never recomputed under adjusted targets — only each
+ * position's own completion threshold changes.
  */
 function tagOnTargetPositions(config: WodConfig, log: LogEntry[]): Tagged[] {
-  const sorted = [...log].filter((e) => e.ok).sort((a, b) => a.t - b.t);
-  const tagged: Tagged[] = [];
-  let session = config.initialSession;
-  let done = 0;
-  for (const entry of sorted) {
-    const target = config.getTarget(session);
-    tagged.push({ t: entry.t, roundIdx: session.roundIdx, exIdx: session.exIdx, originalTarget: target });
-    done += 1;
-    if (done >= target && !config.isComplete(session)) {
-      const next = config.advance(session);
-      if (config.isComplete(next)) break;
-      session = next;
-      done = 0;
-    }
-  }
-  return tagged;
+  return fold(config, log, Infinity).tagged
+    .filter((e) => e.counted)
+    .map((e) => ({ t: e.t, roundIdx: e.pos.roundIdx, exIdx: e.pos.exIdx, originalTarget: e.target }));
 }
 
 function latestTargetOverride(changes: AdjustmentChange[], roundIdx: number, exIdx: number): number | null {
@@ -81,7 +66,7 @@ function deriveAdjustedOnTarget(config: WodConfig, log: LogEntry[], changes: Adj
   const splits: Split[] = [];
   let lastSplitT = 0;
   for (const r of resolved) {
-    const session: WodSession = { ...config.initialSession, roundIdx: r.roundIdx, exIdx: r.exIdx };
+    const session: WodSession = { ...START_POSITION, roundIdx: r.roundIdx, exIdx: r.exIdx };
     const cumulativeMs = r.completed ? r.kept[r.kept.length - 1].t : null;
     const lapMs = cumulativeMs != null ? cumulativeMs - lastSplitT : null;
     if (cumulativeMs != null) lastSplitT = cumulativeMs;
@@ -158,8 +143,8 @@ function deriveAdjustedOnClock(config: WodConfig, log: LogEntry[], changes: Adju
   let totalValidReps = 0;
 
   for (let m = 0; m < totalMinutes; m++) {
-    const session: WodSession = { ...config.initialSession, minuteIdx: m };
-    const target = latestTargetOverride(changes, m, 0) ?? config.getTarget(session);
+    const session: WodSession = { ...START_POSITION, minuteIdx: m };
+    const target = latestTargetOverride(changes, m, 0) ?? targetAt(config, session);
     const reps = okLog.filter((e) => Math.floor(e.t / 60000) === m && (cutoffMs == null || e.t <= cutoffMs)).length;
     const completed = reps >= target;
     if (completed) intervalsCompleted += 1;
@@ -169,7 +154,7 @@ function deriveAdjustedOnClock(config: WodConfig, log: LogEntry[], changes: Adju
     // the only thing that actually removes reps from this tally.
     totalValidReps += reps;
     splits.push({
-      label: `Minute ${m + 1} — ${config.getExerciseName(session)}`,
+      label: `Minute ${m + 1} — ${exerciseNameAt(config, session)}`,
       reps,
       target,
       completed,
