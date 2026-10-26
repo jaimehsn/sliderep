@@ -1,6 +1,6 @@
-import { ComponentProps, useEffect } from 'react';
+import { useEffect } from 'react';
 import { StyleSheet, View, ViewStyle } from 'react-native';
-import { GestureDetector } from 'react-native-gesture-handler';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   AnimatedStyle,
   Easing,
@@ -16,7 +16,8 @@ import { HF } from '@/constants/hf';
 type Kind = 'rep' | 'noRep';
 
 type Props = {
-  gesture: ComponentProps<typeof GestureDetector>['gesture'];
+  /** `useJudge`'s pan + tap, built with the builder (legacy) API. */
+  gesture: ReturnType<typeof Gesture.Exclusive>;
   /** Horizontal finger offset in px (clamped by the hook); the centre dot follows it. */
   drag: SharedValue<number>;
   /** Animated background colour of the dot (muted → accent after a no-rep). */

@@ -33,7 +33,7 @@ pnpm reset-project     # Reset to blank Expo template
 
 ## Architecture
 
-**Stack**: Expo 57 + React Native 0.86 + TypeScript 6 + Expo Router 57
+**Stack**: Expo 58 + React Native 0.88 + TypeScript 6 + Expo Router 58 (react-native-gesture-handler 3, judging still on its builder `Gesture.*` API)
 
 ### Routing
 
