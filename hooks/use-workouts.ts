@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useSQLiteContext } from 'expo-sqlite';
 import { Workout, listWorkouts } from '@/db/workouts';
 
@@ -7,12 +7,16 @@ export function useWorkouts() {
   const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [loaded, setLoaded] = useState(false);
 
-  useEffect(() => {
-    listWorkouts(db).then((rows) => {
-      setWorkouts(rows);
-      setLoaded(true);
-    });
+  // Lists stay mounted under the editor and the detail screen, so they call this
+  // on focus to pick up workouts created or archived there.
+  const refresh = useCallback(async () => {
+    setWorkouts(await listWorkouts(db));
+    setLoaded(true);
   }, [db]);
 
-  return { workouts, loaded };
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
+
+  return { workouts, loaded, refresh };
 }

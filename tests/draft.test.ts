@@ -1,0 +1,218 @@
+// The editor's draft model (change wod-editor, design decision 1): conversions
+// to and from the stored block, and validation.
+import { describe, expect, it } from 'vitest';
+import {
+  Draft,
+  ForTimeDraft,
+  draftFromBlock,
+  draftToStoredBlock,
+  emptyDraft,
+  emptyLine,
+  setRepDescription,
+  setSameReps,
+  validateDraft,
+} from '@/components/editor/draft';
+import { START_POSITION, WodConfig, exerciseNameAt, fold, targetAt } from '@/constants/wod-engine';
+import { V2_EXERCISES, V2_WORKOUTS } from '@/db/seeds/v2-builtins';
+import { parseWorkoutRow } from '@/db/workouts';
+import { builtin } from './fixtures';
+
+const names = new Map(V2_EXERCISES.map((e) => [e.id, e.name]));
+const ex = (id: string) => ({ id, name: names.get(id) ?? id });
+
+/** Builds the config the app would run for a saved draft. */
+function configOf(draft: Draft): WodConfig {
+  const blocks = JSON.stringify([draftToStoredBlock(draft)]);
+  return parseWorkoutRow({ id: 'draft', name: draft.name, blocks }, names).config;
+}
+
+const fran: ForTimeDraft = {
+  format: 'forTime',
+  name: 'my fran',
+  rounds: '3',
+  sameReps: false,
+  rows: [
+    { ...emptyLine(), exercise: ex('thrusters'), reps: ['21', '15', '9'], load: '95/65 lb' },
+    { ...emptyLine(), exercise: ex('pull-ups'), reps: ['21', '15', '9'] },
+  ],
+};
+
+describe('built-ins round-trip', () => {
+  for (const row of V2_WORKOUTS) {
+    it(row.id, () => {
+      const { config } = parseWorkoutRow(row, names);
+      const draft = draftFromBlock(config.format.id, config.block, config.name);
+      expect(draftToStoredBlock(draft)).toEqual(JSON.parse(row.blocks)[0]);
+    });
+  }
+
+  it('opens FRAN with "same reps" off and FILTHY FIFTY with it on', () => {
+    const franConfig = builtin('fran');
+    expect((draftFromBlock('forTime', franConfig.block, 'FRAN') as ForTimeDraft).sameReps).toBe(false);
+    const filthy = builtin('filthyFifty');
+    expect((draftFromBlock('forTime', filthy.block, 'FILTHY FIFTY') as ForTimeDraft).sameReps).toBe(true);
+  });
+});
+
+describe('drafts run as saved', () => {
+  it('a 21-15-9 For Time runs THRUSTERS 21 ... PULL-UPS 9', () => {
+    const config = configOf(fran);
+    const reps = Array.from({ length: 90 }, (_, i) => ({ t: (i + 1) * 1000, ok: true }));
+    const sequence: string[] = [];
+    for (const e of fold(config, reps, Infinity).tagged) {
+      const step = `${exerciseNameAt(config, e.pos)} ${e.target}`;
+      if (sequence.at(-1) !== step) sequence.push(step);
+    }
+    expect(sequence).toEqual([
+      'THRUSTERS 21', 'PULL-UPS 21', 'THRUSTERS 15', 'PULL-UPS 15', 'THRUSTERS 9', 'PULL-UPS 9',
+    ]);
+    expect(config.block.lines[0][0].load).toBe('95/65 lb');
+  });
+
+  it('"same reps" fills every round', () => {
+    const draft: ForTimeDraft = {
+      ...fran,
+      rounds: '5',
+      sameReps: true,
+      rows: [{ ...emptyLine(), exercise: ex('burpees'), reps: ['10'] }],
+    };
+    const block = draftToStoredBlock(draft);
+    expect(block.lines.map((round) => round[0].target)).toEqual([10, 10, 10, 10, 10]);
+    expect(block.rounds).toBe(5);
+  });
+
+  it('turning "same reps" off splits the shared value per round, and on keeps the first', () => {
+    const draft: ForTimeDraft = { ...fran, sameReps: true, rows: [{ ...fran.rows[0], reps: ['12'] }] };
+    const split = setSameReps(draft, false);
+    expect(split.rows[0].reps).toEqual(['12', '12', '12']);
+    const joined = setSameReps({ ...split, rows: [{ ...split.rows[0], reps: ['7', '5', '3'] }] }, true);
+    expect(joined.rows[0].reps).toEqual(['7']);
+  });
+
+  it('a 10-minute EMOM over 3 slots puts slot 1 in minute 10', () => {
+    const draft: Draft = {
+      format: 'emom',
+      name: 'three',
+      minutes: '10',
+      slots: [
+        { ...emptyLine(), exercise: ex('burpees'), reps: '10' },
+        { ...emptyLine(), exercise: ex('kb-swings'), reps: '15' },
+        { ...emptyLine(), exercise: ex('air-squats'), reps: '20' },
+      ],
+    };
+    const config = configOf(draft);
+    const minute10 = { ...START_POSITION, minuteIdx: 9 };
+    expect(exerciseNameAt(config, minute10)).toBe('BURPEES');
+    expect(targetAt(config, minute10)).toBe(10);
+    expect(config.mode).toBe('EMOM · 10');
+  });
+
+  it('an AMRAP keeps its minutes and repeats its lines', () => {
+    const draft: Draft = {
+      format: 'amrap',
+      name: 'twenty',
+      minutes: '20',
+      rows: [{ ...emptyLine(), exercise: ex('pull-ups'), reps: '5', repDescription: null }],
+    };
+    expect(configOf(draft).mode).toBe('20-MIN AMRAP');
+  });
+});
+
+describe('exercise notes', () => {
+  it('built-ins show no note', () => {
+    for (const row of V2_WORKOUTS) {
+      expect(builtin(row.id).exercises.every((e) => e.note === undefined)).toBe(true);
+    }
+  });
+
+  it('joins the rep description and the load', () => {
+    const draft: ForTimeDraft = {
+      ...fran,
+      rows: [{ ...fran.rows[0], repDescription: { amount: '500', unit: 'm' } }, fran.rows[1]],
+    };
+    const [thrusters, pullUps] = configOf(draft).exercises;
+    expect(thrusters.note).toBe('500 m · 95/65 lb');
+    expect(pullUps.note).toBeUndefined();
+  });
+});
+
+describe('summary', () => {
+  it('rounds that all repeat the first show once, as N ROUNDS FOR TIME', () => {
+    const config = configOf({
+      ...fran,
+      rounds: '5',
+      sameReps: true,
+      rows: [
+        { ...emptyLine(), exercise: ex('burpees'), reps: ['10'] },
+        { ...emptyLine(), exercise: ex('air-squats'), reps: ['15'] },
+      ],
+    });
+    expect(config.mode).toBe('5 ROUNDS FOR TIME');
+    expect(config.exercises.map((e) => e.detail)).toEqual(['10 reps', '15 reps']);
+    expect(config.description).toBe('5 rounds · burpees + air squats');
+  });
+
+  it('built-ins keep their summary', () => {
+    expect(builtin('fran').mode).toBe('FOR TIME');
+    expect(builtin('fran').exercises[0].detail).toBe('21 · 15 · 9');
+    expect(builtin('filthyFifty').exercises[0].detail).toBe('50 reps');
+    expect(builtin('cindy').exercises[0].detail).toBe('5 reps');
+    expect(builtin('everyMinute').exercises[0].detail).toBe('10 / min');
+  });
+
+  it('a single described rep shows the description instead of the rep', () => {
+    const config = configOf({
+      ...fran,
+      rounds: '1',
+      sameReps: true,
+      rows: [{ ...emptyLine(), exercise: ex('burpees'), reps: ['1'], repDescription: { amount: '500', unit: 'm' }, load: 'vest' }],
+    });
+    expect(config.exercises[0]).toEqual({ name: 'BURPEES', detail: '500 m', note: 'vest' });
+  });
+});
+
+describe('rep description', () => {
+  it('adding one fills empty reps with 1 and keeps typed ones', () => {
+    const draft: ForTimeDraft = {
+      ...fran,
+      rows: [{ ...fran.rows[0], reps: ['', '5', ''] }],
+    };
+    const described = setRepDescription(draft, 0, { amount: '', unit: 'm' }) as ForTimeDraft;
+    expect(described.rows[0].reps).toEqual(['1', '5', '1']);
+    const cleared = setRepDescription({ ...described, rows: [{ ...described.rows[0], reps: ['', '', ''] }] }, 0, null) as ForTimeDraft;
+    expect(cleared.rows[0].reps).toEqual(['', '', '']);
+  });
+});
+
+describe('validation', () => {
+  it('flags an empty name and no lines', () => {
+    const problems = validateDraft(emptyDraft('amrap', '  '));
+    expect(problems.name).toBeDefined();
+    expect(problems.lines).toBeDefined();
+    expect(problems.minutes).toBeDefined();
+  });
+
+  it('flags a missing exercise and a zero', () => {
+    const problems = validateDraft({
+      ...fran,
+      rows: [
+        { ...emptyLine(), reps: ['21', '15', '9'] },
+        { ...fran.rows[1], reps: ['21', '0', '9'] },
+      ],
+    });
+    expect(problems['line:0']).toBe('Pick an exercise');
+    expect(problems['line:1']).toBe('Reps must be 1 or more');
+  });
+
+  it('flags a zero rep-description amount', () => {
+    const problems = validateDraft({
+      ...fran,
+      rows: [{ ...fran.rows[0], repDescription: { amount: '0', unit: 'm' } }],
+    });
+    expect(problems['line:0']).toBe('Amount must be 1 or more');
+  });
+
+  it('accepts a complete draft', () => {
+    expect(validateDraft(fran)).toEqual({});
+  });
+});

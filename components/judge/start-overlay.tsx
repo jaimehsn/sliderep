@@ -101,7 +101,10 @@ export function StartOverlay({ config, athleteAlias, role = 'judge', onDone }: P
       >
         {config.exercises.map((ex, i) => (
           <View key={i} style={styles.exerciseRow}>
-            <Text style={styles.exerciseName}>{ex.name}</Text>
+            <View style={styles.exerciseText}>
+              <Text style={styles.exerciseName}>{ex.name}</Text>
+              {ex.note != null && <Text style={styles.exerciseNote}>{ex.note}</Text>}
+            </View>
             <Text style={styles.exerciseDetail}>{ex.detail}</Text>
           </View>
         ))}
@@ -208,6 +211,17 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderBottomWidth: 1,
     borderBottomColor: HF.hairline,
+  },
+  exerciseText: {
+    flex: 1,
+    marginRight: 12,
+  },
+  exerciseNote: {
+    fontFamily: 'IBMPlexMono_400Regular',
+    fontSize: 11,
+    color: HF.muted,
+    letterSpacing: 1,
+    marginTop: 2,
   },
   exerciseName: {
     fontFamily: 'BarlowCondensed_600SemiBold',

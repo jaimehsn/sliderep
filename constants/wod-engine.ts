@@ -17,7 +17,8 @@ export type WodSession = {
 /** Header progress: `current` of `total` (e.g. round 2/3), or just `current` when there is no total (AMRAP). */
 export type WodKpi = { label: string; current: number; total: number | null };
 
-export type WodExercise = { name: string; detail: string };
+/** One row of a workout's exercise list. `note`: rep description and/or load ("500 m · 95/65 lb"), when the line has either. */
+export type WodExercise = { name: string; detail: string; note?: string };
 
 export type WodConfig = {
   /** Derived from format + content (e.g. "12-MIN AMRAP"), never hand-written. */
@@ -77,10 +78,14 @@ export const FORMATS: Record<string, Format> = {
 // ─── WOD content ────────────────────────────────────────────────────────────
 
 export type WodLine = {
+  /** The catalog id the line was stored with — what a duplicate writes back. */
+  exerciseId: string;
   exercise: string;
   /** Always reps (see docs/ROADMAP.md → WOD hierarchy). Purely descriptive, never computed on. */
   target: number;
   repDescription?: { amount: number; unit: 'm' | 'cal' | 's' };
+  /** Prescribed load as free text ("95/65 lb"). Descriptive only, never computed on. */
+  load?: string;
 };
 
 export type Block = {
@@ -105,10 +110,35 @@ export type WodDefinition = {
 
 // ─── Interpreter ────────────────────────────────────────────────────────────
 
+// A single rep with a rep description ("1 rep of 500 m") reads as the description alone.
+function describedOnly(line: WodLine): boolean {
+  return line.repDescription != null && line.target === 1;
+}
+
+// How much a line asks for: "21 reps", or "500 m" for a described single rep.
+function amountOf(line: WodLine): string {
+  return describedOnly(line) ? `${line.repDescription!.amount} ${line.repDescription!.unit}` : `${line.target} reps`;
+}
+
+// The rep description (unless it already is the amount) and the load, joined with " · ".
+function lineNote(line: WodLine | undefined): string | undefined {
+  if (!line) return undefined;
+  const parts: string[] = [];
+  if (line.repDescription && !describedOnly(line)) parts.push(`${line.repDescription.amount} ${line.repDescription.unit}`);
+  if (line.load) parts.push(line.load);
+  return parts.length > 0 ? parts.join(' · ') : undefined;
+}
+
+// More than one round, all identical: "5 rounds of the same", shown once instead of per round.
+function sameEveryRound(block: Block): boolean {
+  const [first = []] = block.lines;
+  return block.lines.length > 1 && block.lines.every((round) => round.every((l, i) => l.target === first[i]?.target));
+}
+
 function summarize(format: Format, block: Block): WodExercise[] {
-  if (format.repeat === 'rounds' && block.rounds === 1) {
-    // Chipper: each line is its own station.
-    return block.lines[0].map((l) => ({ name: l.exercise, detail: `${l.target} reps` }));
+  if (format.repeat === 'rounds' && (block.rounds === 1 || sameEveryRound(block))) {
+    // Chipper (each line is its own station), or rounds that all repeat the first.
+    return block.lines[0].map((l) => ({ name: l.exercise, detail: amountOf(l), note: lineNote(l) }));
   }
   if (format.repeat === 'rounds') {
     // For Time: a fixed exercise order repeated every round, reps vary per round.
@@ -116,14 +146,19 @@ function summarize(format: Format, block: Block): WodExercise[] {
     return firstRound.map((_, exIdx) => ({
       name: firstRound[exIdx].exercise,
       detail: block.lines.map((round) => round[exIdx]?.target ?? 0).join(' · '),
+      note: lineNote(firstRound[exIdx]),
     }));
   }
   if (format.repeat === 'cycle') {
     // AMRAP: a single template, reps fixed every round.
-    return block.lines[0].map((l) => ({ name: l.exercise, detail: `${l.target} reps` }));
+    return block.lines[0].map((l) => ({ name: l.exercise, detail: amountOf(l), note: lineNote(l) }));
   }
   // perInterval: each entry is its own interval's exercise.
-  return block.lines.map((roundLines) => ({ name: roundLines[0].exercise, detail: `${roundLines[0].target} / min` }));
+  return block.lines.map(([line]) => ({
+    name: line.exercise,
+    detail: `${describedOnly(line) ? amountOf(line) : line.target} / min`,
+    note: lineNote(line),
+  }));
 }
 
 // Distinct exercise names in first-seen order, lowercased: "a + b" for two, "a, b, c" for more.
@@ -133,7 +168,7 @@ function joinNames(block: Block): string {
 }
 
 function describeMode(format: Format, block: Block): string {
-  if (format.repeat === 'rounds') return 'FOR TIME';
+  if (format.repeat === 'rounds') return sameEveryRound(block) ? `${block.lines.length} ROUNDS FOR TIME` : 'FOR TIME';
   if (format.repeat === 'cycle') return `${(block.durationSeconds ?? 0) / 60}-MIN AMRAP`;
   return `EMOM · ${block.rounds ?? 0}`;
 }
@@ -146,6 +181,7 @@ function describeContent(format: Format, block: Block): string {
       ? `${lines.length} stations · ${lines[0].target} reps each`
       : `${lines.length} stations`;
   }
+  if (format.repeat === 'rounds' && sameEveryRound(block)) return `${block.lines.length} rounds · ${joinNames(block)}`;
   if (format.repeat === 'rounds') {
     const uniform = block.lines.every((round) => round.every((l) => l.target === round[0]?.target));
     const scheme = uniform ? block.lines.map((round) => round[0]?.target ?? 0).join('-') : `${block.rounds ?? 0} rounds`;

@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
+import { useCallback, useEffect, useState } from 'react';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import {
   useFonts,
   BarlowCondensed_600SemiBold,
@@ -9,9 +9,11 @@ import {
 import { IBMPlexMono_400Regular } from '@expo-google-fonts/ibm-plex-mono';
 import { useSQLiteContext } from 'expo-sqlite';
 
+import { withProfile } from '@/components/editor/profile-gate';
 import { Screen } from '@/components/screen';
 import { HF } from '@/constants/hf';
-import { Workout, getWorkout } from '@/db/workouts';
+import { Workout, archiveWorkout, getWorkout, isOwn } from '@/db/workouts';
+import { useProfile } from '@/hooks/use-profile';
 
 function formatDuration(seconds: number): string {
   const m = Math.floor(seconds / 60);
@@ -22,6 +24,14 @@ export default function LibraryDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const db = useSQLiteContext();
   const [workout, setWorkout] = useState<Workout | null>(null);
+  const { profile, refresh: refreshProfile } = useProfile();
+
+  // A profile created from the DUPLICATE gate shows up on return.
+  useFocusEffect(
+    useCallback(() => {
+      refreshProfile();
+    }, [refreshProfile]),
+  );
 
   const [fontsLoaded] = useFonts({
     BarlowCondensed_600SemiBold,
@@ -41,6 +51,22 @@ export default function LibraryDetailScreen() {
   }
 
   const { config } = workout;
+  const own = isOwn(workout, profile?.id);
+
+  const confirmArchive = () => {
+    if (!profile) return;
+    Alert.alert('Archive workout?', `${config.name} will no longer be listed. Saved sessions keep showing it.`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Archive',
+        style: 'destructive',
+        onPress: async () => {
+          await archiveWorkout(db, workout.id, profile.id);
+          router.dismissTo('/library');
+        },
+      },
+    ]);
+  };
 
   return (
     <Screen style={styles.root}>
@@ -49,7 +75,10 @@ export default function LibraryDetailScreen() {
       <View style={styles.header}>
         <View style={styles.headerRow}>
           <View style={styles.headerText}>
-            <Text style={styles.mode}>{config.mode}</Text>
+            <View style={styles.tags}>
+              <Text style={styles.mode}>{config.mode}</Text>
+              {own && <Text style={styles.mineTag}>MINE</Text>}
+            </View>
             <Text style={styles.name}>{config.name}</Text>
             {config.totalSeconds > 0 && (
               <Text style={styles.duration}>{formatDuration(config.totalSeconds)}</Text>
@@ -75,11 +104,32 @@ export default function LibraryDetailScreen() {
       >
         {config.exercises.map((ex, i) => (
           <View key={i} style={styles.exerciseRow}>
-            <Text style={styles.exerciseName}>{ex.name}</Text>
+            <View style={styles.exerciseText}>
+              <Text style={styles.exerciseName}>{ex.name}</Text>
+              {ex.note != null && <Text style={styles.exerciseNote}>{ex.note}</Text>}
+            </View>
             <Text style={styles.exerciseDetail}>{ex.detail}</Text>
           </View>
         ))}
       </ScrollView>
+
+      {/* Actions — no START here: judging starts only from workout selection */}
+      <View style={styles.actions}>
+        <Pressable
+          onPress={() => withProfile(profile, () => router.push({ pathname: '/library/new', params: { from: workout.id } }))}
+          style={({ pressed }) => [styles.actionBtn, pressed && styles.closeBtnPressed]}
+        >
+          <Text style={styles.actionText}>DUPLICATE</Text>
+        </Pressable>
+        {own && (
+          <Pressable
+            onPress={confirmArchive}
+            style={({ pressed }) => [styles.actionBtn, styles.actionGap, pressed && styles.closeBtnPressed]}
+          >
+            <Text style={[styles.actionText, styles.archiveText]}>ARCHIVE</Text>
+          </Pressable>
+        )}
+      </View>
 
     </Screen>
   );
@@ -124,7 +174,45 @@ const styles = StyleSheet.create({
     color: HF.accent,
     letterSpacing: 2,
     textTransform: 'uppercase',
+  },
+  tags: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 6,
+  },
+  mineTag: {
+    fontFamily: 'IBMPlexMono_400Regular',
+    fontSize: 9,
+    color: HF.inkDim,
+    letterSpacing: 2,
+    borderWidth: 1,
+    borderColor: HF.hairlineStrong,
+    paddingHorizontal: 4,
+    marginLeft: 8,
+  },
+  actions: {
+    flexDirection: 'row',
+    paddingHorizontal: 24,
+    paddingTop: 12,
+  },
+  actionBtn: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: HF.hairlineStrong,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  actionGap: {
+    marginLeft: 12,
+  },
+  actionText: {
+    fontFamily: 'IBMPlexMono_400Regular',
+    fontSize: 11,
+    color: HF.inkDim,
+    letterSpacing: 2,
+  },
+  archiveText: {
+    color: HF.accent,
   },
   name: {
     fontFamily: 'BarlowCondensed_700Bold',
@@ -164,6 +252,17 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderBottomWidth: 1,
     borderBottomColor: HF.hairline,
+  },
+  exerciseText: {
+    flex: 1,
+    marginRight: 12,
+  },
+  exerciseNote: {
+    fontFamily: 'IBMPlexMono_400Regular',
+    fontSize: 11,
+    color: HF.muted,
+    letterSpacing: 1,
+    marginTop: 2,
   },
   exerciseName: {
     fontFamily: 'BarlowCondensed_600SemiBold',

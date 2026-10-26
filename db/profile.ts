@@ -26,8 +26,8 @@ export async function updateAlias(db: SQLiteDatabase, id: string, alias: string)
 // Retention rule (Storage & persistence, decided): deleting the profile removes
 // its own sessions (judgedAthleteId == id); foreign sessions — where this
 // device's owner was the judge, not the judged athlete — are kept until
-// delivered. There's no owned content (WODs/Exercises) to detach yet: every
-// seeded row is `origin: 'builtin'`.
+// delivered. Its own workouts are removed too, except ones a kept session
+// still references (see below).
 export async function deleteProfile(db: SQLiteDatabase, id: string): Promise<void> {
   await db.withTransactionAsync(async () => {
     await db.runAsync(
@@ -35,6 +35,15 @@ export async function deleteProfile(db: SQLiteDatabase, id: string): Promise<voi
       [id],
     );
     await db.runAsync('DELETE FROM sessions WHERE judgedAthleteId = ?', [id]);
+    // Own workouts go too, except those a kept (foreign) session still uses:
+    // those stay archived and owner-less so the session keeps resolving them.
+    // Own sessions are already gone here, so only foreign ones can match.
+    await db.runAsync(
+      `UPDATE workouts SET ownerId = NULL, archivedAt = COALESCE(archivedAt, ?)
+       WHERE ownerId = ? AND id IN (SELECT wodId FROM sessions)`,
+      [Date.now(), id],
+    );
+    await db.runAsync('DELETE FROM workouts WHERE ownerId = ?', [id]);
     await db.runAsync('DELETE FROM athlete_profile WHERE id = ?', [id]);
   });
 }

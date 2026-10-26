@@ -1,5 +1,6 @@
+import { useCallback } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import {
   useFonts,
   BarlowCondensed_400Regular,
@@ -8,10 +9,13 @@ import {
 } from '@expo-google-fonts/barlow-condensed';
 import { IBMPlexMono_400Regular } from '@expo-google-fonts/ibm-plex-mono';
 
+import { withProfile } from '@/components/editor/profile-gate';
 import { Screen } from '@/components/screen';
 import { HF } from '@/constants/hf';
 import { EXERCISE_CATEGORIES } from '@/db/exercises';
+import { isOwn } from '@/db/workouts';
 import { useExercises } from '@/hooks/use-exercises';
+import { useProfile } from '@/hooks/use-profile';
 import { useWorkouts } from '@/hooks/use-workouts';
 
 export default function LibraryIndexScreen() {
@@ -21,7 +25,14 @@ export default function LibraryIndexScreen() {
     BarlowCondensed_700Bold,
     IBMPlexMono_400Regular,
   });
-  const { workouts, loaded: workoutsLoaded } = useWorkouts();
+  const { workouts, loaded: workoutsLoaded, refresh: refreshWorkouts } = useWorkouts();
+  const { profile, refresh: refreshProfile } = useProfile();
+  useFocusEffect(
+    useCallback(() => {
+      refreshWorkouts();
+      refreshProfile();
+    }, [refreshWorkouts, refreshProfile]),
+  );
   const { exercises, loaded: exercisesLoaded } = useExercises();
 
   if (!fontsLoaded || !workoutsLoaded) {
@@ -53,8 +64,18 @@ export default function LibraryIndexScreen() {
         contentContainerStyle={styles.listContent}
         scrollIndicatorInsets={{ right: 1 }}
       >
-        <Text style={styles.sectionLabel}>WORKOUTS</Text>
-        {workouts.map(({ id, config }, i) => {
+        <View style={styles.sectionRow}>
+          <Text style={styles.sectionLabel}>WORKOUTS</Text>
+          <Pressable
+            onPress={() => withProfile(profile, () => router.push('/library/new'))}
+            style={({ pressed }) => [styles.newBtn, pressed && styles.cardPressed]}
+            hitSlop={8}
+          >
+            <Text style={styles.newBtnText}>+ NEW</Text>
+          </Pressable>
+        </View>
+        {workouts.map((workout, i) => {
+          const { id, config } = workout;
           return (
             <View key={id}>
               <Pressable
@@ -62,7 +83,10 @@ export default function LibraryIndexScreen() {
                 style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
               >
                 <View style={styles.cardBody}>
-                  <Text style={styles.cardMode}>{config.mode}</Text>
+                  <View style={styles.cardTags}>
+                    <Text style={styles.cardMode}>{config.mode}</Text>
+                    {isOwn(workout, profile?.id) && <Text style={styles.mineTag}>MINE</Text>}
+                  </View>
                   <Text style={styles.cardName}>{config.name}</Text>
                   <Text style={styles.cardDesc}>{config.description}</Text>
                 </View>
@@ -161,7 +185,39 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     marginBottom: 4,
   },
-  exercisesLabel: {
+  sectionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  newBtn: {
+    borderWidth: 1,
+    borderColor: HF.hairlineStrong,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  newBtnText: {
+    fontFamily: 'IBMPlexMono_400Regular',
+    fontSize: 10,
+    color: HF.inkDim,
+    letterSpacing: 1.5,
+  },
+  cardTags: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  mineTag: {
+    fontFamily: 'IBMPlexMono_400Regular',
+    fontSize: 9,
+    color: HF.inkDim,
+    letterSpacing: 2,
+    borderWidth: 1,
+    borderColor: HF.hairlineStrong,
+    paddingHorizontal: 4,
+    marginLeft: 8,
+  },
+    exercisesLabel: {
     marginTop: 24,
   },
   card: {
@@ -182,7 +238,6 @@ const styles = StyleSheet.create({
     color: HF.accent,
     letterSpacing: 2,
     textTransform: 'uppercase',
-    marginBottom: 4,
   },
   cardName: {
     fontFamily: 'BarlowCondensed_700Bold',

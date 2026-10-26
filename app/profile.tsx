@@ -49,7 +49,7 @@ export default function ProfileScreen() {
     if (!profile) return;
     Alert.alert(
       'Delete profile?',
-      'Your own sessions will be deleted. Sessions you judged for others stay on this phone.',
+      'Your own sessions and workouts will be deleted. Sessions you judged for others stay on this phone.',
       [
         { text: 'Cancel', style: 'cancel' },
         {

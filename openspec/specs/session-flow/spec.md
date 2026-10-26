@@ -7,15 +7,19 @@ Guides the owner from picking a workout to seeing its result: choosing whether t
 ## Requirements
 
 ### Requirement: Workout selection
-Starting a new session SHALL show the built-in workouts, each with its mode, name and one-line description. Choosing one SHALL continue to role selection. A ✕ action SHALL return to the hub. A "+ NEW WORKOUT" entry SHALL be shown disabled as "coming soon".
+Starting a new session SHALL show the built-in workouts followed by the owner's non-archived workouts, each with its mode, name and one-line description, own ones marked as own. Choosing one SHALL continue to role selection. A ✕ action SHALL return to the hub. Workout selection SHALL NOT offer creating a workout; workouts are created from the Library.
 
 #### Scenario: Picking a workout
 - **WHEN** the owner taps CINDY on the workout list
 - **THEN** role selection for CINDY is shown
 
+#### Scenario: Picking an own workout
+- **WHEN** the owner taps an own workout on the workout list
+- **THEN** role selection for that workout is shown, and judging runs its content
+
 #### Scenario: New workout is unavailable
-- **WHEN** the owner taps "+ NEW WORKOUT"
-- **THEN** nothing happens
+- **WHEN** the owner views workout selection
+- **THEN** no "+ NEW WORKOUT" entry is shown
 
 ### Requirement: Role selection
 For every session, the owner SHALL choose a role: "I'll judge" (the owner judges the other person) or "I'll be judged" (the other person judges the owner). There SHALL be no default role.

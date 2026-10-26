@@ -1,5 +1,6 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { router } from 'expo-router';
+import { useCallback } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { router, useFocusEffect } from 'expo-router';
 import {
   useFonts,
   BarlowCondensed_400Regular,
@@ -10,6 +11,8 @@ import { IBMPlexMono_400Regular } from '@expo-google-fonts/ibm-plex-mono';
 
 import { Screen } from '@/components/screen';
 import { HF } from '@/constants/hf';
+import { isOwn } from '@/db/workouts';
+import { useProfile } from '@/hooks/use-profile';
 import { useSession } from '@/hooks/use-session';
 import { useWorkouts } from '@/hooks/use-workouts';
 
@@ -20,7 +23,14 @@ export default function SelectWodScreen() {
     BarlowCondensed_700Bold,
     IBMPlexMono_400Regular,
   });
-  const { workouts, loaded } = useWorkouts();
+  const { workouts, loaded, refresh: refreshWorkouts } = useWorkouts();
+  const { profile, refresh: refreshProfile } = useProfile();
+  useFocusEffect(
+    useCallback(() => {
+      refreshWorkouts();
+      refreshProfile();
+    }, [refreshWorkouts, refreshProfile]),
+  );
   const { setWorkout } = useSession();
 
   if (!fontsLoaded || !loaded) {
@@ -47,7 +57,7 @@ export default function SelectWodScreen() {
       <View style={styles.divider} />
 
       {/* WOD list */}
-      <View style={styles.list}>
+      <ScrollView style={styles.list} contentContainerStyle={styles.listContent} scrollIndicatorInsets={{ right: 1 }}>
         {workouts.map((workout, i) => {
           const { config } = workout;
           return (
@@ -60,7 +70,10 @@ export default function SelectWodScreen() {
                 style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
               >
                 <View style={styles.cardBody}>
-                  <Text style={styles.cardMode}>{config.mode}</Text>
+                  <View style={styles.cardTags}>
+                    <Text style={styles.cardMode}>{config.mode}</Text>
+                    {isOwn(workout, profile?.id) && <Text style={styles.mineTag}>MINE</Text>}
+                  </View>
                   <Text style={styles.cardName}>{config.name}</Text>
                   <Text style={styles.cardDesc}>{config.description}</Text>
                 </View>
@@ -70,17 +83,7 @@ export default function SelectWodScreen() {
             </View>
           );
         })}
-      </View>
-
-      <View style={styles.divider} />
-
-      {/* New WOD — placeholder for later */}
-      <Pressable style={styles.newWodBtn} disabled>
-        <View>
-          <Text style={styles.newWodLabel}>+ NEW WORKOUT</Text>
-          <Text style={styles.newWodSub}>coming soon</Text>
-        </View>
-      </Pressable>
+      </ScrollView>
 
     </Screen>
   );
@@ -126,6 +129,8 @@ const styles = StyleSheet.create({
   // ── WOD list ───────────────────────────────────────────────────────────────
   list: {
     flex: 1,
+  },
+  listContent: {
     paddingHorizontal: 24,
     paddingTop: 8,
   },
@@ -147,7 +152,21 @@ const styles = StyleSheet.create({
     color: HF.accent,
     letterSpacing: 2,
     textTransform: 'uppercase',
+  },
+  cardTags: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 4,
+  },
+  mineTag: {
+    fontFamily: 'IBMPlexMono_400Regular',
+    fontSize: 9,
+    color: HF.inkDim,
+    letterSpacing: 2,
+    borderWidth: 1,
+    borderColor: HF.hairlineStrong,
+    paddingHorizontal: 4,
+    marginLeft: 8,
   },
   cardName: {
     fontFamily: 'BarlowCondensed_700Bold',
@@ -183,24 +202,4 @@ const styles = StyleSheet.create({
   },
 
   // ── New WOD button ─────────────────────────────────────────────────────────
-  newWodBtn: {
-    paddingHorizontal: 24,
-    paddingVertical: 20,
-    opacity: 0.3,
-  },
-  newWodLabel: {
-    fontFamily: 'BarlowCondensed_600SemiBold',
-    fontSize: 14,
-    color: HF.ink,
-    letterSpacing: 2,
-    textTransform: 'uppercase',
-  },
-  newWodSub: {
-    fontFamily: 'IBMPlexMono_400Regular',
-    fontSize: 9,
-    color: HF.muted,
-    letterSpacing: 1.5,
-    textTransform: 'uppercase',
-    marginTop: 2,
-  },
 });
