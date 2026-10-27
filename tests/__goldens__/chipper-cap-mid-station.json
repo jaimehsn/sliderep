@@ -1,0 +1,38 @@
+{
+  "result": {
+    "scoreLabel": "SCORE",
+    "scoreValue": "CAP · 47 reps",
+    "splits": [
+      {
+        "label": "Station 1 — BURPEES",
+        "reps": 20,
+        "target": 20,
+        "completed": true,
+        "cumulativeMs": 98000,
+        "lapMs": 98000,
+        "roundIdx": 0,
+        "exIdx": 0
+      },
+      {
+        "label": "Station 2 — AIR SQUATS",
+        "reps": 20,
+        "target": 20,
+        "completed": true,
+        "cumulativeMs": 198000,
+        "lapMs": 100000,
+        "roundIdx": 0,
+        "exIdx": 1
+      },
+      {
+        "label": "Station 3 — KB SWINGS",
+        "reps": 7,
+        "target": 20,
+        "completed": false,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 0,
+        "exIdx": 2
+      }
+    ]
+  }
+}

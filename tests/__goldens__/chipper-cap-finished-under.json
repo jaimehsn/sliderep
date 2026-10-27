@@ -1,0 +1,38 @@
+{
+  "result": {
+    "scoreLabel": "TIME",
+    "scoreValue": "03:57",
+    "splits": [
+      {
+        "label": "Station 1 — BURPEES",
+        "reps": 20,
+        "target": 20,
+        "completed": true,
+        "cumulativeMs": 77000,
+        "lapMs": 77000,
+        "roundIdx": 0,
+        "exIdx": 0
+      },
+      {
+        "label": "Station 2 — AIR SQUATS",
+        "reps": 20,
+        "target": 20,
+        "completed": true,
+        "cumulativeMs": 157000,
+        "lapMs": 80000,
+        "roundIdx": 0,
+        "exIdx": 1
+      },
+      {
+        "label": "Station 3 — KB SWINGS",
+        "reps": 20,
+        "target": 20,
+        "completed": true,
+        "cumulativeMs": 237000,
+        "lapMs": 80000,
+        "roundIdx": 0,
+        "exIdx": 2
+      }
+    ]
+  }
+}

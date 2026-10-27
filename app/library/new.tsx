@@ -162,8 +162,18 @@ export default function NewWorkoutScreen() {
                 keyboardType="number-pad"
                 style={styles.numberInput}
               />
+              <Text style={[styles.label, styles.paramGap]}>TIME CAP (MIN)</Text>
+              <TextInput
+                value={draft.cap}
+                onChangeText={(cap) => setDraft({ ...draft, cap })}
+                placeholder="NONE"
+                placeholderTextColor={HF.mutedDim}
+                keyboardType="number-pad"
+                style={styles.numberInput}
+              />
             </View>
             {problems.rounds && <Text style={styles.problem}>{problems.rounds}</Text>}
+            {problems.cap && <Text style={styles.problem}>{problems.cap}</Text>}
             <Pressable
               onPress={() => setDraft(setSameReps(draft, !draft.sameReps))}
               style={({ pressed }) => [styles.checkRow, pressed && styles.pressed]}
@@ -418,6 +428,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: 8,
+  },
+  paramGap: {
+    marginLeft: 16,
   },
   numberInput: {
     minWidth: 56,

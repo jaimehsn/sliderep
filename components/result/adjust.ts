@@ -1,4 +1,4 @@
-import { START_POSITION, WodConfig, WodSession, exerciseNameAt, fold, formatTime, targetAt } from '@/constants/wod-engine';
+import { START_POSITION, WodConfig, WodSession, capSeconds, exerciseNameAt, fold, formatTime, targetAt } from '@/constants/wod-engine';
 import type { LogEntry } from '@/components/judge/types';
 import { WodResult, Split, splitLabel, deriveResult } from '@/components/result/replay';
 import type { AdjustmentChange } from '@/db/session-adjustments';
@@ -54,11 +54,16 @@ function deriveAdjustedOnTarget(config: WodConfig, log: LogEntry[], changes: Adj
   const groups = groupInOrder(tagged);
   const cutoffSeconds = latestDurationOverride(changes);
   const cutoff = cutoffSeconds != null ? cutoffSeconds * 1000 : null;
+  // A capped For Time's duration is its cap (change for-time-cap): a rep at the
+  // (adjusted) cap or later doesn't count, as live. Uncapped formats keep `<=`.
+  const cap = capSeconds(config);
+  const capMs = cap != null ? (cutoffSeconds ?? cap) * 1000 : null;
+  const inTime = (e: Tagged) => (capMs != null ? e.t < capMs : cutoff == null || e.t <= cutoff);
 
   type Resolved = { roundIdx: number; exIdx: number; target: number; kept: Tagged[]; completed: boolean };
   const resolved: Resolved[] = groups.map(({ roundIdx, exIdx, events }) => {
     const target = latestTargetOverride(changes, roundIdx, exIdx) ?? events[0].originalTarget;
-    const timeFiltered = cutoff != null ? events.filter((e) => e.t <= cutoff) : events;
+    const timeFiltered = events.filter(inTime);
     const kept = timeFiltered.slice(0, target);
     return { roundIdx, exIdx, target, kept, completed: kept.length >= target };
   });
@@ -80,6 +85,19 @@ function deriveAdjustedOnTarget(config: WodConfig, log: LogEntry[], changes: Adj
       roundIdx: r.roundIdx,
       exIdx: r.exIdx,
     });
+  }
+
+  if (config.timerMode === 'elapsed' && cap != null) {
+    // Every position of the block must be complete, including those never
+    // reached (they have no group); otherwise it's the reps kept before the cap.
+    const positions = config.block.lines.reduce((n, round) => n + round.length, 0);
+    const complete = resolved.length === positions && resolved.every((r) => r.completed);
+    if (complete) {
+      const lastMs = splits.at(-1)?.cumulativeMs ?? 0;
+      return { scoreLabel: 'TIME', scoreValue: formatTime(Math.round(lastMs / 1000)), splits };
+    }
+    const kept = resolved.reduce((n, r) => n + r.kept.length, 0);
+    return { scoreLabel: 'SCORE', scoreValue: `CAP · ${kept} reps`, splits };
   }
 
   if (config.timerMode === 'elapsed') {

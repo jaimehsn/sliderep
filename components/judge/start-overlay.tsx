@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { HF } from '@/constants/hf';
-import { WodConfig } from '@/constants/wod-engine';
+import { WodConfig, capSeconds } from '@/constants/wod-engine';
 import { useSoundCue } from '@/hooks/use-sound-cue';
 
 type Props = {
@@ -12,9 +12,10 @@ type Props = {
   onDone: () => void;
 };
 
-function formatDuration(seconds: number): string {
-  const m = Math.floor(seconds / 60);
-  return `${m} min`;
+// "12 min", or "10 min cap" for a For Time's time cap (change for-time-cap).
+function formatDuration(config: WodConfig): string {
+  const m = Math.floor(config.totalSeconds / 60);
+  return capSeconds(config) != null ? `${m} min cap` : `${m} min`;
 }
 
 export function StartOverlay({ config, athleteAlias, role = 'judge', onDone }: Props) {
@@ -77,7 +78,7 @@ export function StartOverlay({ config, athleteAlias, role = 'judge', onDone }: P
             <Text style={styles.mode}>{config.mode}</Text>
             <Text style={styles.name}>{config.name}</Text>
             {config.totalSeconds > 0 && (
-              <Text style={styles.duration}>{formatDuration(config.totalSeconds)}</Text>
+              <Text style={styles.duration}>{formatDuration(config)}</Text>
             )}
             <Text style={styles.judging}>{judgingLabel}</Text>
           </View>

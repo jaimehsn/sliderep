@@ -174,6 +174,12 @@ function describeMode(format: Format, block: Block): string {
 }
 
 function describeContent(format: Format, block: Block): string {
+  // A For Time's durationSeconds is its time cap (change for-time-cap).
+  const cap = format.repeat === 'rounds' && block.durationSeconds ? ` · ${block.durationSeconds / 60} min cap` : '';
+  return describeScheme(format, block) + cap;
+}
+
+function describeScheme(format: Format, block: Block): string {
   if (format.repeat === 'rounds' && block.rounds === 1) {
     const lines = block.lines[0] ?? [];
     const targets = new Set(lines.map((l) => l.target));
@@ -264,13 +270,36 @@ function isCompleteAt(config: WodConfig, pos: WodSession): boolean {
   return config.format.repeat === 'rounds' && pos.roundIdx >= (config.block.rounds ?? 0);
 }
 
+/**
+ * A For Time / Chipper time cap in seconds, or null (change for-time-cap). It is
+ * the block's `durationSeconds`, which only AMRAP and EMOM had before; code that
+ * means "cap" asks this rather than reading `totalSeconds` on a `rounds` config.
+ */
+export function capSeconds(config: WodConfig): number | null {
+  return config.format.repeat === 'rounds' && config.totalSeconds > 0 ? config.totalSeconds : null;
+}
+
+/**
+ * Whether every position was completed — false for a For Time that ended at its
+ * cap, and always for AMRAP/EMOM. A completed For Time stays on its last position
+ * with the final count (see `apply`), so that is what's checked.
+ */
+export function isComplete(config: WodConfig, state: EngineState): boolean {
+  return (
+    config.format.repeat === 'rounds' &&
+    isCompleteAt(config, nextPosition(config, state.pos)) &&
+    state.done >= targetAt(config, state.pos)
+  );
+}
+
 // ─── Engine (incremental fold) ──────────────────────────────────────────────
 //
 // One engine for live judging and for results: live judging calls `apply` on
 // each gesture and `advanceTo` on each clock tick; a result is `fold` over the
 // stored events with the very same functions. Rules are the ones engineVersion 1
 // pins (tests/__goldens__), per `format.repeat`:
-//   rounds      — no clock transitions; finishes on the last rep, later events ignored
+//   rounds      — finishes on the last rep, or at its cap when it has one (change
+//                 for-time-cap: an event at the cap or later is ignored); later events ignored
 //   cycle       — finishes at its duration, but still counts events after it (v1)
 //   perInterval — the clock sets the interval; reps beyond the target count (raw)
 //                 but the live count is capped; events at/after the last interval ignored
@@ -335,6 +364,8 @@ export function advanceTo(config: WodConfig, state: EngineState, t: number): Eng
     if (minuteIdx >= total) return { ...moved, t: total * 60000, finished: true };
     return { ...moved, t };
   }
+  const cap = capSeconds(config);
+  if (cap != null && t >= cap * 1000) return { ...state, t: cap * 1000, finished: true };
   return { ...state, t };
 }
 
@@ -380,12 +411,13 @@ export function view(config: WodConfig, state: EngineState) {
   const timerLabel =
     config.timerMode === 'remaining' ? 'remaining' :
     config.timerMode === 'minLeft'   ? 'min left'  : 'elapsed';
+  const cap = capSeconds(config);
   return {
     exerciseName: state.finished ? 'DONE' : exerciseNameAt(config, state.pos),
     target: targetAt(config, state.pos),
     done: state.done,
     kpi: kpiAt(config, state.pos),
     timerStr,
-    timerLabel,
+    timerLabel: cap != null ? `${timerLabel} · cap ${formatTime(cap)}` : timerLabel,
   };
 }

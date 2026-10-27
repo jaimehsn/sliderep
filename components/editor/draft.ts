@@ -24,7 +24,8 @@ export type LineFields = {
 export type ForTimeRow = LineFields & { reps: string[] };
 export type RepsRow = LineFields & { reps: string };
 
-export type ForTimeDraft = { format: 'forTime'; name: string; rounds: string; sameReps: boolean; rows: ForTimeRow[] };
+/** `cap` is the time cap in whole minutes, '' for none (change for-time-cap). */
+export type ForTimeDraft = { format: 'forTime'; name: string; rounds: string; sameReps: boolean; cap: string; rows: ForTimeRow[] };
 export type AmrapDraft = { format: 'amrap'; name: string; minutes: string; rows: RepsRow[] };
 export type EmomDraft = { format: 'emom'; name: string; minutes: string; slots: RepsRow[] };
 export type Draft = ForTimeDraft | AmrapDraft | EmomDraft;
@@ -40,7 +41,7 @@ export function emptyLine(): LineFields {
 }
 
 export function emptyDraft(format: DraftFormat, name = ''): Draft {
-  if (format === 'forTime') return { format, name, rounds: '1', sameReps: true, rows: [] };
+  if (format === 'forTime') return { format, name, rounds: '1', sameReps: true, cap: '', rows: [] };
   if (format === 'amrap') return { format, name, minutes: '', rows: [] };
   return { format, name, minutes: '', slots: [] };
 }
@@ -161,7 +162,7 @@ export function savedName(draft: Draft): string {
 // ─── Validation ─────────────────────────────────────────────────────────────
 
 /**
- * Problems keyed by field: 'name', 'rounds', 'minutes', 'lines', and 'line:<i>'
+ * Problems keyed by field: 'name', 'rounds', 'cap', 'minutes', 'lines', and 'line:<i>'
  * for the i-th line. Empty when the draft can be saved.
  */
 export type DraftProblems = Record<string, string>;
@@ -183,6 +184,7 @@ export function validateDraft(draft: Draft): DraftProblems {
   if (draft.format === 'forTime') {
     const rounds = parseCount(draft.rounds);
     if (rounds == null) problems.rounds = 'Rounds must be 1 or more';
+    if (draft.cap.trim() !== '' && parseCount(draft.cap) == null) problems.cap = 'Time cap must be 1 or more';
     draft.rows.forEach((row, i) => {
       const reps = draft.sameReps ? [row.reps[0] ?? ''] : Array.from({ length: rounds ?? 1 }, (_, r) => row.reps[r] ?? '');
       const problem = lineProblem(row, reps);
@@ -227,6 +229,7 @@ export function draftToStoredBlock(draft: Draft): StoredBlock {
         draft.rows.map((row) => toStoredLine(row, count(forTimeReps(draft, row, r)))),
       ),
       rounds,
+      ...(draft.cap.trim() !== '' ? { durationSeconds: count(draft.cap) * 60 } : {}),
     };
   }
   const minutes = count(draft.minutes);
@@ -279,6 +282,7 @@ export function draftFromBlock(formatId: string, block: Block, name: string): Dr
       name,
       rounds: String(block.rounds ?? block.lines.length),
       sameReps,
+      cap: block.durationSeconds ? String(block.durationSeconds / 60) : '',
       rows: sameReps ? rows.map((row) => ({ ...row, reps: [row.reps[0]] })) : rows,
     };
   }

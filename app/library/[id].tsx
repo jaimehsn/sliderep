@@ -12,12 +12,14 @@ import { useSQLiteContext } from 'expo-sqlite';
 import { withProfile } from '@/components/editor/profile-gate';
 import { Screen } from '@/components/screen';
 import { HF } from '@/constants/hf';
+import { WodConfig, capSeconds } from '@/constants/wod-engine';
 import { Workout, archiveWorkout, getWorkout, isOwn } from '@/db/workouts';
 import { useProfile } from '@/hooks/use-profile';
 
-function formatDuration(seconds: number): string {
-  const m = Math.floor(seconds / 60);
-  return `${m} min`;
+// "12 min", or "10 min cap" for a For Time's time cap (change for-time-cap).
+function formatDuration(config: WodConfig): string {
+  const m = Math.floor(config.totalSeconds / 60);
+  return capSeconds(config) != null ? `${m} min cap` : `${m} min`;
 }
 
 export default function LibraryDetailScreen() {
@@ -81,7 +83,7 @@ export default function LibraryDetailScreen() {
             </View>
             <Text style={styles.name}>{config.name}</Text>
             {config.totalSeconds > 0 && (
-              <Text style={styles.duration}>{formatDuration(config.totalSeconds)}</Text>
+              <Text style={styles.duration}>{formatDuration(config)}</Text>
             )}
           </View>
           <Pressable

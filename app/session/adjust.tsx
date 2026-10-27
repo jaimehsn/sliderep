@@ -21,6 +21,7 @@ import { Workout, getWorkout } from '@/db/workouts';
 import { AdjustmentChange, SessionAdjustment, addAdjustment, getAdjustments } from '@/db/session-adjustments';
 import { deriveAdjustedResult } from '@/components/result/adjust';
 import { Split } from '@/components/result/replay';
+import { capSeconds } from '@/constants/wod-engine';
 
 export default function AdjustScreen() {
   const { sessionId } = useLocalSearchParams<{ sessionId: string }>();
@@ -135,7 +136,7 @@ export default function AdjustScreen() {
 
       {hasDuration && (
         <View style={styles.durationRow}>
-          <Text style={styles.durationLabel}>DURATION ({isEmom ? 'MIN' : 'SEC'})</Text>
+          <Text style={styles.durationLabel}>{capSeconds(config) != null ? 'TIME CAP' : 'DURATION'} ({isEmom ? 'MIN' : 'SEC'})</Text>
           {durationDraft != null ? (
             <TextInput
               style={styles.durationInput}

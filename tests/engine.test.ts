@@ -2,8 +2,8 @@
 // live judging (clock ticks interleaved with gestures) must end in exactly the
 // state the result fold derives from the same events.
 import { describe, expect, it } from 'vitest';
-import { EngineEvent, EngineState, WodConfig, advanceTo, apply, fold, initial } from '@/constants/wod-engine';
-import { CASES, builtin } from './fixtures';
+import { EngineEvent, EngineState, WodConfig, advanceTo, apply, capSeconds, fold, initial, isComplete, view } from '@/constants/wod-engine';
+import { CASES, builtin, workout } from './fixtures';
 
 const TICK_MS = 250;
 
@@ -24,13 +24,15 @@ function live(config: WodConfig, events: EngineEvent[], endT: number): EngineSta
 
 function endOf(config: WodConfig, events: EngineEvent[]): number {
   const last = events.reduce((m, e) => Math.max(m, e.t), 0);
-  return config.format.repeat === 'rounds' ? last : Math.max(last, config.totalSeconds * 1000);
+  if (config.format.repeat !== 'rounds') return Math.max(last, config.totalSeconds * 1000);
+  const cap = capSeconds(config);
+  return cap != null ? Math.max(last, cap * 1000) : last;
 }
 
 describe('live = result', () => {
   for (const c of CASES) {
     it(c.name, () => {
-      const config = builtin(c.wodId);
+      const config = workout(c.wodId);
       const endT = endOf(config, c.log);
       expect(live(config, c.log, endT)).toEqual(fold(config, c.log, endT));
     });
@@ -73,5 +75,48 @@ describe('v1 rules', () => {
     const state = apply(config, initial(config), { t: 60200, ok: true });
     expect(state.pos.minuteIdx).toBe(1);
     expect(state.tagged[0].pos.minuteIdx).toBe(1);
+  });
+});
+
+describe('time cap (change for-time-cap)', () => {
+  const reps = (ts: number[]): EngineEvent[] => ts.map((t) => ({ t, ok: true }));
+  const capped = workout('franCap10');
+
+  it('reads the cap from a For Time only', () => {
+    expect(capSeconds(capped)).toBe(600);
+    expect(capSeconds(builtin('fran'))).toBeNull();
+    expect(capSeconds(builtin('cindy'))).toBeNull();
+  });
+
+  it('describes and labels the cap', () => {
+    expect(capped.description).toBe('21-15-9 · thrusters + pull-ups · 10 min cap');
+    expect(capped.mode).toBe('FOR TIME');
+    expect(view(capped, initial(capped)).timerLabel).toBe('elapsed · cap 10:00');
+    expect(view(builtin('fran'), initial(builtin('fran'))).timerLabel).toBe('elapsed');
+  });
+
+  it('finishes at the cap, incomplete', () => {
+    const state = fold(capped, reps([1000, 2000]), Infinity);
+    expect(state.finished).toBe(true);
+    expect(state.t).toBe(600000);
+    expect(isComplete(capped, state)).toBe(false);
+  });
+
+  it('ignores a rep at exactly the cap', () => {
+    const state = fold(capped, reps([599999, 600000]), Infinity);
+    expect(state.tagged.map((e) => e.counted)).toEqual([true, false]);
+  });
+
+  it('finishing under the cap is complete', () => {
+    const state = fold(capped, reps(Array.from({ length: 90 }, (_, i) => (i + 1) * 1000)), Infinity);
+    expect(state.finished).toBe(true);
+    expect(isComplete(capped, state)).toBe(true);
+    expect(state.t).toBe(90000);
+  });
+
+  it('leaves an uncapped FRAN running on the clock', () => {
+    const fran = builtin('fran');
+    const state = advanceTo(fran, initial(fran), 3_600_000);
+    expect(state.finished).toBe(false);
   });
 });

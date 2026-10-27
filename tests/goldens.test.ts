@@ -7,12 +7,12 @@
 import { describe, expect, it } from 'vitest';
 import { deriveAdjustedResult } from '@/components/result/adjust';
 import { deriveResult } from '@/components/result/replay';
-import { CASES, builtin } from './fixtures';
+import { CASES, workout } from './fixtures';
 
 describe('v1 goldens', () => {
   for (const c of CASES) {
     it(c.name, async () => {
-      const config = builtin(c.wodId);
+      const config = workout(c.wodId);
       const golden = {
         result: deriveResult(config, c.log),
         ...(c.changes ? { adjusted: deriveAdjustedResult(config, c.log, c.changes) } : {}),

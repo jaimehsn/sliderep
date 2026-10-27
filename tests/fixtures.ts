@@ -6,7 +6,7 @@ import type { LogEntry } from '@/components/judge/types';
 import type { WodConfig } from '@/constants/wod-engine';
 import type { AdjustmentChange } from '@/db/session-adjustments';
 import { V2_EXERCISES, V2_WORKOUTS } from '@/db/seeds/v2-builtins';
-import { parseWorkoutRow } from '@/db/workouts';
+import { WorkoutRow, parseWorkoutRow } from '@/db/workouts';
 
 const names = new Map(V2_EXERCISES.map((e) => [e.id, e.name]));
 
@@ -14,6 +14,43 @@ export function builtin(id: string): WodConfig {
   const row = V2_WORKOUTS.find((w) => w.id === id);
   if (!row) throw new Error(`No built-in ${id}`);
   return parseWorkoutRow(row, names).config;
+}
+
+// Synthetic workouts for cases no built-in covers (change for-time-cap: the
+// built-ins have no time cap). Stored rows like any own workout's, parsed by the
+// same row parser.
+const ft = (thrusters: number, pullUps: number) => [
+  { exerciseId: 'thrusters', target: thrusters },
+  { exerciseId: 'pull-ups', target: pullUps },
+];
+export const SYNTHETIC_WORKOUTS: WorkoutRow[] = [
+  {
+    // 21-15-9 THRUSTERS + PULL-UPS, 10 min cap.
+    id: 'franCap10',
+    name: 'FRAN CAP 10',
+    blocks: JSON.stringify([{ formatId: 'forTime', lines: [ft(21, 21), ft(15, 15), ft(9, 9)], rounds: 3, durationSeconds: 600 }]),
+  },
+  {
+    // One-round chipper of 3 stations at 20 reps, 5 min cap.
+    id: 'chipperCap5',
+    name: 'CHIPPER CAP 5',
+    blocks: JSON.stringify([{
+      formatId: 'forTime',
+      lines: [[
+        { exerciseId: 'burpees', target: 20 },
+        { exerciseId: 'air-squats', target: 20 },
+        { exerciseId: 'kb-swings', target: 20 },
+      ]],
+      rounds: 1,
+      durationSeconds: 300,
+    }]),
+  },
+];
+
+/** A golden case's workout: a built-in by id, or one of `SYNTHETIC_WORKOUTS`. */
+export function workout(id: string): WodConfig {
+  const row = SYNTHETIC_WORKOUTS.find((w) => w.id === id);
+  return row ? parseWorkoutRow(row, names).config : builtin(id);
 }
 
 type Kind = 'rep' | 'noRep';
@@ -41,6 +78,7 @@ function perMinute(reps: number[]) {
 
 export type GoldenCase = {
   name: string;
+  /** A built-in id, or a `SYNTHETIC_WORKOUTS` id. */
   wodId: string;
   log: LogEntry[];
   changes?: AdjustmentChange[];
@@ -129,4 +167,35 @@ export const CASES: GoldenCase[] = [
     changes: [{ type: 'duration', newDurationSeconds: 480 }],
   },
   { name: 'emom-empty', wodId: 'everyMinute', log: [] },
+
+  // Change for-time-cap: synthetic capped workouts (FRAN CAP 10 is 90 reps, the
+  // chipper 60). A rep at the cap or later doesn't count.
+  { name: 'fran-cap-finished-under', wodId: 'franCap10', log: toLog(run(2000, FRAN_REPS, 2000)) },
+  // Round 1 (42 reps) and 9 THRUSTERS of round 2: the spec's CAP · 51 reps.
+  { name: 'fran-cap-mid-position', wodId: 'franCap10', log: toLog(run(5000, 51, 10000)) },
+  {
+    name: 'fran-cap-rep-at-cap',
+    wodId: 'franCap10',
+    log: toLog([...run(5000, 51, 10000), { t: 600000, kind: 'rep' }, { t: 600500, kind: 'rep' }]),
+  },
+  {
+    name: 'fran-cap-adjusted-shorter',
+    wodId: 'franCap10',
+    log: toLog(run(6000, FRAN_REPS, 6000)),
+    changes: [{ type: 'duration', newDurationSeconds: 480 }],
+  },
+  {
+    name: 'fran-cap-adjusted-raised',
+    wodId: 'franCap10',
+    log: toLog(run(5000, 51, 10000)),
+    changes: [{ type: 'duration', newDurationSeconds: 900 }],
+  },
+  {
+    name: 'fran-cap-adjusted-target-up',
+    wodId: 'franCap10',
+    log: toLog(run(2000, FRAN_REPS, 2000)),
+    changes: [{ type: 'target', roundIdx: 0, exIdx: 0, newTarget: 24 }],
+  },
+  { name: 'chipper-cap-finished-under', wodId: 'chipperCap5', log: toLog(run(1000, 60, 4000)) },
+  { name: 'chipper-cap-mid-station', wodId: 'chipperCap5', log: toLog(run(3000, 47, 5000)) },
 ];

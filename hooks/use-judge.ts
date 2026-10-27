@@ -1,6 +1,6 @@
 import type { LogEntry } from '@/components/judge/types';
 import { HF } from '@/constants/hf';
-import { EngineState, WodConfig, advanceTo, apply, initial, view } from '@/constants/wod-engine';
+import { EngineState, WodConfig, advanceTo, apply, initial, isComplete, view } from '@/constants/wod-engine';
 import { useSoundCue } from '@/hooks/use-sound-cue';
 import * as Haptics from 'expo-haptics';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -53,8 +53,9 @@ export function useJudge(config: WodConfig) {
     stateRef.current = next;
     setState(next);
     if (next.finished && !prev.finished) {
-      // For Time / Chipper finish silently on the last rep; AMRAP/EMOM on the clock.
-      if (config.format.repeat !== 'rounds') playEnd();
+      // The end sound marks a finish by the clock (AMRAP, EMOM, a For Time at its
+      // cap); a For Time / Chipper finishing on its last rep stays silent.
+      if (!isComplete(config, next)) playEnd();
       setIsRunning(false);
     } else if (next.pos.minuteIdx > prev.pos.minuteIdx) {
       playMinute();

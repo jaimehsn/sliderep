@@ -102,7 +102,7 @@ A workout's mode label SHALL be derived from its format and content: "FOR TIME" 
 - **THEN** its mode reads 5 ROUNDS FOR TIME
 
 ### Requirement: Description derived from content
-A workout's one-line description SHALL be derived from its content: the rep scheme, round count or duration, then its exercise names in lowercase (joined by " + " when there are two, by ", " when there are more), or for a single-round workout its station count and reps per station. A For Time whose rounds all have the same reps SHALL use "<rounds> rounds" as its scheme.
+A workout's one-line description SHALL be derived from its content: the rep scheme, round count or duration, then its exercise names in lowercase (joined by " + " when there are two, by ", " when there are more), or for a single-round workout its station count and reps per station. A For Time whose rounds all have the same reps SHALL use "<rounds> rounds" as its scheme. A capped workout's description SHALL end with " · <minutes> min cap".
 
 #### Scenario: Built-in descriptions
 - **WHEN** the four built-in workouts are listed
@@ -111,6 +111,10 @@ A workout's one-line description SHALL be derived from its content: the rep sche
 #### Scenario: Same reps every round
 - **WHEN** an own For Time has 5 rounds of BURPEES 10 and AIR SQUATS 15
 - **THEN** its description reads "5 rounds · burpees + air squats"
+
+#### Scenario: Capped description
+- **WHEN** an own 21-15-9 For Time of THRUSTERS and PULL-UPS has a 10 min cap
+- **THEN** its description reads "21-15-9 · thrusters + pull-ups · 10 min cap"
 
 ### Requirement: Archived workouts
 An archived workout SHALL NOT be offered in workout selection or listed in the Library, but SHALL still be shown, with its exercise names, for any saved session that references it. An exercise's archived state SHALL NOT affect how existing workouts show it.
@@ -133,3 +137,18 @@ Wherever workouts are offered, the built-ins SHALL come first, in their listed o
 #### Scenario: Own workouts after the built-ins
 - **WHEN** the owner has created MY FRAN and then MY CINDY
 - **THEN** the list shows the four built-ins, then MY FRAN, then MY CINDY, the last two marked as own
+
+### Requirement: For Time time cap
+A For Time or Chipper workout MAY have a time cap, a whole number of minutes of 1 or more. A capped workout SHALL finish either on its last valid rep before the cap or when the session clock reaches the cap, whichever comes first. A rep recorded exactly at the cap or later SHALL NOT count. A workout without a cap SHALL behave as before. The cap SHALL be shown as "<minutes> min cap" wherever the workout's duration is shown.
+
+#### Scenario: Finished before the cap
+- **WHEN** a 21-15-9 For Time with a 10 min cap has its last valid rep at 8:12
+- **THEN** it finishes at 8:12
+
+#### Scenario: Cap reached
+- **WHEN** the same workout's session clock reaches 10:00 with reps still to do
+- **THEN** it finishes at 10:00, and no rep recorded at 10:00 or later counts
+
+#### Scenario: Duration line
+- **WHEN** the owner views that workout's detail or its pre-start summary
+- **THEN** its duration reads "10 min cap"

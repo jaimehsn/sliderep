@@ -3,9 +3,11 @@ import {
   TaggedEvent,
   WodConfig,
   WodSession,
+  capSeconds,
   exerciseNameAt,
   fold,
   formatTime,
+  isComplete,
   kpiAt,
   targetAt,
 } from '@/constants/wod-engine';
@@ -128,7 +130,12 @@ function deriveOnTarget(config: WodConfig, log: LogEntry[]): WodResult {
   }
 
   if (config.timerMode === 'elapsed') {
-    const lastCounted = state.tagged.filter((e) => e.counted).at(-1);
+    const counted = state.tagged.filter((e) => e.counted);
+    // Ended at its time cap without finishing (change for-time-cap): total valid reps.
+    if (capSeconds(config) != null && !isComplete(config, state)) {
+      return { scoreLabel: 'SCORE', scoreValue: `CAP · ${counted.length} reps`, splits };
+    }
+    const lastCounted = counted.at(-1);
     return {
       scoreLabel: 'TIME',
       scoreValue: formatTime(Math.round((lastCounted?.t ?? 0) / 1000)),

@@ -10,6 +10,7 @@ import {
   emptyLine,
   setRepDescription,
   setSameReps,
+  switchFormat,
   validateDraft,
 } from '@/components/editor/draft';
 import { START_POSITION, WodConfig, exerciseNameAt, fold, targetAt } from '@/constants/wod-engine';
@@ -31,6 +32,7 @@ const fran: ForTimeDraft = {
   name: 'my fran',
   rounds: '3',
   sameReps: false,
+  cap: '',
   rows: [
     { ...emptyLine(), exercise: ex('thrusters'), reps: ['21', '15', '9'], load: '95/65 lb' },
     { ...emptyLine(), exercise: ex('pull-ups'), reps: ['21', '15', '9'] },
@@ -181,6 +183,32 @@ describe('rep description', () => {
     expect(described.rows[0].reps).toEqual(['1', '5', '1']);
     const cleared = setRepDescription({ ...described, rows: [{ ...described.rows[0], reps: ['', '', ''] }] }, 0, null) as ForTimeDraft;
     expect(cleared.rows[0].reps).toEqual(['', '', '']);
+  });
+});
+
+describe('time cap (change for-time-cap)', () => {
+  it('saves as the block\'s durationSeconds, and none when empty', () => {
+    expect(draftToStoredBlock({ ...fran, cap: '10' }).durationSeconds).toBe(600);
+    expect('durationSeconds' in draftToStoredBlock(fran)).toBe(false);
+    expect(configOf({ ...fran, cap: '10' }).description).toBe('21-15-9 · thrusters + pull-ups · 10 min cap');
+  });
+
+  it('DUPLICATE keeps the cap', () => {
+    const config = configOf({ ...fran, cap: '10' });
+    const copy = draftFromBlock(config.format.id, config.block, 'COPY') as ForTimeDraft;
+    expect(copy.cap).toBe('10');
+    expect((draftFromBlock('forTime', builtin('fran').block, 'FRAN') as ForTimeDraft).cap).toBe('');
+  });
+
+  it('flags a zero cap and accepts none', () => {
+    expect(validateDraft({ ...fran, cap: '0' }).cap).toBe('Time cap must be 1 or more');
+    expect(validateDraft({ ...fran, cap: ' ' })).toEqual({});
+  });
+
+  it('is dropped when leaving FOR TIME', () => {
+    const amrap = switchFormat({ ...fran, cap: '10' }, 'amrap');
+    expect('cap' in amrap).toBe(false);
+    expect((switchFormat(amrap, 'forTime') as ForTimeDraft).cap).toBe('');
   });
 });
 

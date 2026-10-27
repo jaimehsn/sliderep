@@ -148,7 +148,7 @@ Current formats as compositions:
 - **Intervals / EMOM:** `perInterval` + `onClock(60)` + `intervalCountdown` + `afterIntervals(n)` + `intervalsCompleted+totalReps`. Tabata = same primitives with `work` + `rest` steps of fixed seconds.
 
 Assumptions (not confirmed, to validate when they matter):
-- **For Time with time cap:** score = time; if the cap runs out unfinished, score = total reps completed. **AMRAP:** rounds + partial reps.
+- ~~**For Time with time cap:** score = time; if the cap runs out unfinished, score = total reps completed.~~ Decided in change `for-time-cap`: TIME when finished before the cap, otherwise "CAP · N reps" (N = valid reps before the cap; a rep at the cap doesn't count). **AMRAP:** rounds + partial reps.
 - **Missed interval** (the minute ends before the target): its partial reps are kept in the log.
 - **Presentation** (header KPI and pips, exercise name, count and reps left — all that the Ghost judging screen shows) is **derived from the structure** by the engine, with optional overrides; today only `getKpi` / `getExerciseName` / `getTarget` remain as `WodConfig` functions (the section label, segment bar and hint were removed with the Ghost design). Open: how the "CHIPPER" label (`mode` in the current UI) is shown after unifying with For Time.
 - A rest is a timed step that advances by clock only.
@@ -338,7 +338,7 @@ Goal: the owner can write any reps-scored metcon, with movements and several blo
 3. ✅ `unified-engine` (C1): one incremental engine for live judging and results, with vitest goldens. Followed by ✅ `fix-amrap-partial-reps`.
 4. `wod-editor` (D): create, duplicate and archive single-block FOR TIME / AMRAP / EMOM workouts, with rep descriptions and load per line. The editor comes **before** the remaining engine primitives, so every later change can be tested on a device as it lands.
 5. Then four changes. Each one extends the engine **and** the editor:
-   - **C2a**: time cap.
+   - ✅ **C2a** (`for-time-cap`): time cap on For Time / Chipper — counting-up clock labelled with the cap, end sound at the cap, "CAP · N reps", adjustable cap, TIME CAP (MIN) in the editor.
    - **C2b**: progressive reps, plus several exercises per EMOM minute and intervals other than 60 s.
    - **C2c**: rest steps.
    - **C2d**: multi-block, including buy-in/cash-out and a scoring block.
