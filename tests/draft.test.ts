@@ -95,7 +95,8 @@ describe('drafts run as saved', () => {
     const draft: Draft = {
       format: 'emom',
       name: 'three',
-      minutes: '10',
+      every: '60',
+      intervals: '10',
       slots: [
         { ...emptyLine(), exercise: ex('burpees'), reps: '10' },
         { ...emptyLine(), exercise: ex('kb-swings'), reps: '15' },
@@ -242,5 +243,51 @@ describe('validation', () => {
 
   it('accepts a complete draft', () => {
     expect(validateDraft(fran)).toEqual({});
+  });
+});
+
+describe('EMOM interval length (change emom-interval-length)', () => {
+  const emom = (every: string, intervals = '10'): Draft => ({
+    format: 'emom',
+    name: 'every',
+    every,
+    intervals,
+    slots: [
+      { ...emptyLine(), exercise: ex('burpees'), reps: '10' },
+      { ...emptyLine(), exercise: ex('kb-swings'), reps: '15' },
+    ],
+  });
+
+  it('starts at 60 seconds', () => {
+    expect((emptyDraft('emom') as { every: string }).every).toBe('60');
+    expect((switchFormat(fran, 'emom') as { every: string }).every).toBe('60');
+  });
+
+  it('saves 90 seconds with intervalSeconds', () => {
+    expect(draftToStoredBlock(emom('90'))).toMatchObject({ rounds: 10, durationSeconds: 900, intervalSeconds: 90 });
+    const config = configOf(emom('90'));
+    expect(config.mode).toBe('EVERY 1:30 · 10');
+    expect(config.totalSeconds).toBe(900);
+  });
+
+  it('saves 60 seconds without it', () => {
+    const block = draftToStoredBlock(emom('60'));
+    expect(block).toMatchObject({ rounds: 10, durationSeconds: 600 });
+    expect('intervalSeconds' in block).toBe(false);
+  });
+
+  it('DUPLICATE keeps the interval', () => {
+    const config = configOf(emom('90', '6'));
+    const copy = draftFromBlock('emom', config.block, 'COPY');
+    expect(copy).toMatchObject({ every: '90', intervals: '6' });
+    expect(draftToStoredBlock(copy)).toEqual(draftToStoredBlock(emom('90', '6')));
+  });
+
+  it('flags an interval out of 10 to 600 seconds, and no intervals', () => {
+    expect(validateDraft(emom('5')).every).toBe('Interval must be 10 to 600 seconds');
+    expect(validateDraft(emom('601')).every).toBe('Interval must be 10 to 600 seconds');
+    expect(validateDraft(emom('90', '0')).intervals).toBe('Intervals must be 1 or more');
+    expect(validateDraft(emom('10'))).toEqual({});
+    expect(validateDraft(emom('600'))).toEqual({});
   });
 });

@@ -21,7 +21,7 @@ import { Workout, getWorkout } from '@/db/workouts';
 import { AdjustmentChange, SessionAdjustment, addAdjustment, getAdjustments } from '@/db/session-adjustments';
 import { deriveAdjustedResult } from '@/components/result/adjust';
 import { Split } from '@/components/result/replay';
-import { capSeconds } from '@/constants/wod-engine';
+import { capSeconds, intervalSeconds } from '@/constants/wod-engine';
 
 export default function AdjustScreen() {
   const { sessionId } = useLocalSearchParams<{ sessionId: string }>();
@@ -67,6 +67,9 @@ export default function AdjustScreen() {
   const previewChanges = useMemo(() => [...approvedChanges, ...pending], [approvedChanges, pending]);
   const result = config ? deriveAdjustedResult(config, log, previewChanges) : null;
   const isEmom = config?.advanceMode === 'onClock';
+  // The duration field's unit in seconds: an EMOM's interval (minutes at 60 s), else plain seconds.
+  const durationUnit = config && isEmom ? intervalSeconds(config) : 1;
+  const durationUnitLabel = !isEmom ? 'SEC' : durationUnit === 60 ? 'MIN' : 'INTERVALS';
   const hasDuration = (config?.totalSeconds ?? 0) > 0;
   const remaining = 3 - adjustments.length;
 
@@ -96,7 +99,7 @@ export default function AdjustScreen() {
     for (const c of previewChanges) if (c.type === 'duration') value = c.newDurationSeconds;
     return value;
   })();
-  const durationDisplay = isEmom ? String(Math.round(currentDurationSeconds / 60)) : String(currentDurationSeconds);
+  const durationDisplay = String(Math.round(currentDurationSeconds / durationUnit));
 
   const commitDuration = () => {
     const raw = durationDraft;
@@ -104,7 +107,7 @@ export default function AdjustScreen() {
     if (raw == null) return;
     const n = parseInt(raw, 10);
     if (!Number.isFinite(n) || n <= 0) return;
-    const newDurationSeconds = isEmom ? n * 60 : n;
+    const newDurationSeconds = n * durationUnit;
     if (newDurationSeconds === currentDurationSeconds) return;
     setPending((prev) => [...prev.filter((c) => c.type !== 'duration'), { type: 'duration', newDurationSeconds }]);
   };
@@ -136,7 +139,7 @@ export default function AdjustScreen() {
 
       {hasDuration && (
         <View style={styles.durationRow}>
-          <Text style={styles.durationLabel}>{capSeconds(config) != null ? 'TIME CAP' : 'DURATION'} ({isEmom ? 'MIN' : 'SEC'})</Text>
+          <Text style={styles.durationLabel}>{capSeconds(config) != null ? 'TIME CAP' : 'DURATION'} ({durationUnitLabel})</Text>
           {durationDraft != null ? (
             <TextInput
               style={styles.durationInput}

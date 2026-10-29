@@ -3,14 +3,16 @@
 // live judging and results (see the Engine section).
 // "Format = behavior, WOD = content" (docs/ROADMAP.md → WOD format as data).
 //
-// Scope: only the primitives today's 4 built-in WODs actually need. Rest steps,
-// multi-block WODs (buy-in/cash-out), progressive per-interval reps and time caps
-// are not implemented — add them when a real WOD needs them.
+// Scope: only the primitives today's 4 built-in WODs actually need, plus a For
+// Time cap (change for-time-cap) and an EMOM interval length (change
+// emom-interval-length). Rest steps, multi-block WODs (buy-in/cash-out) and
+// progressive per-interval reps are not implemented yet.
 
 export type WodSession = {
   roundIdx: number;
   exIdx: number;
   completedRounds: number;
+  /** perInterval: the interval index (a minute only with 60-second intervals; change emom-interval-length kept the name). */
   minuteIdx: number;
 };
 
@@ -98,8 +100,10 @@ export type Block = {
   lines: WodLine[][];
   /** 'rounds': round count (Chipper = 1). 'perInterval': total intervals. */
   rounds?: number;
-  /** 'cycle' / 'perInterval': total WOD duration. */
+  /** 'cycle' / 'perInterval': total WOD duration (perInterval: rounds × interval). 'rounds': the time cap. */
   durationSeconds?: number;
+  /** 'perInterval': interval length in seconds (10–600), 60 when absent (change emom-interval-length). */
+  intervalSeconds?: number;
 };
 
 export type WodDefinition = {
@@ -129,6 +133,16 @@ function lineNote(line: WodLine | undefined): string | undefined {
   return parts.length > 0 ? parts.join(' · ') : undefined;
 }
 
+// An EMOM block's interval length in seconds (60 unless the block sets one).
+function blockInterval(block: Block): number {
+  return block.intervalSeconds ?? 60;
+}
+
+// A length as m:ss ("1:30"), unlike formatTime's clock-like "01:30".
+function formatLength(seconds: number): string {
+  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
+}
+
 // More than one round, all identical: "5 rounds of the same", shown once instead of per round.
 function sameEveryRound(block: Block): boolean {
   const [first = []] = block.lines;
@@ -156,7 +170,7 @@ function summarize(format: Format, block: Block): WodExercise[] {
   // perInterval: each entry is its own interval's exercise.
   return block.lines.map(([line]) => ({
     name: line.exercise,
-    detail: `${describedOnly(line) ? amountOf(line) : line.target} / min`,
+    detail: `${describedOnly(line) ? amountOf(line) : line.target} / ${blockInterval(block) === 60 ? 'min' : 'interval'}`,
     note: lineNote(line),
   }));
 }
@@ -170,7 +184,9 @@ function joinNames(block: Block): string {
 function describeMode(format: Format, block: Block): string {
   if (format.repeat === 'rounds') return sameEveryRound(block) ? `${block.lines.length} ROUNDS FOR TIME` : 'FOR TIME';
   if (format.repeat === 'cycle') return `${(block.durationSeconds ?? 0) / 60}-MIN AMRAP`;
-  return `EMOM · ${block.rounds ?? 0}`;
+  const interval = blockInterval(block);
+  const prefix = interval === 60 ? 'EMOM' : interval % 60 === 0 ? `E${interval / 60}MOM` : `EVERY ${formatLength(interval)}`;
+  return `${prefix} · ${block.rounds ?? 0}`;
 }
 
 function describeContent(format: Format, block: Block): string {
@@ -192,6 +208,9 @@ function describeScheme(format: Format, block: Block): string {
     const uniform = block.lines.every((round) => round.every((l) => l.target === round[0]?.target));
     const scheme = uniform ? block.lines.map((round) => round[0]?.target ?? 0).join('-') : `${block.rounds ?? 0} rounds`;
     return `${scheme} · ${joinNames(block)}`;
+  }
+  if (format.repeat === 'perInterval' && blockInterval(block) !== 60) {
+    return `${block.rounds ?? 0} × ${formatLength(blockInterval(block))} · ${joinNames(block)}`;
   }
   return `${(block.durationSeconds ?? 0) / 60} min · ${joinNames(block)}`;
 }
@@ -218,8 +237,18 @@ export function buildWodConfig(definition: WodDefinition, format: Format): WodCo
 
 // ─── Positions ──────────────────────────────────────────────────────────────
 //
-// A position is a WodSession (round/line for onTarget, minute for perInterval).
+// A position is a WodSession (round/line for onTarget, interval for perInterval).
 // Pure functions of the format + block — the engine and the result labels read them.
+
+/** An EMOM's interval length in seconds: the block's `intervalSeconds`, or 60 (change emom-interval-length). */
+export function intervalSeconds(config: WodConfig): number {
+  return blockInterval(config.block);
+}
+
+/** What an EMOM's intervals are called: 'minute' with 60-second intervals, 'interval' otherwise. */
+export function intervalUnit(config: WodConfig): 'minute' | 'interval' {
+  return intervalSeconds(config) === 60 ? 'minute' : 'interval';
+}
 
 export const START_POSITION: WodSession = { roundIdx: 0, exIdx: 0, completedRounds: 0, minuteIdx: 0 };
 
@@ -250,7 +279,7 @@ export function kpiAt(config: WodConfig, pos: WodSession): WodKpi {
   }
   if (config.format.repeat === 'cycle') return { label: 'rounds', current: pos.completedRounds, total: null };
   const total = block.rounds ?? 0;
-  return { label: 'minute', current: Math.min(pos.minuteIdx + 1, total), total };
+  return { label: intervalUnit(config), current: Math.min(pos.minuteIdx + 1, total), total };
 }
 
 // onTarget only: the next line, wrapping into the next round (AMRAP also tallies it).
@@ -337,7 +366,7 @@ export function formatTime(seconds: number): string {
 }
 
 function totalIntervals(config: WodConfig): number {
-  return Math.ceil(config.totalSeconds / 60);
+  return Math.ceil(config.totalSeconds / intervalSeconds(config));
 }
 
 export function initial(config: WodConfig): EngineState {
@@ -353,7 +382,8 @@ export function advanceTo(config: WodConfig, state: EngineState, t: number): Eng
   }
   if (repeat === 'perInterval') {
     const total = totalIntervals(config);
-    const minuteIdx = Math.floor(t / 60000);
+    const intervalMs = intervalSeconds(config) * 1000;
+    const minuteIdx = Math.floor(t / intervalMs);
     // Move to the interval `t` falls in (at most the last one), so a jump over
     // several intervals ends where stepping through them would.
     const current = Math.min(minuteIdx, total - 1);
@@ -361,7 +391,7 @@ export function advanceTo(config: WodConfig, state: EngineState, t: number): Eng
       ? state
       : { ...state, pos: { ...state.pos, minuteIdx: current }, done: 0, raw: 0 };
     // Last interval ended: finish keeping its partial count, on its position.
-    if (minuteIdx >= total) return { ...moved, t: total * 60000, finished: true };
+    if (minuteIdx >= total) return { ...moved, t: total * intervalMs, finished: true };
     return { ...moved, t };
   }
   const cap = capSeconds(config);
@@ -404,13 +434,14 @@ export function fold(config: WodConfig, events: EngineEvent[], endT: number): En
 
 export function view(config: WodConfig, state: EngineState) {
   const elapsed = Math.floor(state.t / 1000);
+  const interval = intervalSeconds(config);
   const timerStr =
     config.timerMode === 'remaining' ? formatTime(Math.max(0, config.totalSeconds - elapsed)) :
-    config.timerMode === 'minLeft'   ? formatTime(Math.max(0, 60 - (elapsed % 60))) :
+    config.timerMode === 'minLeft'   ? formatTime(Math.max(0, interval - (elapsed % interval))) :
     formatTime(elapsed);
   const timerLabel =
     config.timerMode === 'remaining' ? 'remaining' :
-    config.timerMode === 'minLeft'   ? 'min left'  : 'elapsed';
+    config.timerMode === 'minLeft'   ? (interval === 60 ? 'min left' : 'interval left') : 'elapsed';
   const cap = capSeconds(config);
   return {
     exerciseName: state.finished ? 'DONE' : exerciseNameAt(config, state.pos),

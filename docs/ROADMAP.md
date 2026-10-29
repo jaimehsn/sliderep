@@ -339,7 +339,10 @@ Goal: the owner can write any reps-scored metcon, with movements and several blo
 4. `wod-editor` (D): create, duplicate and archive single-block FOR TIME / AMRAP / EMOM workouts, with rep descriptions and load per line. The editor comes **before** the remaining engine primitives, so every later change can be tested on a device as it lands.
 5. Then four changes. Each one extends the engine **and** the editor:
    - ✅ **C2a** (`for-time-cap`): time cap on For Time / Chipper — counting-up clock labelled with the cap, end sound at the cap, "CAP · N reps", adjustable cap, TIME CAP (MIN) in the editor.
-   - **C2b**: progressive reps, plus several exercises per EMOM minute and intervals other than 60 s.
+   - **C2b**, split into three changes:
+     - ✅ **C2b-1** (`emom-interval-length`): EMOM intervals of 10–600 s (EVERY (SEC) + INTERVALS in the editor), "E2MOM · 8" / "EVERY 1:30 · 10", "interval left", "Interval N" splits, the adjusted duration in intervals.
+     - **C2b-2**: several exercises per EMOM interval.
+     - **C2b-3**: progressive reps (and whether "Death by" stops at the first failed interval).
    - **C2c**: rest steps.
    - **C2d**: multi-block, including buy-in/cash-out and a scoring block.
 

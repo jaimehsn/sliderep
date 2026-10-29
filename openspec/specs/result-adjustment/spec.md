@@ -29,7 +29,7 @@ A session SHALL accept at most 3 adjustment packages. Each saved package SHALL r
 - **THEN** the adjust screen reads "3 of 3 packages used", SAVE PACKAGE is disabled, and ADJUST RESULT disappears from the result
 
 ### Requirement: Editable values
-On the adjust screen, the owner SHALL be able to tap any split to set a new positive target for that position, and, for formats with a duration, set a new positive duration (seconds for AMRAP and for a capped For Time or Chipper, whole minutes for EMOM). For Time and Chipper without a cap SHALL NOT offer a duration.
+On the adjust screen, the owner SHALL be able to tap any split to set a new positive target for that position, and, for formats with a duration, set a new positive duration (seconds for AMRAP and for a capped For Time or Chipper; for EMOM, whole minutes with 60-second intervals and a number of intervals otherwise). For Time and Chipper without a cap SHALL NOT offer a duration.
 
 #### Scenario: Editing a split target
 - **WHEN** the owner taps "Round 2 — THRUSTERS 15/15" and enters 12
@@ -46,6 +46,10 @@ On the adjust screen, the owner SHALL be able to tap any split to set a new posi
 #### Scenario: Capped For Time duration
 - **WHEN** the owner sets a 10 min capped For Time's duration to 480
 - **THEN** a pending duration change of 480 seconds is added
+
+#### Scenario: Interval EMOM duration
+- **WHEN** the owner sets an EMOM of 10 intervals of 90 seconds to 6 intervals
+- **THEN** a pending duration change of 540 seconds is added
 
 ### Requirement: Live preview and saving
 The adjust screen SHALL show the score and splits with the saved packages plus the pending changes applied. SAVE PACKAGE SHALL store the pending changes as one package and SHALL be disabled when there is nothing pending. Leaving with ✕ SHALL discard pending changes.
@@ -77,7 +81,7 @@ For For Time, Chipper and AMRAP, each valid rep SHALL stay in the position it wa
 - **THEN** that split shows 15/18 not completed, and the score shows "DNF — <completed positions>/<total positions> + 15" instead of a time
 
 ### Requirement: Duration cutoff
-A changed duration SHALL exclude every valid rep recorded after the new duration. For EMOM, the number of minutes scored SHALL become the new duration in minutes.
+A changed duration SHALL exclude every valid rep recorded after the new duration. For EMOM, the number of intervals scored SHALL become the new duration in intervals.
 
 #### Scenario: Shortened AMRAP
 - **WHEN** CINDY's duration is adjusted to 600 seconds
@@ -90,6 +94,10 @@ A changed duration SHALL exclude every valid rep recorded after the new duration
 #### Scenario: Raised duration
 - **WHEN** CINDY's duration is adjusted above 720 seconds, or EVERY MINUTE's to 12 minutes
 - **THEN** CINDY's score is unchanged, and EVERY MINUTE is scored out of 12 minutes with minutes 11–12 listed at 0 reps, not completed
+
+#### Scenario: Shortened interval EMOM
+- **WHEN** an EMOM of 10 intervals of 90 seconds is adjusted to 6 intervals
+- **THEN** the score is out of 6 intervals and only intervals 1–6 are listed
 
 ### Requirement: EMOM target change affects completion only
 For EMOM, changing a minute's target SHALL only change whether that minute counts as completed. The total of valid reps SHALL NOT change with target changes.

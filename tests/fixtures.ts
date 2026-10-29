@@ -17,7 +17,8 @@ export function builtin(id: string): WodConfig {
 }
 
 // Synthetic workouts for cases no built-in covers (change for-time-cap: the
-// built-ins have no time cap). Stored rows like any own workout's, parsed by the
+// built-ins have no time cap; change emom-interval-length: nor an interval other
+// than 60 s). Stored rows like any own workout's, parsed by the
 // same row parser.
 const ft = (thrusters: number, pullUps: number) => [
   { exerciseId: 'thrusters', target: thrusters },
@@ -43,6 +44,30 @@ export const SYNTHETIC_WORKOUTS: WorkoutRow[] = [
       ]],
       rounds: 1,
       durationSeconds: 300,
+    }]),
+  },
+  {
+    // Change emom-interval-length: 10 intervals of 90 s alternating BURPEES 10 / KB SWINGS 15.
+    id: 'emom90',
+    name: 'EMOM 90',
+    blocks: JSON.stringify([{
+      formatId: 'emom',
+      lines: [[{ exerciseId: 'burpees', target: 10 }], [{ exerciseId: 'kb-swings', target: 15 }]],
+      rounds: 10,
+      durationSeconds: 900,
+      intervalSeconds: 90,
+    }]),
+  },
+  {
+    // Change emom-interval-length: 8 intervals of 120 s (E2MOM) of the same pair.
+    id: 'e2mom8',
+    name: 'E2MOM 8',
+    blocks: JSON.stringify([{
+      formatId: 'emom',
+      lines: [[{ exerciseId: 'burpees', target: 10 }], [{ exerciseId: 'kb-swings', target: 15 }]],
+      rounds: 8,
+      durationSeconds: 960,
+      intervalSeconds: 120,
     }]),
   },
 ];
@@ -74,6 +99,11 @@ function withNoReps(from: number, count: number, gap: number, every: number) {
 /** EMOM: `reps[m]` valid reps in minute m, starting 1 s into the minute, 2 s apart. */
 function perMinute(reps: number[]) {
   return reps.flatMap((n, m) => run(m * 60000 + 1000, n, 2000));
+}
+
+/** EMOM of `intervalMs` intervals: `reps[i]` valid reps in interval i, starting 1 s in, 2 s apart. */
+function perInterval(intervalMs: number, reps: number[]) {
+  return reps.flatMap((n, i) => run(i * intervalMs + 1000, n, 2000));
 }
 
 export type GoldenCase = {
@@ -198,4 +228,33 @@ export const CASES: GoldenCase[] = [
   },
   { name: 'chipper-cap-finished-under', wodId: 'chipperCap5', log: toLog(run(1000, 60, 4000)) },
   { name: 'chipper-cap-mid-station', wodId: 'chipperCap5', log: toLog(run(3000, 47, 5000)) },
+
+  // Change emom-interval-length: synthetic EMOMs of 10 × 90 s and 8 × 120 s
+  // (BURPEES 10 / KB SWINGS 15 alternating).
+  { name: 'emom90-all-completed', wodId: 'emom90', log: toLog(perInterval(90000, EMOM_TARGETS)) },
+  {
+    // Interval 2 gets 6 reps plus one 0.5 s after the 90 s boundary, before its own run.
+    name: 'emom90-missed-intervals',
+    wodId: 'emom90',
+    log: toLog([...perInterval(90000, [10, 6, 10, 0, 8, 15, 10, 15, 3, 15]), { t: 90500, kind: 'rep' as Kind }].sort((a, b) => a.t - b.t)),
+  },
+  {
+    name: 'emom90-reps-at-or-after-end',
+    wodId: 'emom90',
+    log: toLog([...perInterval(90000, EMOM_TARGETS), { t: 900000, kind: 'rep' }, { t: 905000, kind: 'rep' }]),
+  },
+  {
+    name: 'emom90-adjusted-duration',
+    wodId: 'emom90',
+    log: toLog(perInterval(90000, EMOM_TARGETS)),
+    changes: [{ type: 'duration', newDurationSeconds: 540 }],
+  },
+  {
+    name: 'emom90-adjusted-target-up',
+    wodId: 'emom90',
+    log: toLog(perInterval(90000, EMOM_TARGETS)),
+    changes: [{ type: 'target', roundIdx: 1, exIdx: 0, newTarget: 18 }],
+  },
+  { name: 'e2mom8-all-completed', wodId: 'e2mom8', log: toLog(perInterval(120000, EMOM_TARGETS.slice(0, 8))) },
+  { name: 'e2mom8-missed-intervals', wodId: 'e2mom8', log: toLog(perInterval(120000, [10, 15, 4, 15, 10, 0, 10, 12])) },
 ];

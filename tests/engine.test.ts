@@ -2,7 +2,7 @@
 // live judging (clock ticks interleaved with gestures) must end in exactly the
 // state the result fold derives from the same events.
 import { describe, expect, it } from 'vitest';
-import { EngineEvent, EngineState, WodConfig, advanceTo, apply, capSeconds, fold, initial, isComplete, view } from '@/constants/wod-engine';
+import { EngineEvent, EngineState, WodConfig, advanceTo, apply, capSeconds, fold, initial, intervalSeconds, isComplete, view } from '@/constants/wod-engine';
 import { CASES, builtin, workout } from './fixtures';
 
 const TICK_MS = 250;
@@ -118,5 +118,59 @@ describe('time cap (change for-time-cap)', () => {
     const fran = builtin('fran');
     const state = advanceTo(fran, initial(fran), 3_600_000);
     expect(state.finished).toBe(false);
+  });
+});
+
+describe('interval length (change emom-interval-length)', () => {
+  const every90 = workout('emom90');
+  const e2mom = workout('e2mom8');
+  const everyMinute = builtin('everyMinute');
+
+  it('reads the interval, 60 by default', () => {
+    expect(intervalSeconds(every90)).toBe(90);
+    expect(intervalSeconds(e2mom)).toBe(120);
+    expect(intervalSeconds(everyMinute)).toBe(60);
+  });
+
+  it('is on interval 2 at 100 s', () => {
+    const state = advanceTo(every90, initial(every90), 100000);
+    expect(state.pos.minuteIdx).toBe(1);
+    const v = view(every90, state);
+    expect(v.exerciseName).toBe('KB SWINGS');
+    expect(v.timerStr).toBe('01:20');
+    expect(v.timerLabel).toBe('interval left');
+    expect(v.kpi).toEqual({ label: 'interval', current: 2, total: 10 });
+  });
+
+  it('places a rep 90.5 s in into interval 2', () => {
+    const state = fold(every90, [{ t: 89500, ok: true }, { t: 90500, ok: true }], 91000);
+    expect(state.tagged.map((e) => e.pos.minuteIdx)).toEqual([0, 1]);
+  });
+
+  it('finishes after the last interval', () => {
+    expect(advanceTo(every90, initial(every90), 899999).finished).toBe(false);
+    const state = advanceTo(every90, initial(every90), 900000);
+    expect(state.finished).toBe(true);
+    expect(state.t).toBe(900000);
+    expect(state.pos.minuteIdx).toBe(9);
+    expect(fold(every90, [{ t: 900000, ok: true }], Infinity).tagged[0].counted).toBe(false);
+  });
+
+  it('labels mode and description', () => {
+    expect(e2mom.mode).toBe('E2MOM · 8');
+    expect(every90.mode).toBe('EVERY 1:30 · 10');
+    expect(every90.description).toBe('10 × 1:30 · burpees + kb swings');
+    expect(e2mom.description).toBe('8 × 2:00 · burpees + kb swings');
+    expect(every90.exercises[0].detail).toBe('10 / interval');
+  });
+
+  it('leaves EVERY MINUTE unchanged', () => {
+    expect(everyMinute.mode).toBe('EMOM · 10');
+    expect(everyMinute.description).toBe('10 min · burpees + kb swings');
+    expect(everyMinute.exercises[0].detail).toBe('10 / min');
+    const v = view(everyMinute, advanceTo(everyMinute, initial(everyMinute), 75000));
+    expect(v.timerStr).toBe('00:45');
+    expect(v.timerLabel).toBe('min left');
+    expect(v.kpi).toEqual({ label: 'minute', current: 2, total: 10 });
   });
 });

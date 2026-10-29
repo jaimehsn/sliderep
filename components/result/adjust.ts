@@ -1,6 +1,6 @@
-import { START_POSITION, WodConfig, WodSession, capSeconds, exerciseNameAt, fold, formatTime, targetAt } from '@/constants/wod-engine';
+import { START_POSITION, WodConfig, WodSession, capSeconds, fold, formatTime, intervalSeconds, targetAt } from '@/constants/wod-engine';
 import type { LogEntry } from '@/components/judge/types';
-import { WodResult, Split, splitLabel, deriveResult } from '@/components/result/replay';
+import { WodResult, Split, intervalSplitLabel, splitLabel, deriveResult } from '@/components/result/replay';
 import type { AdjustmentChange } from '@/db/session-adjustments';
 
 type Tagged = { t: number; roundIdx: number; exIdx: number; originalTarget: number };
@@ -149,17 +149,19 @@ function deriveAdjustedOnTarget(config: WodConfig, log: LogEntry[], changes: Adj
 function deriveAdjustedOnClock(config: WodConfig, log: LogEntry[], changes: AdjustmentChange[]): WodResult {
   const cutoffSeconds = latestDurationOverride(changes);
   const cutoffMs = cutoffSeconds != null ? cutoffSeconds * 1000 : null;
-  const totalMinutes = cutoffSeconds != null ? Math.ceil(cutoffSeconds / 60) : Math.ceil(config.totalSeconds / 60);
+  const interval = intervalSeconds(config);
+  const intervalMs = interval * 1000;
+  const totalIntervals = Math.ceil((cutoffSeconds ?? config.totalSeconds) / interval);
   const okLog = log.filter((e) => e.ok);
 
   const splits: Split[] = [];
   let intervalsCompleted = 0;
   let totalValidReps = 0;
 
-  for (let m = 0; m < totalMinutes; m++) {
+  for (let m = 0; m < totalIntervals; m++) {
     const session: WodSession = { ...START_POSITION, minuteIdx: m };
     const target = latestTargetOverride(changes, m, 0) ?? targetAt(config, session);
-    const reps = okLog.filter((e) => Math.floor(e.t / 60000) === m && (cutoffMs == null || e.t <= cutoffMs)).length;
+    const reps = okLog.filter((e) => Math.floor(e.t / intervalMs) === m && (cutoffMs == null || e.t <= cutoffMs)).length;
     const completed = reps >= target;
     if (completed) intervalsCompleted += 1;
     // "Total valid reps" stays unclamped by target changes (matching today's
@@ -168,7 +170,7 @@ function deriveAdjustedOnClock(config: WodConfig, log: LogEntry[], changes: Adju
     // the only thing that actually removes reps from this tally.
     totalValidReps += reps;
     splits.push({
-      label: `Minute ${m + 1} — ${exerciseNameAt(config, session)}`,
+      label: intervalSplitLabel(config, m),
       reps,
       target,
       completed,
@@ -181,7 +183,7 @@ function deriveAdjustedOnClock(config: WodConfig, log: LogEntry[], changes: Adju
 
   return {
     scoreLabel: 'SCORE',
-    scoreValue: `${intervalsCompleted}/${totalMinutes} · ${totalValidReps} reps`,
+    scoreValue: `${intervalsCompleted}/${totalIntervals} · ${totalValidReps} reps`,
     splits,
   };
 }

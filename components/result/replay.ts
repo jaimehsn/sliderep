@@ -7,6 +7,8 @@ import {
   exerciseNameAt,
   fold,
   formatTime,
+  intervalSeconds,
+  intervalUnit,
   isComplete,
   kpiAt,
   targetAt,
@@ -16,7 +18,7 @@ import type { LogEntry } from '@/components/judge/types';
 /**
  * One row of the result screen's split list. Times are ms on the session
  * clock; null where not applicable. `roundIdx`/`exIdx` identify the position
- * (for onClock WODs, `roundIdx` is the minute index and `exIdx` is always 0 —
+ * (for onClock WODs, `roundIdx` is the interval index and `exIdx` is always 0 —
  * see `db/session-adjustments.ts`) — only consumed by `session/adjust.tsx` to
  * know which position a tapped row corresponds to; the plain result screen
  * ignores them.
@@ -57,14 +59,20 @@ export function splitLabel(config: WodConfig, session: WodSession): string {
   return `${prefix} ${number} — ${exerciseNameAt(config, session)}`;
 }
 
+/** An EMOM split's label: "Minute N — X" with 60-second intervals, "Interval N — X" otherwise. */
+export function intervalSplitLabel(config: WodConfig, intervalIdx: number): string {
+  const session: WodSession = { ...START_POSITION, minuteIdx: intervalIdx };
+  return `${titleCase(intervalUnit(config))} ${intervalIdx + 1} — ${exerciseNameAt(config, session)}`;
+}
+
 function deriveOnClock(config: WodConfig, log: LogEntry[]): WodResult {
-  const totalMinutes = Math.ceil(config.totalSeconds / 60);
+  const totalIntervals = Math.ceil(config.totalSeconds / intervalSeconds(config));
   const counted = fold(config, log, Infinity).tagged.filter((e) => e.counted);
   const splits: Split[] = [];
   let intervalsCompleted = 0;
   let totalValidReps = 0;
 
-  for (let m = 0; m < totalMinutes; m++) {
+  for (let m = 0; m < totalIntervals; m++) {
     const session: WodSession = { ...START_POSITION, minuteIdx: m };
     const target = targetAt(config, session);
     const reps = counted.filter((e) => e.pos.minuteIdx === m).length;
@@ -72,7 +80,7 @@ function deriveOnClock(config: WodConfig, log: LogEntry[]): WodResult {
     if (completed) intervalsCompleted += 1;
     totalValidReps += reps;
     splits.push({
-      label: `Minute ${m + 1} — ${exerciseNameAt(config, session)}`,
+      label: intervalSplitLabel(config, m),
       reps,
       target,
       completed,
@@ -85,7 +93,7 @@ function deriveOnClock(config: WodConfig, log: LogEntry[]): WodResult {
 
   return {
     scoreLabel: 'SCORE',
-    scoreValue: `${intervalsCompleted}/${totalMinutes} · ${totalValidReps} reps`,
+    scoreValue: `${intervalsCompleted}/${totalIntervals} · ${totalValidReps} reps`,
     splits,
   };
 }

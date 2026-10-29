@@ -23,6 +23,7 @@ import {
   emptyDraft,
   forTimeReps,
   parseCount,
+  parseInterval,
   removeLine,
   savedName,
   setLineReps,
@@ -84,6 +85,13 @@ export default function NewWorkoutScreen() {
   const lines = draftLines(draft);
   const rounds = draft.format === 'forTime' ? (parseCount(draft.rounds) ?? 1) : 1;
   const perRound = draft.format === 'forTime' && !draft.sameReps;
+  // EMOM: the interval's name (minute only at 60 s) and the total time once both fields are valid.
+  const every = draft.format === 'emom' ? parseInterval(draft.every) : null;
+  const intervals = draft.format === 'emom' ? parseCount(draft.intervals) : null;
+  const emomUnit = (every ?? 60) === 60 ? 'MINUTE' : 'INTERVAL';
+  const emomTotal = every != null && intervals != null
+    ? `${Math.floor((every * intervals) / 60)}:${String((every * intervals) % 60).padStart(2, '0')}`
+    : null;
 
   const save = async () => {
     setSubmitted(true);
@@ -182,10 +190,10 @@ export default function NewWorkoutScreen() {
               <Text style={styles.checkLabel}>SAME REPS EVERY ROUND</Text>
             </Pressable>
           </>
-        ) : (
+        ) : draft.format === 'amrap' ? (
           <>
             <View style={[styles.paramRow, styles.spaced]}>
-              <Text style={styles.label}>{draft.format === 'amrap' ? 'DURATION (MIN)' : 'TOTAL MINUTES'}</Text>
+              <Text style={styles.label}>DURATION (MIN)</Text>
               <TextInput
                 value={draft.minutes}
                 onChangeText={(value) => setDraft({ ...draft, minutes: value })}
@@ -195,16 +203,38 @@ export default function NewWorkoutScreen() {
             </View>
             {problems.minutes && <Text style={styles.problem}>{problems.minutes}</Text>}
           </>
+        ) : (
+          <>
+            <View style={[styles.paramRow, styles.spaced]}>
+              <Text style={styles.label}>EVERY (SEC)</Text>
+              <TextInput
+                value={draft.every}
+                onChangeText={(every) => setDraft({ ...draft, every })}
+                keyboardType="number-pad"
+                style={styles.numberInput}
+              />
+              <Text style={[styles.label, styles.paramGap]}>INTERVALS</Text>
+              <TextInput
+                value={draft.intervals}
+                onChangeText={(intervals) => setDraft({ ...draft, intervals })}
+                keyboardType="number-pad"
+                style={styles.numberInput}
+              />
+              {emomTotal != null && <Text style={[styles.label, styles.paramGap]}>= {emomTotal}</Text>}
+            </View>
+            {problems.every && <Text style={styles.problem}>{problems.every}</Text>}
+            {problems.intervals && <Text style={styles.problem}>{problems.intervals}</Text>}
+          </>
         )}
 
         {/* Lines */}
         <Text style={[styles.label, styles.spaced]}>
-          {draft.format === 'emom' ? 'MINUTE SEQUENCE (REPEATS)' : 'EXERCISES'}
+          {draft.format === 'emom' ? `${emomUnit} SEQUENCE (REPEATS)` : 'EXERCISES'}
         </Text>
         {lines.map((line, i) => (
           <View key={i} style={styles.line}>
             <View style={styles.lineHeader}>
-              <Text style={styles.lineIndex}>{draft.format === 'emom' ? `MIN ${i + 1}` : `${i + 1}`}</Text>
+              <Text style={styles.lineIndex}>{draft.format === 'emom' ? `${emomUnit === 'MINUTE' ? 'MIN' : 'INT'} ${i + 1}` : `${i + 1}`}</Text>
               <Pressable
                 onPress={() => setPickerFor(i)}
                 style={({ pressed }) => [styles.exerciseBtn, pressed && styles.pressed]}
@@ -295,7 +325,7 @@ export default function NewWorkoutScreen() {
           }}
           style={({ pressed }) => [styles.addBtn, pressed && styles.pressed]}
         >
-          <Text style={styles.addBtnText}>{draft.format === 'emom' ? '+ ADD MINUTE' : '+ ADD EXERCISE'}</Text>
+          <Text style={styles.addBtnText}>{draft.format === 'emom' ? `+ ADD ${emomUnit}` : '+ ADD EXERCISE'}</Text>
         </Pressable>
         {problems.lines && <Text style={styles.problem}>{problems.lines}</Text>}
       </ScrollView>

@@ -22,6 +22,8 @@ export type StoredBlock = {
   lines: StoredLine[][];
   rounds?: number;
   durationSeconds?: number;
+  /** EMOM only: interval length in seconds, absent at the default 60 (change emom-interval-length). */
+  intervalSeconds?: number;
 };
 
 // Strict on purpose: rows this can't read can't exist until engine v2 (change C)
@@ -37,6 +39,7 @@ export function parseWorkoutRow(row: WorkoutRow, exerciseNames: Map<string, stri
   const block: Block = {
     rounds: stored.rounds,
     durationSeconds: stored.durationSeconds,
+    intervalSeconds: stored.intervalSeconds,
     lines: stored.lines.map((round) =>
       round.map((line) => {
         const exercise = exerciseNames.get(line.exerciseId);
