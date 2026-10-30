@@ -70,6 +70,21 @@ export const SYNTHETIC_WORKOUTS: WorkoutRow[] = [
       intervalSeconds: 120,
     }]),
   },
+  {
+    // Change emom-multi-exercise-intervals: 6 minutes, minute 1 is 5 PULL-UPS + 10
+    // PUSH-UPS, minute 2 is 15 AIR SQUATS.
+    id: 'emomPair',
+    name: 'EMOM PAIR',
+    blocks: JSON.stringify([{
+      formatId: 'emom',
+      lines: [
+        [{ exerciseId: 'pull-ups', target: 5 }, { exerciseId: 'push-ups', target: 10 }],
+        [{ exerciseId: 'air-squats', target: 15 }],
+      ],
+      rounds: 6,
+      durationSeconds: 360,
+    }]),
+  },
 ];
 
 /** A golden case's workout: a built-in by id, or one of `SYNTHETIC_WORKOUTS`. */
@@ -257,4 +272,38 @@ export const CASES: GoldenCase[] = [
   },
   { name: 'e2mom8-all-completed', wodId: 'e2mom8', log: toLog(perInterval(120000, EMOM_TARGETS.slice(0, 8))) },
   { name: 'e2mom8-missed-intervals', wodId: 'e2mom8', log: toLog(perInterval(120000, [10, 15, 4, 15, 10, 0, 10, 12])) },
+
+  // Change emom-multi-exercise-intervals: EMOM PAIR, 6 minutes alternating
+  // 5 PULL-UPS + 10 PUSH-UPS (15 reps) and 15 AIR SQUATS.
+  { name: 'pair-all-completed', wodId: 'emomPair', log: toLog(perMinute([15, 15, 15, 15, 15, 15])) },
+  // Minute 1: 5 PULL-UPS and 7 PUSH-UPS; minute 3: 3 PULL-UPS only.
+  { name: 'pair-second-unfinished', wodId: 'emomPair', log: toLog(perMinute([12, 15, 3, 15, 15, 0])) },
+  // Extra reps after the last exercise stay on it (minute 1: PUSH-UPS 12, minute 4: AIR SQUATS 18).
+  { name: 'pair-extra-reps', wodId: 'emomPair', log: toLog(perMinute([17, 15, 15, 18, 15, 15])) },
+  {
+    // PULL-UPS raised to 7: its 5 reps stay put, PUSH-UPS keeps 10/10.
+    name: 'pair-adjusted-target-first-up',
+    wodId: 'emomPair',
+    log: toLog(perMinute([15, 15, 15, 15, 15, 15])),
+    changes: [{ type: 'target', roundIdx: 0, exIdx: 0, newTarget: 7 }],
+  },
+  {
+    name: 'pair-adjusted-target-second-down',
+    wodId: 'emomPair',
+    log: toLog(perMinute([12, 15, 15, 15, 15, 15])),
+    changes: [{ type: 'target', roundIdx: 0, exIdx: 1, newTarget: 7 }],
+  },
+  {
+    name: 'pair-adjusted-duration-shorter',
+    wodId: 'emomPair',
+    log: toLog(perMinute([15, 15, 15, 15, 15, 15])),
+    changes: [{ type: 'duration', newDurationSeconds: 240 }],
+  },
+  {
+    // 8 reps after the original end land in minute 7 (the pair): 5 PULL-UPS, 3 PUSH-UPS.
+    name: 'pair-adjusted-duration-raised',
+    wodId: 'emomPair',
+    log: toLog([...perMinute([15, 15, 15, 15, 15, 15]), ...run(361000, 8, 2000)]),
+    changes: [{ type: 'duration', newDurationSeconds: 420 }],
+  },
 ];

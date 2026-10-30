@@ -3,14 +3,21 @@
 import { describe, expect, it } from 'vitest';
 import {
   Draft,
+  EmomDraft,
   ForTimeDraft,
+  addLine,
+  addLineToSlot,
   draftFromBlock,
+  draftLines,
   draftToStoredBlock,
   emptyDraft,
   emptyLine,
+  removeLine,
+  setLineReps,
   setRepDescription,
   setSameReps,
   switchFormat,
+  updateLineFields,
   validateDraft,
 } from '@/components/editor/draft';
 import { START_POSITION, WodConfig, exerciseNameAt, fold, targetAt } from '@/constants/wod-engine';
@@ -98,9 +105,9 @@ describe('drafts run as saved', () => {
       every: '60',
       intervals: '10',
       slots: [
-        { ...emptyLine(), exercise: ex('burpees'), reps: '10' },
-        { ...emptyLine(), exercise: ex('kb-swings'), reps: '15' },
-        { ...emptyLine(), exercise: ex('air-squats'), reps: '20' },
+        [{ ...emptyLine(), exercise: ex('burpees'), reps: '10' }],
+        [{ ...emptyLine(), exercise: ex('kb-swings'), reps: '15' }],
+        [{ ...emptyLine(), exercise: ex('air-squats'), reps: '20' }],
       ],
     };
     const config = configOf(draft);
@@ -253,8 +260,8 @@ describe('EMOM interval length (change emom-interval-length)', () => {
     every,
     intervals,
     slots: [
-      { ...emptyLine(), exercise: ex('burpees'), reps: '10' },
-      { ...emptyLine(), exercise: ex('kb-swings'), reps: '15' },
+      [{ ...emptyLine(), exercise: ex('burpees'), reps: '10' }],
+      [{ ...emptyLine(), exercise: ex('kb-swings'), reps: '15' }],
     ],
   });
 
@@ -289,5 +296,68 @@ describe('EMOM interval length (change emom-interval-length)', () => {
     expect(validateDraft(emom('90', '0')).intervals).toBe('Intervals must be 1 or more');
     expect(validateDraft(emom('10'))).toEqual({});
     expect(validateDraft(emom('600'))).toEqual({});
+  });
+});
+
+describe('several exercises per EMOM interval (change emom-multi-exercise-intervals)', () => {
+  const pair: EmomDraft = {
+    format: 'emom',
+    name: 'pair',
+    every: '60',
+    intervals: '6',
+    slots: [
+      [
+        { ...emptyLine(), exercise: ex('pull-ups'), reps: '5' },
+        { ...emptyLine(), exercise: ex('push-ups'), reps: '10' },
+      ],
+      [{ ...emptyLine(), exercise: ex('air-squats'), reps: '15' }],
+    ],
+  };
+
+  it('adds PUSH-UPS to minute 1 and saves the minute as both, in order', () => {
+    const start: EmomDraft = { ...pair, slots: [[pair.slots[0][0]], pair.slots[1]] };
+    let draft = addLineToSlot(start, 0) as Draft;
+    expect(draftLines(draft).map((l) => l.exercise?.id ?? null)).toEqual(['pull-ups', null, 'air-squats']);
+    draft = setLineReps(updateLineFields(draft, 1, { exercise: ex('push-ups') }), 1, '10');
+    expect(draftToStoredBlock(draft).lines).toEqual([
+      [{ exerciseId: 'pull-ups', target: 5 }, { exerciseId: 'push-ups', target: 10 }],
+      [{ exerciseId: 'air-squats', target: 15 }],
+    ]);
+    const config = configOf(draft);
+    expect(exerciseNameAt(config, { ...START_POSITION, minuteIdx: 2, exIdx: 1 })).toBe('PUSH-UPS');
+    expect(config.exercises[0]).toMatchObject({ name: 'PULL-UPS + PUSH-UPS', detail: '5 + 10 / min' });
+  });
+
+  it('addLine appends a new interval', () => {
+    expect((addLine(pair) as EmomDraft).slots.map((s) => s.length)).toEqual([2, 1, 1]);
+  });
+
+  it("removing an interval's only exercise removes the interval", () => {
+    const removed = removeLine(pair, 2) as EmomDraft;
+    expect(removed.slots.map((s) => s.map((l) => l.exercise?.id))).toEqual([['pull-ups', 'push-ups']]);
+    const second = removeLine(pair, 1) as EmomDraft;
+    expect(second.slots.map((s) => s.map((l) => l.exercise?.id))).toEqual([['pull-ups'], ['air-squats']]);
+  });
+
+  it('flags lines by their flat index', () => {
+    const draft = setLineReps(pair, 1, '0');
+    expect(validateDraft(draft)).toEqual({ 'line:1': 'Reps must be 1 or more' });
+  });
+
+  it('DUPLICATE keeps the lines per interval', () => {
+    const config = configOf(pair);
+    const copy = draftFromBlock('emom', config.block, 'COPY') as EmomDraft;
+    expect(copy.slots.map((s) => s.map((l) => [l.exercise?.id, l.reps]))).toEqual([
+      [['pull-ups', '5'], ['push-ups', '10']],
+      [['air-squats', '15']],
+    ]);
+    expect(draftToStoredBlock(copy)).toEqual(draftToStoredBlock(pair));
+  });
+
+  it('switching formats flattens and splits the intervals', () => {
+    const amrap = switchFormat(pair, 'amrap');
+    expect(draftLines(amrap).map((l) => l.exercise?.id)).toEqual(['pull-ups', 'push-ups', 'air-squats']);
+    const back = switchFormat(amrap, 'emom') as EmomDraft;
+    expect(back.slots.map((s) => s.length)).toEqual([1, 1, 1]);
   });
 });

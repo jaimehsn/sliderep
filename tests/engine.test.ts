@@ -2,7 +2,7 @@
 // live judging (clock ticks interleaved with gestures) must end in exactly the
 // state the result fold derives from the same events.
 import { describe, expect, it } from 'vitest';
-import { EngineEvent, EngineState, WodConfig, advanceTo, apply, capSeconds, fold, initial, intervalSeconds, isComplete, view } from '@/constants/wod-engine';
+import { EngineEvent, EngineState, WodConfig, advanceTo, apply, capSeconds, fold, initial, intervalLineAt, intervalSeconds, isComplete, view } from '@/constants/wod-engine';
 import { CASES, builtin, workout } from './fixtures';
 
 const TICK_MS = 250;
@@ -172,5 +172,63 @@ describe('interval length (change emom-interval-length)', () => {
     expect(v.timerStr).toBe('00:45');
     expect(v.timerLabel).toBe('min left');
     expect(v.kpi).toEqual({ label: 'minute', current: 2, total: 10 });
+  });
+});
+
+describe('several exercises per interval (change emom-multi-exercise-intervals)', () => {
+  const pair = workout('emomPair');
+  const reps = (ts: number[]): EngineEvent[] => ts.map((t) => ({ t, ok: true }));
+  const at = (n: number, from = 1000) => Array.from({ length: n }, (_, i) => from + i * 1000);
+
+  it('moves to PUSH-UPS on the 5th PULL-UPS', () => {
+    const four = fold(pair, reps(at(4)), 4500);
+    expect(view(pair, four).exerciseName).toBe('PULL-UPS');
+    expect(four.done).toBe(4);
+    const five = fold(pair, reps(at(5)), 5500);
+    const v = view(pair, five);
+    expect(v.exerciseName).toBe('PUSH-UPS');
+    expect(v.target).toBe(10);
+    expect(five.done).toBe(0);
+    expect(five.pos).toMatchObject({ minuteIdx: 0, exIdx: 1 });
+  });
+
+  it('starts a new minute on its first exercise', () => {
+    // Minute 1 ends on PUSH-UPS; minute 3 is the pair again.
+    const state = fold(pair, reps(at(7)), 121000);
+    expect(state.pos).toMatchObject({ minuteIdx: 2, exIdx: 0 });
+    expect(view(pair, state).exerciseName).toBe('PULL-UPS');
+    expect(state.done).toBe(0);
+  });
+
+  it('keeps extra reps on the last exercise, the live count at its target', () => {
+    const state = fold(pair, reps(at(17)), 30000);
+    expect(state.pos).toMatchObject({ minuteIdx: 0, exIdx: 1 });
+    expect(state.done).toBe(10);
+    expect(state.raw).toBe(12);
+    expect(state.tagged.map((e) => e.pos.exIdx)).toEqual([...Array(5).fill(0), ...Array(12).fill(1)]);
+  });
+
+  it('places reps like apply does', () => {
+    const state = fold(pair, reps(at(17)), 30000);
+    expect(state.tagged.map((_, k) => intervalLineAt(pair, 0, k))).toEqual(state.tagged.map((e) => e.pos.exIdx));
+    expect(intervalLineAt(pair, 1, 40)).toBe(0);
+  });
+
+  it('shows a multi-exercise interval as one row', () => {
+    expect(pair.exercises).toEqual([
+      { name: 'PULL-UPS + PUSH-UPS', detail: '5 + 10 / min', note: undefined },
+      { name: 'AIR SQUATS', detail: '15 / min', note: undefined },
+    ]);
+    expect(pair.mode).toBe('EMOM · 6');
+    expect(pair.description).toBe('6 min · pull-ups, push-ups, air squats');
+  });
+
+  it('leaves single-exercise EMOMs unchanged', () => {
+    const everyMinute = builtin('everyMinute');
+    expect(everyMinute.exercises.map((e) => [e.name, e.detail])).toEqual([['BURPEES', '10 / min'], ['KB SWINGS', '15 / min']]);
+    const state = fold(everyMinute, reps(at(12)), 30000);
+    expect(state.pos).toMatchObject({ minuteIdx: 0, exIdx: 0 });
+    expect(state.done).toBe(10);
+    expect(state.raw).toBe(12);
   });
 });

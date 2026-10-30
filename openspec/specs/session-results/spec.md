@@ -56,15 +56,19 @@ AMRAP SHALL be scored as "<completed rounds> + <reps in the unfinished round>". 
 - **THEN** the adjusted score reads 2 + 30
 
 ### Requirement: EMOM score
-EMOM SHALL be scored as "<completed minutes>/<total minutes> · <total valid reps> reps". A minute SHALL count as completed when its valid reps reach its target. The total SHALL include every valid rep, including reps beyond a minute's target.
+EMOM SHALL be scored as "<completed intervals>/<total intervals> · <total valid reps> reps". An interval SHALL count as completed when the valid reps of every exercise in it reach that exercise's target. The total SHALL include every valid rep, including reps beyond a target.
 
 #### Scenario: EVERY MINUTE score
 - **WHEN** 8 of 10 minutes reached their target and 131 valid reps were counted overall
 - **THEN** the score reads 8/10 · 131 reps
 
 #### Scenario: Extra reps count in the total
-- **WHEN** 12 valid reps are counted in a BURPEES minute with target 10
-- **THEN** that minute is completed, its split shows 12/10, and all 12 reps add to the total
+- **WHEN** 12 reps are counted in a BURPEES minute with target 10
+- **THEN** that minute is completed, its split shows 10/10, and only 10 reps add to the total
+
+#### Scenario: Interval with an unfinished exercise
+- **WHEN** a minute of 5 PULL-UPS + 10 PUSH-UPS ends after 5 PULL-UPS and 7 PUSH-UPS
+- **THEN** that minute is not completed, and its 12 reps add to the total
 
 ### Requirement: Splits for rep-driven formats
 For For Time, Chipper and AMRAP, the result SHALL list one split per completed exercise position in order, with its label (e.g. "Round 2 — PULL-UPS", "Station 3 — KB SWINGS"), reps/target, cumulative time and lap time since the previous split. An unfinished final position with at least one valid rep SHALL be listed as partial, without times.
@@ -78,7 +82,7 @@ For For Time, Chipper and AMRAP, the result SHALL list one split per completed e
 - **THEN** the last split is that round's PUSH-UPS at 7/10, marked partial and without times
 
 ### Requirement: Splits for EMOM
-EMOM SHALL list one split per interval with the valid reps counted during that interval and its target, marked completed or not: "Minute N — <exercise>" with 60-second intervals, "Interval N — <exercise>" otherwise. EMOM splits SHALL have no times. A rep SHALL belong to the interval in which it was recorded. The score's completed and total counts SHALL be intervals.
+EMOM SHALL list one split per exercise of each interval, in order, with the valid reps counted toward that exercise during the interval and its target, marked completed or not: "Minute N — <exercise>" with 60-second intervals, "Interval N — <exercise>" otherwise. EMOM splits SHALL have no times. A rep SHALL belong to the interval in which it was recorded. The score's completed and total counts SHALL be intervals.
 
 #### Scenario: Missed minute
 - **WHEN** only 6 valid KB SWINGS reps are counted in minute 2 (target 15)
@@ -87,6 +91,10 @@ EMOM SHALL list one split per interval with the valid reps counted during that i
 #### Scenario: 90-second interval splits
 - **WHEN** an EMOM of 10 intervals of 90 seconds records 15 valid KB SWINGS at 1:35
 - **THEN** they count in "Interval 2 — KB SWINGS", and the score reads "<completed>/10 · <reps> reps"
+
+#### Scenario: Splits of a multi-exercise minute
+- **WHEN** minute 1 of 5 PULL-UPS + 10 PUSH-UPS ends after 5 PULL-UPS and 7 PUSH-UPS
+- **THEN** "Minute 1 — PULL-UPS" shows 5/5 completed and "Minute 1 — PUSH-UPS" shows 7/10 not completed
 
 ### Requirement: Saved-state banner
 The result SHALL show a banner matching the real save outcome: "Saved in your history" when the owner was the judged athlete and the session was saved, "Saved on this phone — will be delivered to <alias> once sync exists" when another registered athlete was judged and the session was saved, "Saving…" while a save is in progress, "Couldn't save this session" when the save failed, and "Not saved" when the judged athlete was anonymous.

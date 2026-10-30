@@ -27,8 +27,12 @@ export type RepsRow = LineFields & { reps: string };
 /** `cap` is the time cap in whole minutes, '' for none (change for-time-cap). */
 export type ForTimeDraft = { format: 'forTime'; name: string; rounds: string; sameReps: boolean; cap: string; rows: ForTimeRow[] };
 export type AmrapDraft = { format: 'amrap'; name: string; minutes: string; rows: RepsRow[] };
-/** `every`: interval length in seconds (10–600); `intervals`: how many (change emom-interval-length). */
-export type EmomDraft = { format: 'emom'; name: string; every: string; intervals: string; slots: RepsRow[] };
+/**
+ * `every`: interval length in seconds (10–600); `intervals`: how many (change emom-interval-length).
+ * `slots`: the interval sequence, each a non-empty list of lines done in order (change
+ * emom-multi-exercise-intervals). Line helpers take the flat index into `draftLines`.
+ */
+export type EmomDraft = { format: 'emom'; name: string; every: string; intervals: string; slots: RepsRow[][] };
 export type Draft = ForTimeDraft | AmrapDraft | EmomDraft;
 
 export const DRAFT_FORMATS: { id: DraftFormat; label: string }[] = [
@@ -49,7 +53,13 @@ export function emptyDraft(format: DraftFormat, name = ''): Draft {
 
 /** The draft's lines in order, whatever the format. */
 export function draftLines(draft: Draft): LineFields[] {
-  return draft.format === 'emom' ? draft.slots : draft.rows;
+  return draft.format === 'emom' ? draft.slots.flat() : draft.rows;
+}
+
+// EMOM: applies `fn` to the line at flat index `index`, keeping the intervals.
+function mapEmomLine(slots: RepsRow[][], index: number, fn: (row: RepsRow) => RepsRow): RepsRow[][] {
+  let i = 0;
+  return slots.map((slot) => slot.map((row) => (i++ === index ? fn(row) : row)));
 }
 
 /** Switches format keeping the name and each line's exercise, description and load; reps start empty. */
@@ -59,20 +69,31 @@ export function switchFormat(draft: Draft, format: DraftFormat): Draft {
   const next = emptyDraft(format, draft.name);
   if (next.format === 'forTime') return { ...next, rows: lines.map((l) => ({ ...l, reps: [''] })) };
   if (next.format === 'amrap') return { ...next, rows: lines.map((l) => ({ ...l, reps: '' })) };
-  return { ...next, slots: lines.map((l) => ({ ...l, reps: '' })) };
+  return { ...next, slots: lines.map((l) => [{ ...l, reps: '' }]) };
 }
 
 /** Appends an empty line (no exercise yet) in the format's shape. */
 export function addLine(draft: Draft): Draft {
   if (draft.format === 'forTime') return { ...draft, rows: [...draft.rows, { ...emptyLine(), reps: [''] }] };
   if (draft.format === 'amrap') return { ...draft, rows: [...draft.rows, { ...emptyLine(), reps: '' }] };
-  return { ...draft, slots: [...draft.slots, { ...emptyLine(), reps: '' }] };
+  return { ...draft, slots: [...draft.slots, [{ ...emptyLine(), reps: '' }]] };
+}
+
+/** EMOM: appends an empty line to interval `slotIdx` of the sequence. */
+export function addLineToSlot(draft: EmomDraft, slotIdx: number): EmomDraft {
+  return {
+    ...draft,
+    slots: draft.slots.map((slot, i) => (i === slotIdx ? [...slot, { ...emptyLine(), reps: '' }] : slot)),
+  };
 }
 
 export function removeLine(draft: Draft, index: number): Draft {
   if (draft.format === 'forTime') return { ...draft, rows: draft.rows.filter((_, i) => i !== index) };
   if (draft.format === 'amrap') return { ...draft, rows: draft.rows.filter((_, i) => i !== index) };
-  return { ...draft, slots: draft.slots.filter((_, i) => i !== index) };
+  // An interval left without lines leaves the sequence.
+  let i = 0;
+  const slots = draft.slots.map((slot) => slot.filter(() => i++ !== index)).filter((slot) => slot.length > 0);
+  return { ...draft, slots };
 }
 
 /** Patches a line's exercise, rep description or load, whatever the format. */
@@ -83,7 +104,7 @@ export function updateLineFields(draft: Draft, index: number, patch: Partial<Lin
   if (draft.format === 'amrap') {
     return { ...draft, rows: draft.rows.map((row, i) => (i === index ? { ...row, ...patch } : row)) };
   }
-  return { ...draft, slots: draft.slots.map((slot, i) => (i === index ? { ...slot, ...patch } : slot)) };
+  return { ...draft, slots: mapEmomLine(draft.slots, index, (row) => ({ ...row, ...patch })) };
 }
 
 /**
@@ -101,7 +122,7 @@ export function setRepDescription(draft: Draft, index: number, repDescription: L
   if (next.format === 'amrap') {
     return { ...next, rows: next.rows.map((row, i) => (i === index ? { ...row, reps: one(row.reps) } : row)) };
   }
-  return { ...next, slots: next.slots.map((slot, i) => (i === index ? { ...slot, reps: one(slot.reps) } : slot)) };
+  return { ...next, slots: mapEmomLine(next.slots, index, (row) => ({ ...row, reps: one(row.reps) })) };
 }
 
 /** Sets a line's reps: AMRAP/EMOM ignore `roundIdx`; For Time writes round 0 while "same reps" is on. */
@@ -122,7 +143,7 @@ export function setLineReps(draft: Draft, index: number, value: string, roundIdx
   if (draft.format === 'amrap') {
     return { ...draft, rows: draft.rows.map((row, i) => (i === index ? { ...row, reps: value } : row)) };
   }
-  return { ...draft, slots: draft.slots.map((slot, i) => (i === index ? { ...slot, reps: value } : slot)) };
+  return { ...draft, slots: mapEmomLine(draft.slots, index, (row) => ({ ...row, reps: value })) };
 }
 
 /** A whole number of 1 or more, or null. */
@@ -255,7 +276,7 @@ export function draftToStoredBlock(draft: Draft): StoredBlock {
   if (every == null) throw new Error(`Invalid interval "${draft.every}": validate the draft first`);
   return {
     formatId: 'emom',
-    lines: draft.slots.map((slot) => [toStoredLine(slot, count(slot.reps))]),
+    lines: draft.slots.map((slot) => slot.map((row) => toStoredLine(row, count(row.reps)))),
     rounds: intervals,
     durationSeconds: intervals * every,
     // Omitted at the default, so a 60-second EMOM is stored exactly like the built-in.
@@ -315,7 +336,7 @@ export function draftFromBlock(formatId: string, block: Block, name: string): Dr
       name,
       every: String(block.intervalSeconds ?? 60),
       intervals: String(block.rounds ?? (block.durationSeconds ?? 0) / (block.intervalSeconds ?? 60)),
-      slots: block.lines.map((interval) => ({ ...toLineFields(interval[0]), reps: String(interval[0].target) })),
+      slots: block.lines.map((interval) => interval.map((line) => ({ ...toLineFields(line), reps: String(line.target) }))),
     };
   }
   throw new Error(`Unknown format ${formatId}`);

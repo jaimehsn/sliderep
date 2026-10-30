@@ -5,8 +5,9 @@
 //
 // Scope: only the primitives today's 4 built-in WODs actually need, plus a For
 // Time cap (change for-time-cap) and an EMOM interval length (change
-// emom-interval-length). Rest steps, multi-block WODs (buy-in/cash-out) and
-// progressive per-interval reps are not implemented yet.
+// emom-interval-length) and several exercises per EMOM interval (change
+// emom-multi-exercise-intervals). Rest steps, multi-block WODs (buy-in/cash-out)
+// and progressive per-interval reps are not implemented yet.
 
 export type WodSession = {
   roundIdx: number;
@@ -95,7 +96,7 @@ export type Block = {
    * One entry per round/interval; each entry is that round/interval's line(s).
    * 'rounds': one entry per round (For Time: N entries, possibly varying reps; Chipper: 1 entry of many lines).
    * 'cycle': exactly 1 entry, reused every round (AMRAP).
-   * 'perInterval': one entry per distinct interval exercise, cycled by index % length (EMOM).
+   * 'perInterval': one entry per interval of the sequence, cycled by index % length (EMOM); an entry's lines are done in order within the interval.
    */
   lines: WodLine[][];
   /** 'rounds': round count (Chipper = 1). 'perInterval': total intervals. */
@@ -167,12 +168,16 @@ function summarize(format: Format, block: Block): WodExercise[] {
     // AMRAP: a single template, reps fixed every round.
     return block.lines[0].map((l) => ({ name: l.exercise, detail: amountOf(l), note: lineNote(l) }));
   }
-  // perInterval: each entry is its own interval's exercise.
-  return block.lines.map(([line]) => ({
-    name: line.exercise,
-    detail: `${describedOnly(line) ? amountOf(line) : line.target} / ${blockInterval(block) === 60 ? 'min' : 'interval'}`,
-    note: lineNote(line),
-  }));
+  // perInterval: one row per interval of the sequence, its exercises joined by " + ".
+  const per = blockInterval(block) === 60 ? 'min' : 'interval';
+  return block.lines.map((interval) => {
+    const notes = interval.map(lineNote).filter((n): n is string => n != null);
+    return {
+      name: interval.map((l) => l.exercise).join(' + '),
+      detail: `${interval.map((l) => (describedOnly(l) ? amountOf(l) : l.target)).join(' + ')} / ${per}`,
+      note: notes.length > 0 ? notes.join(' · ') : undefined,
+    };
+  });
 }
 
 // Distinct exercise names in first-seen order, lowercased: "a + b" for two, "a, b, c" for more.
@@ -256,7 +261,29 @@ function lineAt(config: WodConfig, pos: WodSession): WodLine | undefined {
   const { lines } = config.block;
   if (config.format.repeat === 'rounds') return lines[pos.roundIdx]?.[pos.exIdx];
   if (config.format.repeat === 'cycle') return lines[0]?.[pos.exIdx];
-  return lines[pos.minuteIdx % lines.length]?.[0];
+  return lines[pos.minuteIdx % lines.length]?.[pos.exIdx];
+}
+
+/** perInterval: the lines of interval `intervalIdx`, done in order. */
+export function intervalLines(config: WodConfig, intervalIdx: number): WodLine[] {
+  const { lines } = config.block;
+  return lines[intervalIdx % lines.length] ?? [];
+}
+
+/**
+ * EMOM: the line of interval `intervalIdx` that its `k`-th valid rep (0-based)
+ * counts toward. Lines fill in order up to their targets and the last one takes
+ * any extra reps — the rule `apply` follows live (change
+ * emom-multi-exercise-intervals), shared with adjustments so both place a rep alike.
+ */
+export function intervalLineAt(config: WodConfig, intervalIdx: number, k: number): number {
+  const lines = intervalLines(config, intervalIdx);
+  let before = 0;
+  for (let i = 0; i < lines.length - 1; i++) {
+    before += lines[i].target;
+    if (k < before) return i;
+  }
+  return Math.max(0, lines.length - 1);
 }
 
 export function targetAt(config: WodConfig, pos: WodSession): number {
@@ -330,7 +357,8 @@ export function isComplete(config: WodConfig, state: EngineState): boolean {
 //   rounds      — finishes on the last rep, or at its cap when it has one (change
 //                 for-time-cap: an event at the cap or later is ignored); later events ignored
 //   cycle       — finishes at its duration, but still counts events after it (v1)
-//   perInterval — the clock sets the interval; reps beyond the target count (raw)
+//   perInterval — the clock sets the interval; within it, lines advance on target
+//                 (intervalLineAt); reps beyond the last line's target count (raw)
 //                 but the live count is capped; events at/after the last interval ignored
 
 export type EngineEvent = { t: number; ok: boolean };
@@ -350,7 +378,7 @@ export type EngineState = {
   pos: WodSession;
   /** Live count on the current position (capped at the target for perInterval). */
   done: number;
-  /** Uncapped valid reps in the current perInterval interval. */
+  /** Uncapped valid reps on the current perInterval line (its interval's line in progress). */
   raw: number;
   finished: boolean;
   /** Session-clock ms reached so far (frozen at the finishing instant). */
@@ -389,7 +417,7 @@ export function advanceTo(config: WodConfig, state: EngineState, t: number): Eng
     const current = Math.min(minuteIdx, total - 1);
     const moved = current === state.pos.minuteIdx
       ? state
-      : { ...state, pos: { ...state.pos, minuteIdx: current }, done: 0, raw: 0 };
+      : { ...state, pos: { ...state.pos, minuteIdx: current, exIdx: 0 }, done: 0, raw: 0 };
     // Last interval ended: finish keeping its partial count, on its position.
     if (minuteIdx >= total) return { ...moved, t: total * intervalMs, finished: true };
     return { ...moved, t };
@@ -410,6 +438,11 @@ export function apply(config: WodConfig, state: EngineState, event: EngineEvent)
 
   if (repeat === 'perInterval') {
     const raw = s.raw + 1;
+    // Within the interval, a reached target moves on to its next line; the last
+    // line keeps counting extra reps (raw) with the live count capped.
+    if (raw >= target && s.pos.exIdx < intervalLines(config, s.pos.minuteIdx).length - 1) {
+      return { ...s, tagged, pos: { ...s.pos, exIdx: s.pos.exIdx + 1 }, done: 0, raw: 0 };
+    }
     return { ...s, tagged, raw, done: Math.min(raw, target) };
   }
 

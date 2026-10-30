@@ -1,4 +1,4 @@
-import { START_POSITION, WodConfig, WodSession, capSeconds, fold, formatTime, intervalSeconds, targetAt } from '@/constants/wod-engine';
+import { START_POSITION, WodConfig, WodSession, capSeconds, fold, formatTime, intervalLineAt, intervalLines, intervalSeconds, targetAt } from '@/constants/wod-engine';
 import type { LogEntry } from '@/components/judge/types';
 import { WodResult, Split, intervalSplitLabel, splitLabel, deriveResult } from '@/components/result/replay';
 import type { AdjustmentChange } from '@/db/session-adjustments';
@@ -152,33 +152,44 @@ function deriveAdjustedOnClock(config: WodConfig, log: LogEntry[], changes: Adju
   const interval = intervalSeconds(config);
   const intervalMs = interval * 1000;
   const totalIntervals = Math.ceil((cutoffSeconds ?? config.totalSeconds) / interval);
-  const okLog = log.filter((e) => e.ok);
+  const okLog = log.filter((e) => e.ok).sort((a, b) => a.t - b.t);
 
   const splits: Split[] = [];
   let intervalsCompleted = 0;
   let totalValidReps = 0;
 
   for (let m = 0; m < totalIntervals; m++) {
-    const session: WodSession = { ...START_POSITION, minuteIdx: m };
-    const target = latestTargetOverride(changes, m, 0) ?? targetAt(config, session);
-    const reps = okLog.filter((e) => Math.floor(e.t / intervalMs) === m && (cutoffMs == null || e.t <= cutoffMs)).length;
-    const completed = reps >= target;
-    if (completed) intervalsCompleted += 1;
-    // "Total valid reps" stays unclamped by target changes (matching today's
-    // unadjusted scoring, which never clamped per interval either) — a target
-    // change affects completion, not the raw rep total. A duration cutoff is
-    // the only thing that actually removes reps from this tally.
-    totalValidReps += reps;
-    splits.push({
-      label: intervalSplitLabel(config, m),
-      reps,
-      target,
-      completed,
-      cumulativeMs: null,
-      lapMs: null,
-      roundIdx: m,
-      exIdx: 0,
+    // The interval's reps in time order, each placed on a line by the *original*
+    // targets (intervalLineAt, as live): a target change never moves a rep to
+    // another line (change emom-multi-exercise-intervals).
+    const bucket = okLog.filter((e) => Math.floor(e.t / intervalMs) === m && (cutoffMs == null || e.t <= cutoffMs));
+    const perLine = intervalLines(config, m).map(() => 0);
+    bucket.forEach((_, k) => {
+      perLine[intervalLineAt(config, m, k)] += 1;
     });
+    let intervalCompleted = true;
+    perLine.forEach((reps, i) => {
+      const session: WodSession = { ...START_POSITION, minuteIdx: m, exIdx: i };
+      const target = latestTargetOverride(changes, m, i) ?? targetAt(config, session);
+      const completed = reps >= target;
+      if (!completed) intervalCompleted = false;
+      // "Total valid reps" stays unclamped by target changes (matching today's
+      // unadjusted scoring, which never clamped per interval either) — a target
+      // change affects completion, not the raw rep total. A duration cutoff is
+      // the only thing that actually removes reps from this tally.
+      totalValidReps += reps;
+      splits.push({
+        label: intervalSplitLabel(config, m, i),
+        reps,
+        target,
+        completed,
+        cumulativeMs: null,
+        lapMs: null,
+        roundIdx: m,
+        exIdx: i,
+      });
+    });
+    if (intervalCompleted) intervalsCompleted += 1;
   }
 
   return {

@@ -7,6 +7,7 @@ import {
   exerciseNameAt,
   fold,
   formatTime,
+  intervalLines,
   intervalSeconds,
   intervalUnit,
   isComplete,
@@ -59,9 +60,9 @@ export function splitLabel(config: WodConfig, session: WodSession): string {
   return `${prefix} ${number} — ${exerciseNameAt(config, session)}`;
 }
 
-/** An EMOM split's label: "Minute N — X" with 60-second intervals, "Interval N — X" otherwise. */
-export function intervalSplitLabel(config: WodConfig, intervalIdx: number): string {
-  const session: WodSession = { ...START_POSITION, minuteIdx: intervalIdx };
+/** An EMOM split's label: "Minute N — X" with 60-second intervals, "Interval N — X" otherwise (X: the interval's `exIdx`-th line). */
+export function intervalSplitLabel(config: WodConfig, intervalIdx: number, exIdx: number): string {
+  const session: WodSession = { ...START_POSITION, minuteIdx: intervalIdx, exIdx };
   return `${titleCase(intervalUnit(config))} ${intervalIdx + 1} — ${exerciseNameAt(config, session)}`;
 }
 
@@ -72,23 +73,28 @@ function deriveOnClock(config: WodConfig, log: LogEntry[]): WodResult {
   let intervalsCompleted = 0;
   let totalValidReps = 0;
 
+  // One split per line of each interval; an interval is completed when all its lines are.
   for (let m = 0; m < totalIntervals; m++) {
-    const session: WodSession = { ...START_POSITION, minuteIdx: m };
-    const target = targetAt(config, session);
-    const reps = counted.filter((e) => e.pos.minuteIdx === m).length;
-    const completed = reps >= target;
-    if (completed) intervalsCompleted += 1;
-    totalValidReps += reps;
-    splits.push({
-      label: intervalSplitLabel(config, m),
-      reps,
-      target,
-      completed,
-      cumulativeMs: null,
-      lapMs: null,
-      roundIdx: m,
-      exIdx: 0,
+    let intervalCompleted = true;
+    intervalLines(config, m).forEach((_, i) => {
+      const session: WodSession = { ...START_POSITION, minuteIdx: m, exIdx: i };
+      const target = targetAt(config, session);
+      const reps = counted.filter((e) => e.pos.minuteIdx === m && e.pos.exIdx === i).length;
+      const completed = reps >= target;
+      if (!completed) intervalCompleted = false;
+      totalValidReps += reps;
+      splits.push({
+        label: intervalSplitLabel(config, m, i),
+        reps,
+        target,
+        completed,
+        cumulativeMs: null,
+        lapMs: null,
+        roundIdx: m,
+        exIdx: i,
+      });
     });
+    if (intervalCompleted) intervalsCompleted += 1;
   }
 
   return {

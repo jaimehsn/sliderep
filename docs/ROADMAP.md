@@ -341,7 +341,7 @@ Goal: the owner can write any reps-scored metcon, with movements and several blo
    - ✅ **C2a** (`for-time-cap`): time cap on For Time / Chipper — counting-up clock labelled with the cap, end sound at the cap, "CAP · N reps", adjustable cap, TIME CAP (MIN) in the editor.
    - **C2b**, split into three changes:
      - ✅ **C2b-1** (`emom-interval-length`): EMOM intervals of 10–600 s (EVERY (SEC) + INTERVALS in the editor), "E2MOM · 8" / "EVERY 1:30 · 10", "interval left", "Interval N" splits, the adjusted duration in intervals.
-     - **C2b-2**: several exercises per EMOM interval.
+     - ✅ **C2b-2** (`emom-multi-exercise-intervals`): several exercises per EMOM interval, done in order (onTarget within the interval, extras on the last), one split per exercise, an interval completed only when all are, "+ EXERCISE IN MIN n" in the editor.
      - **C2b-3**: progressive reps (and whether "Death by" stops at the first failed interval).
    - **C2c**: rest steps.
    - **C2d**: multi-block, including buy-in/cash-out and a scoring block.

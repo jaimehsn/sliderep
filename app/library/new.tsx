@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import {
@@ -17,6 +17,7 @@ import {
   LineFields,
   RepUnit,
   addLine,
+  addLineToSlot,
   draftFromBlock,
   draftLines,
   draftToStoredBlock,
@@ -89,6 +90,10 @@ export default function NewWorkoutScreen() {
   const every = draft.format === 'emom' ? parseInterval(draft.every) : null;
   const intervals = draft.format === 'emom' ? parseCount(draft.intervals) : null;
   const emomUnit = (every ?? 60) === 60 ? 'MINUTE' : 'INTERVAL';
+  // EMOM: each flat line's interval, and whether it opens / closes that interval (change emom-multi-exercise-intervals).
+  const emomPos = draft.format === 'emom'
+    ? draft.slots.flatMap((slot, s) => slot.map((_, l) => ({ slot: s, first: l === 0, last: l === slot.length - 1 })))
+    : [];
   const emomTotal = every != null && intervals != null
     ? `${Math.floor((every * intervals) / 60)}:${String((every * intervals) % 60).padStart(2, '0')}`
     : null;
@@ -232,90 +237,109 @@ export default function NewWorkoutScreen() {
           {draft.format === 'emom' ? `${emomUnit} SEQUENCE (REPEATS)` : 'EXERCISES'}
         </Text>
         {lines.map((line, i) => (
-          <View key={i} style={styles.line}>
-            <View style={styles.lineHeader}>
-              <Text style={styles.lineIndex}>{draft.format === 'emom' ? `${emomUnit === 'MINUTE' ? 'MIN' : 'INT'} ${i + 1}` : `${i + 1}`}</Text>
-              <Pressable
-                onPress={() => setPickerFor(i)}
-                style={({ pressed }) => [styles.exerciseBtn, pressed && styles.pressed]}
-              >
-                <Text style={[styles.exerciseName, !line.exercise && styles.exerciseEmpty]}>
-                  {line.exercise?.name ?? 'PICK EXERCISE'}
+          <Fragment key={i}>
+            <View style={styles.line}>
+              <View style={styles.lineHeader}>
+                <Text style={styles.lineIndex}>
+                  {draft.format !== 'emom'
+                    ? `${i + 1}`
+                    : emomPos[i].first ? `${emomUnit === 'MINUTE' ? 'MIN' : 'INT'} ${emomPos[i].slot + 1}` : '+'}
                 </Text>
-              </Pressable>
-              <Pressable onPress={() => setDraft(removeLine(draft, i))} hitSlop={10}>
-                <Text style={styles.remove}>✕</Text>
-              </Pressable>
-            </View>
-
-            {/* Reps */}
-            {perRound && draft.format === 'forTime' ? (
-              <ScrollView horizontal keyboardShouldPersistTaps="handled" contentContainerStyle={styles.roundsRow}>
-                {Array.from({ length: rounds }, (_, r) => (
-                  <View key={r} style={styles.roundField}>
-                    <Text style={styles.smallLabel}>R{r + 1}</Text>
-                    <TextInput
-                      value={forTimeReps(draft, draft.rows[i], r)}
-                      onChangeText={(value) => setDraft(setLineReps(draft, i, value, r))}
-                      keyboardType="number-pad"
-                      style={styles.numberInput}
-                    />
-                  </View>
-                ))}
-              </ScrollView>
-            ) : (
-              <View style={styles.paramRow}>
-                <Text style={styles.smallLabel}>REPS</Text>
-                <TextInput
-                  value={draft.format === 'forTime' ? forTimeReps(draft, draft.rows[i], 0) : draft.format === 'amrap' ? draft.rows[i].reps : draft.slots[i].reps}
-                  onChangeText={(value) => setDraft(setLineReps(draft, i, value))}
-                  keyboardType="number-pad"
-                  style={styles.numberInput}
-                />
-              </View>
-            )}
-
-            {/* Rep description */}
-            {line.repDescription ? (
-              <View style={styles.paramRow}>
-                <Text style={styles.smallLabel}>EACH REP</Text>
-                <TextInput
-                  value={line.repDescription.amount}
-                  onChangeText={(amount) => setDraft(setRepDescription(draft, i, { ...line.repDescription!, amount }))}
-                  keyboardType="number-pad"
-                  style={styles.numberInput}
-                />
-                {UNITS.map((unit) => (
-                  <Pressable
-                    key={unit}
-                    onPress={() => setDraft(setRepDescription(draft, i, { ...line.repDescription!, unit }))}
-                    style={[styles.unit, line.repDescription?.unit === unit && styles.segmentOn]}
-                  >
-                    <Text style={[styles.segmentText, line.repDescription?.unit === unit && styles.segmentTextOn]}>{unit}</Text>
-                  </Pressable>
-                ))}
-                <Pressable onPress={() => setDraft(setRepDescription(draft, i, null))} hitSlop={10}>
+                <Pressable
+                  onPress={() => setPickerFor(i)}
+                  style={({ pressed }) => [styles.exerciseBtn, pressed && styles.pressed]}
+                >
+                  <Text style={[styles.exerciseName, !line.exercise && styles.exerciseEmpty]}>
+                    {line.exercise?.name ?? 'PICK EXERCISE'}
+                  </Text>
+                </Pressable>
+                <Pressable onPress={() => setDraft(removeLine(draft, i))} hitSlop={10}>
                   <Text style={styles.remove}>✕</Text>
                 </Pressable>
               </View>
-            ) : (
-              <Pressable onPress={() => setDraft(setRepDescription(draft, i, { amount: '', unit: 'm' }))} hitSlop={6}>
-                <Text style={styles.addSmall}>+ REP DESCRIPTION (M / CAL / S)</Text>
+
+              {/* Reps */}
+              {perRound && draft.format === 'forTime' ? (
+                <ScrollView horizontal keyboardShouldPersistTaps="handled" contentContainerStyle={styles.roundsRow}>
+                  {Array.from({ length: rounds }, (_, r) => (
+                    <View key={r} style={styles.roundField}>
+                      <Text style={styles.smallLabel}>R{r + 1}</Text>
+                      <TextInput
+                        value={forTimeReps(draft, draft.rows[i], r)}
+                        onChangeText={(value) => setDraft(setLineReps(draft, i, value, r))}
+                        keyboardType="number-pad"
+                        style={styles.numberInput}
+                      />
+                    </View>
+                  ))}
+                </ScrollView>
+              ) : (
+                <View style={styles.paramRow}>
+                  <Text style={styles.smallLabel}>REPS</Text>
+                  <TextInput
+                    value={draft.format === 'forTime' ? forTimeReps(draft, draft.rows[i], 0) : draft.format === 'amrap' ? draft.rows[i].reps : draft.slots.flat()[i].reps}
+                    onChangeText={(value) => setDraft(setLineReps(draft, i, value))}
+                    keyboardType="number-pad"
+                    style={styles.numberInput}
+                  />
+                </View>
+              )}
+
+              {/* Rep description */}
+              {line.repDescription ? (
+                <View style={styles.paramRow}>
+                  <Text style={styles.smallLabel}>EACH REP</Text>
+                  <TextInput
+                    value={line.repDescription.amount}
+                    onChangeText={(amount) => setDraft(setRepDescription(draft, i, { ...line.repDescription!, amount }))}
+                    keyboardType="number-pad"
+                    style={styles.numberInput}
+                  />
+                  {UNITS.map((unit) => (
+                    <Pressable
+                      key={unit}
+                      onPress={() => setDraft(setRepDescription(draft, i, { ...line.repDescription!, unit }))}
+                      style={[styles.unit, line.repDescription?.unit === unit && styles.segmentOn]}
+                    >
+                      <Text style={[styles.segmentText, line.repDescription?.unit === unit && styles.segmentTextOn]}>{unit}</Text>
+                    </Pressable>
+                  ))}
+                  <Pressable onPress={() => setDraft(setRepDescription(draft, i, null))} hitSlop={10}>
+                    <Text style={styles.remove}>✕</Text>
+                  </Pressable>
+                </View>
+              ) : (
+                <Pressable onPress={() => setDraft(setRepDescription(draft, i, { amount: '', unit: 'm' }))} hitSlop={6}>
+                  <Text style={styles.addSmall}>+ REP DESCRIPTION (M / CAL / S)</Text>
+                </Pressable>
+              )}
+
+              {/* Load */}
+              <TextInput
+                value={line.load}
+                onChangeText={(load) => update(i, { load })}
+                placeholder="LOAD (OPTIONAL), E.G. 95/65 LB"
+                placeholderTextColor={HF.mutedDim}
+                autoCorrect={false}
+                style={styles.loadInput}
+              />
+
+              {problems[`line:${i}`] && <Text style={styles.problem}>{problems[`line:${i}`]}</Text>}
+            </View>
+            {draft.format === 'emom' && emomPos[i].last && (
+              <Pressable
+                onPress={() => {
+                  setDraft(addLineToSlot(draft, emomPos[i].slot));
+                  setPickerFor(i + 1);
+                }}
+                hitSlop={6}
+              >
+                <Text style={styles.addSmall}>
+                  + EXERCISE IN {emomUnit === 'MINUTE' ? 'MIN' : 'INT'} {emomPos[i].slot + 1}
+                </Text>
               </Pressable>
             )}
-
-            {/* Load */}
-            <TextInput
-              value={line.load}
-              onChangeText={(load) => update(i, { load })}
-              placeholder="LOAD (OPTIONAL), E.G. 95/65 LB"
-              placeholderTextColor={HF.mutedDim}
-              autoCorrect={false}
-              style={styles.loadInput}
-            />
-
-            {problems[`line:${i}`] && <Text style={styles.problem}>{problems[`line:${i}`]}</Text>}
-          </View>
+          </Fragment>
         ))}
 
         <Pressable

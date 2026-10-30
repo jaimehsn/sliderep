@@ -63,7 +63,7 @@ An AMRAP workout SHALL be an ordered list of exercises with fixed reps, repeated
 - **THEN** it is listed as 20-MIN AMRAP and judged like CINDY for 20 minutes
 
 ### Requirement: EMOM content
-An EMOM workout SHALL be an ordered sequence of intervals, each with one exercise and its reps, repeated in order for a total number of intervals. The total SHALL NOT need to be a multiple of the sequence length. The interval length SHALL be set in whole seconds (EVERY), from 10 to 600 and 60 by default, and the total as a number of intervals (INTERVALS), with the total time shown. DUPLICATE SHALL keep the source's interval length.
+An EMOM workout SHALL be an ordered sequence of intervals, each with one or more exercises and their reps, repeated in order for a total number of intervals. The total SHALL NOT need to be a multiple of the sequence length. The interval length SHALL be set in whole seconds (EVERY), from 10 to 600 and 60 by default, and the total as a number of intervals (INTERVALS), with the total time shown. DUPLICATE SHALL keep the source's interval length and exercises per interval.
 
 #### Scenario: Alternating EMOM
 - **WHEN** the owner creates a 12-minute EMOM of minute 1 BURPEES 10 and minute 2 KB SWINGS 15
@@ -80,6 +80,14 @@ An EMOM workout SHALL be an ordered sequence of intervals, each with one exercis
 #### Scenario: Interval out of range
 - **WHEN** the owner sets EVERY to 5 and taps SAVE
 - **THEN** nothing is saved and the interval is flagged
+
+#### Scenario: Several exercises in a minute
+- **WHEN** the owner adds PUSH-UPS 10 to minute 1 after PULL-UPS 5, and saves
+- **THEN** the saved workout's minute 1 is 5 PULL-UPS then 10 PUSH-UPS
+
+#### Scenario: Removing an interval's only exercise
+- **WHEN** the owner removes the only exercise of minute 2
+- **THEN** minute 2 is removed from the sequence and the later minutes move up
 
 ### Requirement: Saving validates the workout
 SAVE SHALL be refused, with the problem shown, unless the workout has a non-empty name, at least one line, an exercise on every line, and every reps, rounds, minutes and rep-description amount at 1 or more. Names SHALL NOT need to be unique.
