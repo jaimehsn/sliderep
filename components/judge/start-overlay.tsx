@@ -12,10 +12,12 @@ type Props = {
   onDone: () => void;
 };
 
-// "12 min", or "10 min cap" for a For Time's time cap (change for-time-cap).
+// "12 min", "10 min cap" for a For Time's time cap (change for-time-cap), or
+// "30 min max · until failure" for an EMOM that stops at its first miss (change emom-progressive-reps).
 function formatDuration(config: WodConfig): string {
   const m = Math.floor(config.totalSeconds / 60);
-  return capSeconds(config) != null ? `${m} min cap` : `${m} min`;
+  if (capSeconds(config) != null) return `${m} min cap`;
+  return config.block.stopOnMiss ? `${m} min max · until failure` : `${m} min`;
 }
 
 export function StartOverlay({ config, athleteAlias, role = 'judge', onDone }: Props) {

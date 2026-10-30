@@ -2,7 +2,7 @@
 // live judging (clock ticks interleaved with gestures) must end in exactly the
 // state the result fold derives from the same events.
 import { describe, expect, it } from 'vitest';
-import { EngineEvent, EngineState, WodConfig, advanceTo, apply, capSeconds, fold, initial, intervalLineAt, intervalSeconds, isComplete, view } from '@/constants/wod-engine';
+import { EngineEvent, EngineState, START_POSITION, WodConfig, advanceTo, apply, capSeconds, fold, initial, intervalLineAt, intervalSeconds, isComplete, targetAt, view } from '@/constants/wod-engine';
 import { CASES, builtin, workout } from './fixtures';
 
 const TICK_MS = 250;
@@ -230,5 +230,70 @@ describe('several exercises per interval (change emom-multi-exercise-intervals)'
     expect(state.pos).toMatchObject({ minuteIdx: 0, exIdx: 0 });
     expect(state.done).toBe(10);
     expect(state.raw).toBe(12);
+  });
+});
+
+describe('progressive reps and stop at the first miss (change emom-progressive-reps)', () => {
+  const deathBy = workout('deathBy');
+  const ladder = workout('ladder');
+  const at = (minuteIdx: number) => targetAt(deathBy, { ...START_POSITION, minuteIdx });
+  /** `reps[m]` valid reps in minute m, 1 s in, 1.5 s apart. */
+  const perMinute = (reps: number[]): EngineEvent[] =>
+    reps.flatMap((n, m) => Array.from({ length: n }, (_, i) => ({ t: m * 60000 + 1000 + i * 1500, ok: true })));
+  const deathByReps = (minutes: number) => Array.from({ length: minutes }, (_, m) => m + 1);
+
+  it('grows a Death by target every minute', () => {
+    expect([at(0), at(1), at(11)]).toEqual([1, 2, 12]);
+  });
+
+  it('grows a ladder target each time its entry comes round', () => {
+    expect([0, 1, 2, 3, 4, 5].map((m) => targetAt(ladder, { ...START_POSITION, minuteIdx: m }))).toEqual([3, 10, 4, 12, 5, 14]);
+  });
+
+  it('stops at the end of a missed minute', () => {
+    const events = perMinute([...deathByReps(12), 9]);
+    const state = fold(deathBy, events, Infinity);
+    expect(state.finished).toBe(true);
+    expect(state.t).toBe(780000);
+    expect(state.pos.minuteIdx).toBe(12);
+    expect(state.raw).toBe(9);
+    expect(isComplete(deathBy, state)).toBe(false);
+    // Live: the tick that leaves minute 13 finishes instead of moving on.
+    const before = advanceTo(deathBy, fold(deathBy, events, 779999), 779999);
+    expect(before.finished).toBe(false);
+    const after = advanceTo(deathBy, before, 780250);
+    expect(after.finished).toBe(true);
+    expect(after.pos.minuteIdx).toBe(12);
+  });
+
+  it('stops after a skipped empty minute', () => {
+    const state = advanceTo(deathBy, fold(deathBy, perMinute([1]), 2000), 150000);
+    expect(state.finished).toBe(true);
+    expect(state.t).toBe(120000);
+    expect(state.pos).toMatchObject({ minuteIdx: 1, exIdx: 0 });
+    expect(state.done).toBe(0);
+  });
+
+  it('runs every interval when none is missed', () => {
+    const state = fold(deathBy, perMinute(deathByReps(20)), Infinity);
+    expect(state.finished).toBe(true);
+    expect(state.t).toBe(1200000);
+    expect(state.pos.minuteIdx).toBe(19);
+  });
+
+  it('shows the increment and the stop', () => {
+    expect(deathBy.exercises).toEqual([{ name: 'BURPEES', detail: '1 (+1) / min', note: undefined }]);
+    expect(deathBy.description).toBe('20 min · burpees · until failure');
+    expect(deathBy.mode).toBe('EMOM · 20');
+    expect(ladder.exercises.map((e) => e.detail)).toEqual(['3 (+1) / min', '10 (+2) / min']);
+    expect(ladder.description).toBe('6 min · burpees + kb swings');
+  });
+
+  it('leaves plain EMOMs unchanged', () => {
+    const everyMinute = builtin('everyMinute');
+    expect(targetAt(everyMinute, { ...START_POSITION, minuteIdx: 8 })).toBe(10);
+    const state = advanceTo(everyMinute, initial(everyMinute), 150000);
+    expect(state.finished).toBe(false);
+    expect(state.pos.minuteIdx).toBe(2);
   });
 });

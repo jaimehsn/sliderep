@@ -85,6 +85,29 @@ export const SYNTHETIC_WORKOUTS: WorkoutRow[] = [
       durationSeconds: 360,
     }]),
   },
+  {
+    // Change emom-progressive-reps: 6 minutes alternating BURPEES 3 (+1) and KB SWINGS 10 (+2), no stop.
+    id: 'ladder',
+    name: 'LADDER',
+    blocks: JSON.stringify([{
+      formatId: 'emom',
+      lines: [[{ exerciseId: 'burpees', target: 3, increment: 1 }], [{ exerciseId: 'kb-swings', target: 10, increment: 2 }]],
+      rounds: 6,
+      durationSeconds: 360,
+    }]),
+  },
+  {
+    // Change emom-progressive-reps: Death by BURPEES (1, +1), at most 20 minutes, stopping at the first miss.
+    id: 'deathBy',
+    name: 'DEATH BY',
+    blocks: JSON.stringify([{
+      formatId: 'emom',
+      lines: [[{ exerciseId: 'burpees', target: 1, increment: 1 }]],
+      rounds: 20,
+      durationSeconds: 1200,
+      stopOnMiss: true,
+    }]),
+  },
 ];
 
 /** A golden case's workout: a built-in by id, or one of `SYNTHETIC_WORKOUTS`. */
@@ -132,6 +155,7 @@ export type GoldenCase = {
 const FRAN_REPS = 90; // 21+21+15+15+9+9
 const FILTHY_REPS = 500;
 const EMOM_TARGETS = [10, 15, 10, 15, 10, 15, 10, 15, 10, 15];
+const DEATH_BY_12 = Array.from({ length: 12 }, (_, m) => m + 1); // 1, 2, … 12
 
 export const CASES: GoldenCase[] = [
   // FRAN (For Time, 3 rounds)
@@ -305,5 +329,33 @@ export const CASES: GoldenCase[] = [
     wodId: 'emomPair',
     log: toLog([...perMinute([15, 15, 15, 15, 15, 15]), ...run(361000, 8, 2000)]),
     changes: [{ type: 'duration', newDurationSeconds: 420 }],
+  },
+
+  // Change emom-progressive-reps: LADDER (3 +1 / 10 +2, no stop) and DEATH BY
+  // (BURPEES 1 +1, 20 minutes at most, stopping at the first miss).
+  { name: 'ladder-all-completed', wodId: 'ladder', log: toLog(perMinute([3, 10, 4, 12, 5, 14])) },
+  { name: 'ladder-missed-minute', wodId: 'ladder', log: toLog(perMinute([3, 10, 2, 12, 5, 14])) },
+  // Minutes 1–12 completed, minute 13 ends with 9 of 13.
+  { name: 'deathby-stopped-13', wodId: 'deathBy', log: toLog(perMinute([...DEATH_BY_12, 9])) },
+  { name: 'deathby-all-completed', wodId: 'deathBy', log: toLog(perMinute(Array.from({ length: 20 }, (_, m) => m + 1))) },
+  { name: 'deathby-empty', wodId: 'deathBy', log: [] },
+  {
+    name: 'deathby-rep-after-stop',
+    wodId: 'deathBy',
+    log: toLog([...perMinute([...DEATH_BY_12, 9]), { t: 790000, kind: 'rep' }]),
+  },
+  {
+    // Minute 5 raised to 6 with 5 reps: stops there, 4 + 5.
+    name: 'deathby-adjusted-target-up',
+    wodId: 'deathBy',
+    log: toLog(perMinute([...DEATH_BY_12, 9])),
+    changes: [{ type: 'target', roundIdx: 4, exIdx: 0, newTarget: 6 }],
+  },
+  {
+    // Minute 13 lowered to 9: completed, stops at the empty minute 14, 13 + 0.
+    name: 'deathby-adjusted-target-down',
+    wodId: 'deathBy',
+    log: toLog(perMinute([...DEATH_BY_12, 9])),
+    changes: [{ type: 'target', roundIdx: 12, exIdx: 0, newTarget: 9 }],
   },
 ];

@@ -89,6 +89,8 @@ export type WodLine = {
   repDescription?: { amount: number; unit: 'm' | 'cal' | 's' };
   /** Prescribed load as free text ("95/65 lb"). Descriptive only, never computed on. */
   load?: string;
+  /** perInterval: reps added to `target` each time this line's sequence entry comes round (change emom-progressive-reps). */
+  increment?: number;
 };
 
 export type Block = {
@@ -105,6 +107,8 @@ export type Block = {
   durationSeconds?: number;
   /** 'perInterval': interval length in seconds (10–600), 60 when absent (change emom-interval-length). */
   intervalSeconds?: number;
+  /** 'perInterval': the workout ends at its first missed interval (change emom-progressive-reps). */
+  stopOnMiss?: boolean;
 };
 
 export type WodDefinition = {
@@ -174,7 +178,7 @@ function summarize(format: Format, block: Block): WodExercise[] {
     const notes = interval.map(lineNote).filter((n): n is string => n != null);
     return {
       name: interval.map((l) => l.exercise).join(' + '),
-      detail: `${interval.map((l) => (describedOnly(l) ? amountOf(l) : l.target)).join(' + ')} / ${per}`,
+      detail: `${interval.map((l) => `${describedOnly(l) ? amountOf(l) : l.target}${l.increment ? ` (+${l.increment})` : ''}`).join(' + ')} / ${per}`,
       note: notes.length > 0 ? notes.join(' · ') : undefined,
     };
   });
@@ -197,7 +201,9 @@ function describeMode(format: Format, block: Block): string {
 function describeContent(format: Format, block: Block): string {
   // A For Time's durationSeconds is its time cap (change for-time-cap).
   const cap = format.repeat === 'rounds' && block.durationSeconds ? ` · ${block.durationSeconds / 60} min cap` : '';
-  return describeScheme(format, block) + cap;
+  // A stopping EMOM (change emom-progressive-reps).
+  const untilFailure = format.repeat === 'perInterval' && block.stopOnMiss ? ' · until failure' : '';
+  return describeScheme(format, block) + cap + untilFailure;
 }
 
 function describeScheme(format: Format, block: Block): string {
@@ -280,14 +286,18 @@ export function intervalLineAt(config: WodConfig, intervalIdx: number, k: number
   const lines = intervalLines(config, intervalIdx);
   let before = 0;
   for (let i = 0; i < lines.length - 1; i++) {
-    before += lines[i].target;
+    before += targetAt(config, { ...START_POSITION, minuteIdx: intervalIdx, exIdx: i });
     if (k < before) return i;
   }
   return Math.max(0, lines.length - 1);
 }
 
 export function targetAt(config: WodConfig, pos: WodSession): number {
-  return lineAt(config, pos)?.target ?? 0;
+  const line = lineAt(config, pos);
+  if (!line) return 0;
+  if (config.format.repeat !== 'perInterval' || !line.increment) return line.target;
+  // Progressive EMOM (change emom-progressive-reps): + increment per repetition of the sequence.
+  return line.target + line.increment * Math.floor(pos.minuteIdx / config.block.lines.length);
 }
 
 export function exerciseNameAt(config: WodConfig, pos: WodSession): string {
@@ -331,6 +341,16 @@ function isCompleteAt(config: WodConfig, pos: WodSession): boolean {
  * the block's `durationSeconds`, which only AMRAP and EMOM had before; code that
  * means "cap" asks this rather than reading `totalSeconds` on a `rounds` config.
  */
+/**
+ * EMOM: whether the state's current interval is short of its targets. Earlier lines
+ * of an interval were left only on reaching their target, so it is missed unless
+ * it's on its last line with that line's target reached (change emom-progressive-reps).
+ */
+function intervalMissed(config: WodConfig, state: EngineState): boolean {
+  const { pos } = state;
+  return pos.exIdx < intervalLines(config, pos.minuteIdx).length - 1 || state.raw < targetAt(config, pos);
+}
+
 export function capSeconds(config: WodConfig): number | null {
   return config.format.repeat === 'rounds' && config.totalSeconds > 0 ? config.totalSeconds : null;
 }
@@ -412,6 +432,15 @@ export function advanceTo(config: WodConfig, state: EngineState, t: number): Eng
     const total = totalIntervals(config);
     const intervalMs = intervalSeconds(config) * 1000;
     const minuteIdx = Math.floor(t / intervalMs);
+    if (config.block.stopOnMiss && minuteIdx > state.pos.minuteIdx) {
+      // Stopping EMOM (change emom-progressive-reps): end at the first missed interval.
+      const m = state.pos.minuteIdx;
+      if (intervalMissed(config, state)) return { ...state, t: (m + 1) * intervalMs, finished: true };
+      // The clock skipped a whole interval, which had no reps: that one is missed (targets are ≥ 1).
+      if (minuteIdx > m + 1 && m + 1 < total) {
+        return { ...state, pos: { ...state.pos, minuteIdx: m + 1, exIdx: 0 }, done: 0, raw: 0, t: (m + 2) * intervalMs, finished: true };
+      }
+    }
     // Move to the interval `t` falls in (at most the last one), so a jump over
     // several intervals ends where stepping through them would.
     const current = Math.min(minuteIdx, total - 1);

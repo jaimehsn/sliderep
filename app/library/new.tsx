@@ -27,6 +27,7 @@ import {
   parseInterval,
   removeLine,
   savedName,
+  setLineIncrement,
   setLineReps,
   setRepDescription,
   setSameReps,
@@ -225,10 +226,18 @@ export default function NewWorkoutScreen() {
                 keyboardType="number-pad"
                 style={styles.numberInput}
               />
-              {emomTotal != null && <Text style={[styles.label, styles.paramGap]}>= {emomTotal}</Text>}
             </View>
+            {/* On its own line: beside EVERY / INTERVALS it ran off narrow screens. */}
+            {emomTotal != null && <Text style={[styles.label, styles.totalLine]}>TOTAL {emomTotal}</Text>}
             {problems.every && <Text style={styles.problem}>{problems.every}</Text>}
             {problems.intervals && <Text style={styles.problem}>{problems.intervals}</Text>}
+            <Pressable
+              onPress={() => setDraft({ ...draft, stopOnMiss: !draft.stopOnMiss })}
+              style={({ pressed }) => [styles.checkRow, pressed && styles.pressed]}
+            >
+              <Text style={styles.check}>{draft.stopOnMiss ? '[x]' : '[ ]'}</Text>
+              <Text style={styles.checkLabel}>STOP AT FIRST MISSED INTERVAL</Text>
+            </Pressable>
           </>
         )}
 
@@ -282,6 +291,19 @@ export default function NewWorkoutScreen() {
                     keyboardType="number-pad"
                     style={styles.numberInput}
                   />
+                  {draft.format === 'emom' && (
+                    <>
+                      <Text style={[styles.smallLabel, styles.paramGap]}>+/ROUND</Text>
+                      <TextInput
+                        value={draft.slots.flat()[i].increment}
+                        onChangeText={(value) => setDraft(setLineIncrement(draft, i, value))}
+                        placeholder="0"
+                        placeholderTextColor={HF.mutedDim}
+                        keyboardType="number-pad"
+                        style={styles.numberInput}
+                      />
+                    </>
+                  )}
                 </View>
               )}
 
@@ -480,7 +502,12 @@ const styles = StyleSheet.create({
   },
   paramRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
+    rowGap: 8,
+    marginTop: 8,
+  },
+  totalLine: {
     marginTop: 8,
   },
   paramGap: {

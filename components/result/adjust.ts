@@ -1,6 +1,6 @@
 import { START_POSITION, WodConfig, WodSession, capSeconds, fold, formatTime, intervalLineAt, intervalLines, intervalSeconds, targetAt } from '@/constants/wod-engine';
 import type { LogEntry } from '@/components/judge/types';
-import { WodResult, Split, intervalSplitLabel, splitLabel, deriveResult } from '@/components/result/replay';
+import { WodResult, Split, intervalSplitLabel, splitLabel, deriveResult, stopAtFirstMiss } from '@/components/result/replay';
 import type { AdjustmentChange } from '@/db/session-adjustments';
 
 type Tagged = { t: number; roundIdx: number; exIdx: number; originalTarget: number };
@@ -192,6 +192,8 @@ function deriveAdjustedOnClock(config: WodConfig, log: LogEntry[], changes: Adju
     if (intervalCompleted) intervalsCompleted += 1;
   }
 
+  // A stopping EMOM stops at its first interval not completed under the adjusted targets.
+  if (config.block.stopOnMiss) return stopAtFirstMiss(splits, totalIntervals);
   return {
     scoreLabel: 'SCORE',
     scoreValue: `${intervalsCompleted}/${totalIntervals} · ${totalValidReps} reps`,

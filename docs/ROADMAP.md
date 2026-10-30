@@ -339,10 +339,10 @@ Goal: the owner can write any reps-scored metcon, with movements and several blo
 4. `wod-editor` (D): create, duplicate and archive single-block FOR TIME / AMRAP / EMOM workouts, with rep descriptions and load per line. The editor comes **before** the remaining engine primitives, so every later change can be tested on a device as it lands.
 5. Then four changes. Each one extends the engine **and** the editor:
    - ✅ **C2a** (`for-time-cap`): time cap on For Time / Chipper — counting-up clock labelled with the cap, end sound at the cap, "CAP · N reps", adjustable cap, TIME CAP (MIN) in the editor.
-   - **C2b**, split into three changes:
+   - ✅ **C2b**, split into three changes:
      - ✅ **C2b-1** (`emom-interval-length`): EMOM intervals of 10–600 s (EVERY (SEC) + INTERVALS in the editor), "E2MOM · 8" / "EVERY 1:30 · 10", "interval left", "Interval N" splits, the adjusted duration in intervals.
      - ✅ **C2b-2** (`emom-multi-exercise-intervals`): several exercises per EMOM interval, done in order (onTarget within the interval, extras on the last), one split per exercise, an interval completed only when all are, "+ EXERCISE IN MIN n" in the editor.
-     - **C2b-3**: progressive reps (and whether "Death by" stops at the first failed interval).
+     - ✅ **C2b-3** (`emom-progressive-reps`): a per-line increment added each time its interval comes round (ladders, Death by), and an optional stop at the first missed interval scored "<completed> + <reps>", recomputed by adjustments; `+/ROUND` and "STOP AT FIRST MISSED INTERVAL" in the editor.
    - **C2c**: rest steps.
    - **C2d**: multi-block, including buy-in/cash-out and a scoring block.
 
@@ -351,6 +351,8 @@ Goal: the owner can write any reps-scored metcon, with movements and several blo
 Undo last rep, keep-awake, tests, iOS / store release, volume buttons as rep / no-rep (B5, dropped).
 
 ## Known issues (code)
+
+- **Responsive review of every view** (open, raised 2026-10-30): two layouts only broke on a real phone — the judging header's round pips with 30 intervals pushed "N/total" off screen, and the EMOM editor's total ran past the right edge (both fixed in `emom-progressive-reps`). Review every screen for rows that can outgrow the width (long names, many items, large numbers, the keyboard) and make them wrap, shrink or truncate; from now on, every change's device check also covers the layout of the views it touches with long or extreme content.
 
 - ~~Tap is announced ("tap = rep" in the footer) but does not count~~ — fixed, see B2.
 - ~~EMOM timing desync~~ — fixed, see B3.

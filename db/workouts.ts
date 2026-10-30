@@ -16,6 +16,8 @@ export type StoredLine = {
   target: number;
   repDescription?: WodLine['repDescription'];
   load?: string;
+  /** EMOM only: reps added each time the line's interval comes round, absent at 0 (change emom-progressive-reps). */
+  increment?: number;
 };
 export type StoredBlock = {
   formatId: string;
@@ -24,6 +26,8 @@ export type StoredBlock = {
   durationSeconds?: number;
   /** EMOM only: interval length in seconds, absent at the default 60 (change emom-interval-length). */
   intervalSeconds?: number;
+  /** EMOM only: stop at the first missed interval, absent when off (change emom-progressive-reps). */
+  stopOnMiss?: boolean;
 };
 
 // Strict on purpose: rows this can't read can't exist until engine v2 (change C)
@@ -40,6 +44,7 @@ export function parseWorkoutRow(row: WorkoutRow, exerciseNames: Map<string, stri
     rounds: stored.rounds,
     durationSeconds: stored.durationSeconds,
     intervalSeconds: stored.intervalSeconds,
+    stopOnMiss: stored.stopOnMiss,
     lines: stored.lines.map((round) =>
       round.map((line) => {
         const exercise = exerciseNames.get(line.exerciseId);
@@ -50,6 +55,7 @@ export function parseWorkoutRow(row: WorkoutRow, exerciseNames: Map<string, stri
           target: line.target,
           repDescription: line.repDescription,
           load: line.load,
+          increment: line.increment,
         };
       }),
     ),

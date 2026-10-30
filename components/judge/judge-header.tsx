@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { HF } from '@/constants/hf';
 import { WodKpi } from '@/constants/wod-engine';
-import { RoundPips } from './round-pips';
+import { MAX_PIPS, RoundPips } from './round-pips';
 
 type Props = {
   timerLabel: string;
@@ -27,7 +27,8 @@ export function JudgeHeader({ timerLabel, timerStr, kpi, onAbortPress }: Props) 
           {kpi.current}
           {kpi.total != null && <Text style={styles.total}>/{kpi.total}</Text>}
         </Text>
-        {kpi.total != null && (
+        {/* Past MAX_PIPS the squares no longer fit beside the timer; "N/total" says the same. */}
+        {kpi.total != null && kpi.total <= MAX_PIPS && (
           <View style={styles.pips}>
             <RoundPips current={kpi.current} total={kpi.total} />
           </View>
@@ -72,6 +73,8 @@ const styles = StyleSheet.create({
   },
   right: {
     alignItems: 'flex-end',
+    flexShrink: 1,
+    marginLeft: 16,
   },
   value: {
     fontFamily: 'BarlowCondensed_700Bold',

@@ -66,6 +66,19 @@ export function intervalSplitLabel(config: WodConfig, intervalIdx: number, exIdx
   return `${titleCase(intervalUnit(config))} ${intervalIdx + 1} — ${exerciseNameAt(config, session)}`;
 }
 
+/**
+ * Stopping EMOM (change emom-progressive-reps): keeps the splits up to and including
+ * the first interval with an exercise short of its target, scored "<completed> + <its
+ * reps>", or "<total> + 0" when none is missed. Shared by the plain and adjusted results.
+ */
+export function stopAtFirstMiss(splits: Split[], totalIntervals: number): WodResult {
+  const missed = splits.find((s) => !s.completed)?.roundIdx;
+  if (missed == null) return { scoreLabel: 'SCORE', scoreValue: `${totalIntervals} + 0`, splits };
+  const kept = splits.filter((s) => s.roundIdx <= missed);
+  const reps = kept.filter((s) => s.roundIdx === missed).reduce((n, s) => n + s.reps, 0);
+  return { scoreLabel: 'SCORE', scoreValue: `${missed} + ${reps}`, splits: kept };
+}
+
 function deriveOnClock(config: WodConfig, log: LogEntry[]): WodResult {
   const totalIntervals = Math.ceil(config.totalSeconds / intervalSeconds(config));
   const counted = fold(config, log, Infinity).tagged.filter((e) => e.counted);
@@ -97,6 +110,7 @@ function deriveOnClock(config: WodConfig, log: LogEntry[]): WodResult {
     if (intervalCompleted) intervalsCompleted += 1;
   }
 
+  if (config.block.stopOnMiss) return stopAtFirstMiss(splits, totalIntervals);
   return {
     scoreLabel: 'SCORE',
     scoreValue: `${intervalsCompleted}/${totalIntervals} · ${totalValidReps} reps`,

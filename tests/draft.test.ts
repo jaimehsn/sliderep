@@ -13,6 +13,7 @@ import {
   emptyDraft,
   emptyLine,
   removeLine,
+  setLineIncrement,
   setLineReps,
   setRepDescription,
   setSameReps,
@@ -101,13 +102,14 @@ describe('drafts run as saved', () => {
   it('a 10-minute EMOM over 3 slots puts slot 1 in minute 10', () => {
     const draft: Draft = {
       format: 'emom',
+      stopOnMiss: false,
       name: 'three',
       every: '60',
       intervals: '10',
       slots: [
-        [{ ...emptyLine(), exercise: ex('burpees'), reps: '10' }],
-        [{ ...emptyLine(), exercise: ex('kb-swings'), reps: '15' }],
-        [{ ...emptyLine(), exercise: ex('air-squats'), reps: '20' }],
+        [{ ...emptyLine(), exercise: ex('burpees'), reps: '10', increment: '' }],
+        [{ ...emptyLine(), exercise: ex('kb-swings'), reps: '15', increment: '' }],
+        [{ ...emptyLine(), exercise: ex('air-squats'), reps: '20', increment: '' }],
       ],
     };
     const config = configOf(draft);
@@ -256,12 +258,13 @@ describe('validation', () => {
 describe('EMOM interval length (change emom-interval-length)', () => {
   const emom = (every: string, intervals = '10'): Draft => ({
     format: 'emom',
+    stopOnMiss: false,
     name: 'every',
     every,
     intervals,
     slots: [
-      [{ ...emptyLine(), exercise: ex('burpees'), reps: '10' }],
-      [{ ...emptyLine(), exercise: ex('kb-swings'), reps: '15' }],
+      [{ ...emptyLine(), exercise: ex('burpees'), reps: '10', increment: '' }],
+      [{ ...emptyLine(), exercise: ex('kb-swings'), reps: '15', increment: '' }],
     ],
   });
 
@@ -302,15 +305,16 @@ describe('EMOM interval length (change emom-interval-length)', () => {
 describe('several exercises per EMOM interval (change emom-multi-exercise-intervals)', () => {
   const pair: EmomDraft = {
     format: 'emom',
+    stopOnMiss: false,
     name: 'pair',
     every: '60',
     intervals: '6',
     slots: [
       [
-        { ...emptyLine(), exercise: ex('pull-ups'), reps: '5' },
-        { ...emptyLine(), exercise: ex('push-ups'), reps: '10' },
+        { ...emptyLine(), exercise: ex('pull-ups'), reps: '5', increment: '' },
+        { ...emptyLine(), exercise: ex('push-ups'), reps: '10', increment: '' },
       ],
-      [{ ...emptyLine(), exercise: ex('air-squats'), reps: '15' }],
+      [{ ...emptyLine(), exercise: ex('air-squats'), reps: '15', increment: '' }],
     ],
   };
 
@@ -359,5 +363,78 @@ describe('several exercises per EMOM interval (change emom-multi-exercise-interv
     expect(draftLines(amrap).map((l) => l.exercise?.id)).toEqual(['pull-ups', 'push-ups', 'air-squats']);
     const back = switchFormat(amrap, 'emom') as EmomDraft;
     expect(back.slots.map((s) => s.length)).toEqual([1, 1, 1]);
+  });
+});
+
+describe('EMOM progression and stop (change emom-progressive-reps)', () => {
+  const deathBy: EmomDraft = {
+    format: 'emom',
+    name: 'death by burpees',
+    every: '60',
+    intervals: '30',
+    stopOnMiss: true,
+    slots: [[{ ...emptyLine(), exercise: ex('burpees'), reps: '1', increment: '1' }]],
+  };
+
+  it('saves a Death by with its increment and the stop', () => {
+    expect(draftToStoredBlock(deathBy)).toEqual({
+      formatId: 'emom',
+      lines: [[{ exerciseId: 'burpees', target: 1, increment: 1 }]],
+      rounds: 30,
+      durationSeconds: 1800,
+      stopOnMiss: true,
+    });
+    const config = configOf(deathBy);
+    expect(targetAt(config, { ...START_POSITION, minuteIdx: 2 })).toBe(3);
+    expect(config.description).toBe('30 min · burpees · until failure');
+  });
+
+  it('writes neither a 0 or empty increment nor the stop when off', () => {
+    const plain: EmomDraft = {
+      ...deathBy,
+      stopOnMiss: false,
+      slots: [[{ ...deathBy.slots[0][0], increment: '0' }], [{ ...deathBy.slots[0][0], increment: '' }]],
+    };
+    const block = draftToStoredBlock(plain);
+    expect('stopOnMiss' in block).toBe(false);
+    expect(block.lines.flat().every((l) => !('increment' in l))).toBe(true);
+  });
+
+  it('flags an invalid increment on its line', () => {
+    const bad: EmomDraft = { ...deathBy, slots: [[{ ...deathBy.slots[0][0], increment: 'x' }]] };
+    expect(validateDraft(bad)).toEqual({ 'line:0': 'Increment must be 0 or more' });
+    expect(validateDraft(deathBy)).toEqual({});
+  });
+
+  it('DUPLICATE keeps the increment and the stop', () => {
+    const copy = draftFromBlock('emom', configOf(deathBy).block, 'COPY') as EmomDraft;
+    expect(copy.stopOnMiss).toBe(true);
+    expect(copy.slots[0][0].increment).toBe('1');
+    expect(draftToStoredBlock(copy)).toEqual(draftToStoredBlock(deathBy));
+  });
+
+  it('new EMOM lines start with no increment and the stop off', () => {
+    const fresh = addLine(emptyDraft('emom')) as EmomDraft;
+    expect(fresh.stopOnMiss).toBe(false);
+    expect(fresh.slots[0][0].increment).toBe('');
+    expect(addLineToSlot(fresh, 0).slots[0][1].increment).toBe('');
+    expect((switchFormat(fran, 'emom') as EmomDraft).slots[0][0].increment).toBe('');
+  });
+});
+
+describe('setLineIncrement', () => {
+  it('sets the increment of a line by its flat index', () => {
+    const draft: EmomDraft = {
+      format: 'emom',
+      name: 'x',
+      every: '60',
+      intervals: '4',
+      stopOnMiss: false,
+      slots: [
+        [{ ...emptyLine(), exercise: ex('pull-ups'), reps: '5', increment: '' }, { ...emptyLine(), exercise: ex('push-ups'), reps: '10', increment: '' }],
+        [{ ...emptyLine(), exercise: ex('air-squats'), reps: '15', increment: '' }],
+      ],
+    };
+    expect(setLineIncrement(draft, 1, '2').slots.map((s) => s.map((l) => l.increment))).toEqual([['', '2'], ['']]);
   });
 });

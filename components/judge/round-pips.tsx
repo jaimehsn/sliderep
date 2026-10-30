@@ -1,6 +1,9 @@
 import { StyleSheet, View } from 'react-native';
 import { HF } from '@/constants/hf';
 
+/** The most squares that fit beside the timer (12 × 6 px + 11 × 4 px gaps); past it the header shows only "N/total". */
+export const MAX_PIPS = 12;
+
 type Props = {
   /** 1-based position of the current step. */
   current: number;

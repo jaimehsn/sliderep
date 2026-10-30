@@ -81,7 +81,7 @@ The header SHALL show elapsed time for For Time and Chipper, time remaining for 
 - **THEN** the timer shows 01:20 labelled "interval left"
 
 ### Requirement: Automatic finish
-Judging SHALL finish without any confirmation: For Time and Chipper on the workout's last valid rep, or at their cap when they have one and it comes first, AMRAP when its duration reaches 0, and EMOM when its last minute ends. On finish the clock SHALL stop, further gestures SHALL be ignored and the result SHALL be shown.
+Judging SHALL finish without any confirmation: For Time and Chipper on the workout's last valid rep, or at their cap when they have one and it comes first, AMRAP when its duration reaches 0, and EMOM when its last minute ends or, when it stops at its first missed interval, when that interval ends. On finish the clock SHALL stop, further gestures SHALL be ignored and the result SHALL be shown.
 
 #### Scenario: AMRAP time runs out
 - **WHEN** CINDY's 12 minutes elapse
@@ -98,6 +98,10 @@ Judging SHALL finish without any confirmation: For Time and Chipper on the worko
 #### Scenario: Finished before the cap
 - **WHEN** a capped For Time's last valid rep comes before its cap
 - **THEN** judging finishes on that rep without an end sound, as an uncapped For Time does
+
+#### Scenario: Missed interval in a stopping EMOM
+- **WHEN** a minute of a stopping EMOM ends with its exercise short of its target
+- **THEN** an end sound plays instead of the minute sound, judging finishes keeping that minute's reps, and the result is shown
 
 ### Requirement: Abort in progress
 While judging is in progress, tapping the timer or pressing the hardware back button SHALL ask "Abort session?" with "Data will be lost." Confirming SHALL leave the session without saving anything; cancelling SHALL continue judging.

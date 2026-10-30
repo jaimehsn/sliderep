@@ -1,0 +1,208 @@
+{
+  "result": {
+    "scoreLabel": "SCORE",
+    "scoreValue": "20 + 0",
+    "splits": [
+      {
+        "label": "Minute 1 — BURPEES",
+        "reps": 1,
+        "target": 1,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 0,
+        "exIdx": 0
+      },
+      {
+        "label": "Minute 2 — BURPEES",
+        "reps": 2,
+        "target": 2,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 1,
+        "exIdx": 0
+      },
+      {
+        "label": "Minute 3 — BURPEES",
+        "reps": 3,
+        "target": 3,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 2,
+        "exIdx": 0
+      },
+      {
+        "label": "Minute 4 — BURPEES",
+        "reps": 4,
+        "target": 4,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 3,
+        "exIdx": 0
+      },
+      {
+        "label": "Minute 5 — BURPEES",
+        "reps": 5,
+        "target": 5,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 4,
+        "exIdx": 0
+      },
+      {
+        "label": "Minute 6 — BURPEES",
+        "reps": 6,
+        "target": 6,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 5,
+        "exIdx": 0
+      },
+      {
+        "label": "Minute 7 — BURPEES",
+        "reps": 7,
+        "target": 7,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 6,
+        "exIdx": 0
+      },
+      {
+        "label": "Minute 8 — BURPEES",
+        "reps": 8,
+        "target": 8,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 7,
+        "exIdx": 0
+      },
+      {
+        "label": "Minute 9 — BURPEES",
+        "reps": 9,
+        "target": 9,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 8,
+        "exIdx": 0
+      },
+      {
+        "label": "Minute 10 — BURPEES",
+        "reps": 10,
+        "target": 10,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 9,
+        "exIdx": 0
+      },
+      {
+        "label": "Minute 11 — BURPEES",
+        "reps": 11,
+        "target": 11,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 10,
+        "exIdx": 0
+      },
+      {
+        "label": "Minute 12 — BURPEES",
+        "reps": 12,
+        "target": 12,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 11,
+        "exIdx": 0
+      },
+      {
+        "label": "Minute 13 — BURPEES",
+        "reps": 13,
+        "target": 13,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 12,
+        "exIdx": 0
+      },
+      {
+        "label": "Minute 14 — BURPEES",
+        "reps": 14,
+        "target": 14,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 13,
+        "exIdx": 0
+      },
+      {
+        "label": "Minute 15 — BURPEES",
+        "reps": 15,
+        "target": 15,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 14,
+        "exIdx": 0
+      },
+      {
+        "label": "Minute 16 — BURPEES",
+        "reps": 16,
+        "target": 16,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 15,
+        "exIdx": 0
+      },
+      {
+        "label": "Minute 17 — BURPEES",
+        "reps": 17,
+        "target": 17,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 16,
+        "exIdx": 0
+      },
+      {
+        "label": "Minute 18 — BURPEES",
+        "reps": 18,
+        "target": 18,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 17,
+        "exIdx": 0
+      },
+      {
+        "label": "Minute 19 — BURPEES",
+        "reps": 19,
+        "target": 19,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 18,
+        "exIdx": 0
+      },
+      {
+        "label": "Minute 20 — BURPEES",
+        "reps": 20,
+        "target": 20,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 19,
+        "exIdx": 0
+      }
+    ]
+  }
+}

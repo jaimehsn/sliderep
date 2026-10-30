@@ -23,6 +23,8 @@ export type LineFields = {
 /** For Time row: reps per round, or `reps[0]` for every round while `sameReps` is on. */
 export type ForTimeRow = LineFields & { reps: string[] };
 export type RepsRow = LineFields & { reps: string };
+/** EMOM row: `increment` is the reps added each time its interval comes round, '' meaning 0 (change emom-progressive-reps). */
+export type EmomRow = RepsRow & { increment: string };
 
 /** `cap` is the time cap in whole minutes, '' for none (change for-time-cap). */
 export type ForTimeDraft = { format: 'forTime'; name: string; rounds: string; sameReps: boolean; cap: string; rows: ForTimeRow[] };
@@ -31,8 +33,16 @@ export type AmrapDraft = { format: 'amrap'; name: string; minutes: string; rows:
  * `every`: interval length in seconds (10–600); `intervals`: how many (change emom-interval-length).
  * `slots`: the interval sequence, each a non-empty list of lines done in order (change
  * emom-multi-exercise-intervals). Line helpers take the flat index into `draftLines`.
+ * `stopOnMiss`: end at the first missed interval (change emom-progressive-reps).
  */
-export type EmomDraft = { format: 'emom'; name: string; every: string; intervals: string; slots: RepsRow[][] };
+export type EmomDraft = {
+  format: 'emom';
+  name: string;
+  every: string;
+  intervals: string;
+  stopOnMiss: boolean;
+  slots: EmomRow[][];
+};
 export type Draft = ForTimeDraft | AmrapDraft | EmomDraft;
 
 export const DRAFT_FORMATS: { id: DraftFormat; label: string }[] = [
@@ -48,7 +58,7 @@ export function emptyLine(): LineFields {
 export function emptyDraft(format: DraftFormat, name = ''): Draft {
   if (format === 'forTime') return { format, name, rounds: '1', sameReps: true, cap: '', rows: [] };
   if (format === 'amrap') return { format, name, minutes: '', rows: [] };
-  return { format, name, every: '60', intervals: '', slots: [] };
+  return { format, name, every: '60', intervals: '', stopOnMiss: false, slots: [] };
 }
 
 /** The draft's lines in order, whatever the format. */
@@ -57,7 +67,7 @@ export function draftLines(draft: Draft): LineFields[] {
 }
 
 // EMOM: applies `fn` to the line at flat index `index`, keeping the intervals.
-function mapEmomLine(slots: RepsRow[][], index: number, fn: (row: RepsRow) => RepsRow): RepsRow[][] {
+function mapEmomLine(slots: EmomRow[][], index: number, fn: (row: EmomRow) => EmomRow): EmomRow[][] {
   let i = 0;
   return slots.map((slot) => slot.map((row) => (i++ === index ? fn(row) : row)));
 }
@@ -69,21 +79,21 @@ export function switchFormat(draft: Draft, format: DraftFormat): Draft {
   const next = emptyDraft(format, draft.name);
   if (next.format === 'forTime') return { ...next, rows: lines.map((l) => ({ ...l, reps: [''] })) };
   if (next.format === 'amrap') return { ...next, rows: lines.map((l) => ({ ...l, reps: '' })) };
-  return { ...next, slots: lines.map((l) => [{ ...l, reps: '' }]) };
+  return { ...next, slots: lines.map((l) => [{ ...l, reps: '', increment: '' }]) };
 }
 
 /** Appends an empty line (no exercise yet) in the format's shape. */
 export function addLine(draft: Draft): Draft {
   if (draft.format === 'forTime') return { ...draft, rows: [...draft.rows, { ...emptyLine(), reps: [''] }] };
   if (draft.format === 'amrap') return { ...draft, rows: [...draft.rows, { ...emptyLine(), reps: '' }] };
-  return { ...draft, slots: [...draft.slots, [{ ...emptyLine(), reps: '' }]] };
+  return { ...draft, slots: [...draft.slots, [{ ...emptyLine(), reps: '', increment: '' }]] };
 }
 
 /** EMOM: appends an empty line to interval `slotIdx` of the sequence. */
 export function addLineToSlot(draft: EmomDraft, slotIdx: number): EmomDraft {
   return {
     ...draft,
-    slots: draft.slots.map((slot, i) => (i === slotIdx ? [...slot, { ...emptyLine(), reps: '' }] : slot)),
+    slots: draft.slots.map((slot, i) => (i === slotIdx ? [...slot, { ...emptyLine(), reps: '', increment: '' }] : slot)),
   };
 }
 
@@ -146,12 +156,24 @@ export function setLineReps(draft: Draft, index: number, value: string, roundIdx
   return { ...draft, slots: mapEmomLine(draft.slots, index, (row) => ({ ...row, reps: value })) };
 }
 
+/** EMOM: sets the increment of the line at flat index `index` (change emom-progressive-reps). */
+export function setLineIncrement(draft: EmomDraft, index: number, value: string): EmomDraft {
+  return { ...draft, slots: mapEmomLine(draft.slots, index, (row) => ({ ...row, increment: value })) };
+}
+
 /** A whole number of 1 or more, or null. */
 export function parseCount(value: string): number | null {
   const trimmed = value.trim();
   if (!/^\d+$/.test(trimmed)) return null;
   const n = Number(trimmed);
   return n >= 1 ? n : null;
+}
+
+/** An EMOM line's increment: '' is 0, otherwise a whole number of 0 or more; null when invalid. */
+export function parseIncrement(value: string): number | null {
+  const trimmed = value.trim();
+  if (trimmed === '') return 0;
+  return /^\d+$/.test(trimmed) ? Number(trimmed) : null;
 }
 
 /** An EMOM interval length: whole seconds from 10 to 600, or null. */
@@ -225,7 +247,8 @@ export function validateDraft(draft: Draft): DraftProblems {
       if (parseCount(draft.intervals) == null) problems.intervals = 'Intervals must be 1 or more';
     }
     lines.forEach((line, i) => {
-      const problem = lineProblem(line, [(line as RepsRow).reps]);
+      const problem = lineProblem(line, [(line as RepsRow).reps])
+        ?? (draft.format === 'emom' && parseIncrement((line as EmomRow).increment) == null ? 'Increment must be 0 or more' : null);
       if (problem) problems[`line:${i}`] = problem;
     });
   }
@@ -276,11 +299,17 @@ export function draftToStoredBlock(draft: Draft): StoredBlock {
   if (every == null) throw new Error(`Invalid interval "${draft.every}": validate the draft first`);
   return {
     formatId: 'emom',
-    lines: draft.slots.map((slot) => slot.map((row) => toStoredLine(row, count(row.reps)))),
+    lines: draft.slots.map((slot) => slot.map((row) => {
+      const stored = toStoredLine(row, count(row.reps));
+      const increment = parseIncrement(row.increment);
+      if (increment) stored.increment = increment;
+      return stored;
+    })),
     rounds: intervals,
     durationSeconds: intervals * every,
-    // Omitted at the default, so a 60-second EMOM is stored exactly like the built-in.
+    // Omitted at their defaults, so a plain 60-second EMOM is stored exactly like the built-in.
     ...(every !== 60 ? { intervalSeconds: every } : {}),
+    ...(draft.stopOnMiss ? { stopOnMiss: true } : {}),
   };
 }
 
@@ -336,7 +365,12 @@ export function draftFromBlock(formatId: string, block: Block, name: string): Dr
       name,
       every: String(block.intervalSeconds ?? 60),
       intervals: String(block.rounds ?? (block.durationSeconds ?? 0) / (block.intervalSeconds ?? 60)),
-      slots: block.lines.map((interval) => interval.map((line) => ({ ...toLineFields(line), reps: String(line.target) }))),
+      stopOnMiss: block.stopOnMiss ?? false,
+      slots: block.lines.map((interval) => interval.map((line) => ({
+        ...toLineFields(line),
+        reps: String(line.target),
+        increment: line.increment ? String(line.increment) : '',
+      }))),
     };
   }
   throw new Error(`Unknown format ${formatId}`);
