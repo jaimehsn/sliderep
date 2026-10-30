@@ -26,20 +26,22 @@ export type RepsRow = LineFields & { reps: string };
 /** EMOM row: `increment` is the reps added each time its interval comes round, '' meaning 0 (change emom-progressive-reps). */
 export type EmomRow = RepsRow & { increment: string };
 
-/** `cap` is the time cap in whole minutes, '' for none (change for-time-cap). */
-export type ForTimeDraft = { format: 'forTime'; name: string; rounds: string; sameReps: boolean; cap: string; rows: ForTimeRow[] };
+/** `cap` is the time cap in whole minutes, '' for none (change for-time-cap); `rest` the rest between rounds in seconds, '' for none (change rest-steps). */
+export type ForTimeDraft = { format: 'forTime'; name: string; rounds: string; sameReps: boolean; cap: string; rest: string; rows: ForTimeRow[] };
 export type AmrapDraft = { format: 'amrap'; name: string; minutes: string; rows: RepsRow[] };
 /**
  * `every`: interval length in seconds (10–600); `intervals`: how many (change emom-interval-length).
  * `slots`: the interval sequence, each a non-empty list of lines done in order (change
  * emom-multi-exercise-intervals). Line helpers take the flat index into `draftLines`.
  * `stopOnMiss`: end at the first missed interval (change emom-progressive-reps).
+ * `work`: work time per interval in seconds, the rest of it is rest, '' for none (change rest-steps).
  */
 export type EmomDraft = {
   format: 'emom';
   name: string;
   every: string;
   intervals: string;
+  work: string;
   stopOnMiss: boolean;
   slots: EmomRow[][];
 };
@@ -56,9 +58,9 @@ export function emptyLine(): LineFields {
 }
 
 export function emptyDraft(format: DraftFormat, name = ''): Draft {
-  if (format === 'forTime') return { format, name, rounds: '1', sameReps: true, cap: '', rows: [] };
+  if (format === 'forTime') return { format, name, rounds: '1', sameReps: true, cap: '', rest: '', rows: [] };
   if (format === 'amrap') return { format, name, minutes: '', rows: [] };
-  return { format, name, every: '60', intervals: '', stopOnMiss: false, slots: [] };
+  return { format, name, every: '60', intervals: '', work: '', stopOnMiss: false, slots: [] };
 }
 
 /** The draft's lines in order, whatever the format. */
@@ -212,7 +214,7 @@ export function savedName(draft: Draft): string {
 // ─── Validation ─────────────────────────────────────────────────────────────
 
 /**
- * Problems keyed by field: 'name', 'rounds', 'cap', 'minutes', 'every', 'intervals', 'lines', and 'line:<i>'
+ * Problems keyed by field: 'name', 'rounds', 'cap', 'rest', 'minutes', 'every', 'intervals', 'work', 'lines', and 'line:<i>'
  * for the i-th line. Empty when the draft can be saved.
  */
 export type DraftProblems = Record<string, string>;
@@ -235,6 +237,11 @@ export function validateDraft(draft: Draft): DraftProblems {
     const rounds = parseCount(draft.rounds);
     if (rounds == null) problems.rounds = 'Rounds must be 1 or more';
     if (draft.cap.trim() !== '' && parseCount(draft.cap) == null) problems.cap = 'Time cap must be 1 or more';
+    if (draft.rest.trim() !== '') {
+      const rest = parseCount(draft.rest);
+      if (rest == null || rest > 600) problems.rest = 'Rest must be 1 to 600 seconds';
+      else if (rounds != null && rounds < 2) problems.rest = 'Rest needs 2 rounds or more';
+    }
     draft.rows.forEach((row, i) => {
       const reps = draft.sameReps ? [row.reps[0] ?? ''] : Array.from({ length: rounds ?? 1 }, (_, r) => row.reps[r] ?? '');
       const problem = lineProblem(row, reps);
@@ -243,8 +250,13 @@ export function validateDraft(draft: Draft): DraftProblems {
   } else {
     if (draft.format === 'amrap' && parseCount(draft.minutes) == null) problems.minutes = 'Minutes must be 1 or more';
     if (draft.format === 'emom') {
-      if (parseInterval(draft.every) == null) problems.every = 'Interval must be 10 to 600 seconds';
+      const every = parseInterval(draft.every);
+      if (every == null) problems.every = 'Interval must be 10 to 600 seconds';
       if (parseCount(draft.intervals) == null) problems.intervals = 'Intervals must be 1 or more';
+      if (draft.work.trim() !== '') {
+        const work = parseCount(draft.work);
+        if (work == null || (every != null && work >= every)) problems.work = 'Work must be 1 or more and shorter than EVERY';
+      }
     }
     lines.forEach((line, i) => {
       const problem = lineProblem(line, [(line as RepsRow).reps])
@@ -285,6 +297,7 @@ export function draftToStoredBlock(draft: Draft): StoredBlock {
       ),
       rounds,
       ...(draft.cap.trim() !== '' ? { durationSeconds: count(draft.cap) * 60 } : {}),
+      ...(draft.rest.trim() !== '' ? { restSeconds: count(draft.rest) } : {}),
     };
   }
   if (draft.format === 'amrap') {
@@ -310,6 +323,7 @@ export function draftToStoredBlock(draft: Draft): StoredBlock {
     // Omitted at their defaults, so a plain 60-second EMOM is stored exactly like the built-in.
     ...(every !== 60 ? { intervalSeconds: every } : {}),
     ...(draft.stopOnMiss ? { stopOnMiss: true } : {}),
+    ...(draft.work.trim() !== '' ? { workSeconds: count(draft.work) } : {}),
   };
 }
 
@@ -348,6 +362,7 @@ export function draftFromBlock(formatId: string, block: Block, name: string): Dr
       rounds: String(block.rounds ?? block.lines.length),
       sameReps,
       cap: block.durationSeconds ? String(block.durationSeconds / 60) : '',
+      rest: block.restSeconds ? String(block.restSeconds) : '',
       rows: sameReps ? rows.map((row) => ({ ...row, reps: [row.reps[0]] })) : rows,
     };
   }
@@ -365,6 +380,7 @@ export function draftFromBlock(formatId: string, block: Block, name: string): Dr
       name,
       every: String(block.intervalSeconds ?? 60),
       intervals: String(block.rounds ?? (block.durationSeconds ?? 0) / (block.intervalSeconds ?? 60)),
+      work: block.workSeconds ? String(block.workSeconds) : '',
       stopOnMiss: block.stopOnMiss ?? false,
       slots: block.lines.map((interval) => interval.map((line) => ({
         ...toLineFields(line),

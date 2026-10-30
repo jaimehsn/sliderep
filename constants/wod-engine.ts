@@ -5,9 +5,11 @@
 //
 // Scope: only the primitives today's 4 built-in WODs actually need, plus a For
 // Time cap (change for-time-cap) and an EMOM interval length (change
-// emom-interval-length) and several exercises per EMOM interval (change
-// emom-multi-exercise-intervals). Rest steps, multi-block WODs (buy-in/cash-out)
-// and progressive per-interval reps are not implemented yet.
+// emom-interval-length), several exercises per EMOM interval (change
+// emom-multi-exercise-intervals), progressive EMOM reps and the stop (change
+// emom-progressive-reps), and rest between For Time rounds or within EMOM
+// intervals (change rest-steps). Multi-block WODs (buy-in/cash-out) are not
+// implemented yet.
 
 export type WodSession = {
   roundIdx: number;
@@ -109,6 +111,10 @@ export type Block = {
   intervalSeconds?: number;
   /** 'perInterval': the workout ends at its first missed interval (change emom-progressive-reps). */
   stopOnMiss?: boolean;
+  /** 'rounds': rest between rounds in seconds, none after the last (change rest-steps). */
+  restSeconds?: number;
+  /** 'perInterval': work time per interval in seconds; the rest of each interval is rest (change rest-steps). */
+  workSeconds?: number;
 };
 
 export type WodDefinition = {
@@ -203,7 +209,10 @@ function describeContent(format: Format, block: Block): string {
   const cap = format.repeat === 'rounds' && block.durationSeconds ? ` · ${block.durationSeconds / 60} min cap` : '';
   // A stopping EMOM (change emom-progressive-reps).
   const untilFailure = format.repeat === 'perInterval' && block.stopOnMiss ? ' · until failure' : '';
-  return describeScheme(format, block) + cap + untilFailure;
+  // Rest between rounds, or work time per interval (change rest-steps).
+  const rest = format.repeat === 'rounds' && block.restSeconds ? ` · ${block.restSeconds} s rest` : '';
+  const work = format.repeat === 'perInterval' && block.workSeconds ? ` · ${block.workSeconds} s work` : '';
+  return describeScheme(format, block) + rest + work + cap + untilFailure;
 }
 
 function describeScheme(format: Format, block: Block): string {
@@ -356,6 +365,26 @@ export function capSeconds(config: WodConfig): number | null {
 }
 
 /**
+ * The workout detail's and pre-start summary's duration line, or null when there is
+ * nothing to say: "12 min", "10 min cap" (change for-time-cap), "30 min max · until
+ * failure" (change emom-progressive-reps), plus the rest (change rest-steps):
+ * "60 s rest between rounds" or "20 s work / 10 s rest".
+ */
+export function durationLine(config: WodConfig): string | null {
+  const { block } = config;
+  const parts: string[] = [];
+  const m = Math.floor(config.totalSeconds / 60);
+  if (config.totalSeconds > 0) {
+    parts.push(capSeconds(config) != null ? `${m} min cap` : block.stopOnMiss ? `${m} min max · until failure` : `${m} min`);
+  }
+  if (config.format.repeat === 'rounds' && block.restSeconds) parts.push(`${block.restSeconds} s rest between rounds`);
+  if (config.format.repeat === 'perInterval' && block.workSeconds) {
+    parts.push(`${block.workSeconds} s work / ${intervalSeconds(config) - block.workSeconds} s rest`);
+  }
+  return parts.length > 0 ? parts.join(' · ') : null;
+}
+
+/**
  * Whether every position was completed — false for a For Time that ended at its
  * cap, and always for AMRAP/EMOM. A completed For Time stays on its last position
  * with the final count (see `apply`), so that is what's checked.
@@ -404,6 +433,8 @@ export type EngineState = {
   /** Session-clock ms reached so far (frozen at the finishing instant). */
   t: number;
   tagged: TaggedEvent[];
+  /** 'rounds' with rest: session-clock ms the current rest ends at, null when not resting (change rest-steps). */
+  restUntil: number | null;
 };
 
 export function formatTime(seconds: number): string {
@@ -418,7 +449,7 @@ function totalIntervals(config: WodConfig): number {
 }
 
 export function initial(config: WodConfig): EngineState {
-  return { pos: START_POSITION, done: 0, raw: 0, finished: false, t: 0, tagged: [] };
+  return { pos: START_POSITION, done: 0, raw: 0, finished: false, t: 0, tagged: [], restUntil: null };
 }
 
 export function advanceTo(config: WodConfig, state: EngineState, t: number): EngineState {
@@ -432,13 +463,15 @@ export function advanceTo(config: WodConfig, state: EngineState, t: number): Eng
     const total = totalIntervals(config);
     const intervalMs = intervalSeconds(config) * 1000;
     const minuteIdx = Math.floor(t / intervalMs);
-    if (config.block.stopOnMiss && minuteIdx > state.pos.minuteIdx) {
+    // Where interval m's counting ends: its work time, or the whole interval (change rest-steps).
+    const missEnd = (m: number) => m * intervalMs + (config.block.workSeconds ?? intervalSeconds(config)) * 1000;
+    if (config.block.stopOnMiss && t >= missEnd(state.pos.minuteIdx)) {
       // Stopping EMOM (change emom-progressive-reps): end at the first missed interval.
       const m = state.pos.minuteIdx;
-      if (intervalMissed(config, state)) return { ...state, t: (m + 1) * intervalMs, finished: true };
+      if (intervalMissed(config, state)) return { ...state, t: missEnd(m), finished: true };
       // The clock skipped a whole interval, which had no reps: that one is missed (targets are ≥ 1).
-      if (minuteIdx > m + 1 && m + 1 < total) {
-        return { ...state, pos: { ...state.pos, minuteIdx: m + 1, exIdx: 0 }, done: 0, raw: 0, t: (m + 2) * intervalMs, finished: true };
+      if (t >= missEnd(m + 1) && m + 1 < total) {
+        return { ...state, pos: { ...state.pos, minuteIdx: m + 1, exIdx: 0 }, done: 0, raw: 0, t: missEnd(m + 1), finished: true };
       }
     }
     // Move to the interval `t` falls in (at most the last one), so a jump over
@@ -453,14 +486,39 @@ export function advanceTo(config: WodConfig, state: EngineState, t: number): Eng
   }
   const cap = capSeconds(config);
   if (cap != null && t >= cap * 1000) return { ...state, t: cap * 1000, finished: true };
+  // The rest between rounds is over (change rest-steps); the cap above comes first.
+  if (state.restUntil != null && t >= state.restUntil) return { ...state, t, restUntil: null };
   return { ...state, t };
+}
+
+/** EMOM with a work time: whether session-clock `t` falls in an interval's rest (change rest-steps). */
+function inIntervalRest(config: WodConfig, t: number): boolean {
+  const work = config.block.workSeconds;
+  return config.format.repeat === 'perInterval' && work != null && t % (intervalSeconds(config) * 1000) >= work * 1000;
+}
+
+/**
+ * Whether the state is in a rest (change rest-steps): a For Time between rounds, or
+ * an EMOM past its interval's work time. Never once finished. Gestures in a rest
+ * are dropped live, and `apply` doesn't count them.
+ */
+export function isResting(config: WodConfig, state: EngineState): boolean {
+  if (state.finished) return false;
+  return state.restUntil != null || inIntervalRest(config, state.t);
+}
+
+/** Seconds left in the current rest (0 when not resting). */
+export function restLeftSeconds(config: WodConfig, state: EngineState): number {
+  if (!isResting(config, state)) return 0;
+  const end = state.restUntil ?? (Math.floor(state.t / (intervalSeconds(config) * 1000)) + 1) * intervalSeconds(config) * 1000;
+  return Math.max(0, Math.ceil((end - state.t) / 1000));
 }
 
 export function apply(config: WodConfig, state: EngineState, event: EngineEvent): EngineState {
   const { repeat } = config.format;
   const s = advanceTo(config, state, event.t);
   const target = targetAt(config, s.pos);
-  const ignored = !event.ok || (s.finished && repeat !== 'cycle');
+  const ignored = !event.ok || (s.finished && repeat !== 'cycle') || isResting(config, s);
   const tag: TaggedEvent = { t: event.t, ok: event.ok, pos: s.pos, target, counted: !ignored };
   const tagged = [...s.tagged, tag];
   if (ignored) return { ...s, tagged };
@@ -482,7 +540,9 @@ export function apply(config: WodConfig, state: EngineState, event: EngineEvent)
       // Last rep of the WOD: stay on the final position with its final count.
       return { ...s, tagged, done, finished: true };
     }
-    return { ...s, tagged, pos: next, done: 0 };
+    // A new round starts after the rest between rounds, if any (change rest-steps).
+    const rest = repeat === 'rounds' && next.roundIdx > s.pos.roundIdx ? config.block.restSeconds : undefined;
+    return { ...s, tagged, pos: next, done: 0, restUntil: rest ? event.t + rest * 1000 : s.restUntil };
   }
   return { ...s, tagged, done: Math.min(done, target) };
 }
@@ -497,16 +557,22 @@ export function fold(config: WodConfig, events: EngineEvent[], endT: number): En
 export function view(config: WodConfig, state: EngineState) {
   const elapsed = Math.floor(state.t / 1000);
   const interval = intervalSeconds(config);
+  const work = config.block.workSeconds;
+  const resting = isResting(config, state);
+  // An EMOM with a work time counts down its current phase (change rest-steps).
+  const phased = config.timerMode === 'minLeft' && work != null;
   const timerStr =
     config.timerMode === 'remaining' ? formatTime(Math.max(0, config.totalSeconds - elapsed)) :
+    phased                           ? formatTime(Math.max(0, (resting ? interval : work) - (elapsed % interval))) :
     config.timerMode === 'minLeft'   ? formatTime(Math.max(0, interval - (elapsed % interval))) :
     formatTime(elapsed);
   const timerLabel =
     config.timerMode === 'remaining' ? 'remaining' :
+    phased                           ? (resting ? 'rest left' : 'work left') :
     config.timerMode === 'minLeft'   ? (interval === 60 ? 'min left' : 'interval left') : 'elapsed';
   const cap = capSeconds(config);
   return {
-    exerciseName: state.finished ? 'DONE' : exerciseNameAt(config, state.pos),
+    exerciseName: state.finished ? 'DONE' : resting ? `REST ${formatTime(restLeftSeconds(config, state))}` : exerciseNameAt(config, state.pos),
     target: targetAt(config, state.pos),
     done: state.done,
     kpi: kpiAt(config, state.pos),

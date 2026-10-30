@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { HF } from '@/constants/hf';
-import { WodConfig, capSeconds } from '@/constants/wod-engine';
+import { WodConfig, durationLine } from '@/constants/wod-engine';
 import { useSoundCue } from '@/hooks/use-sound-cue';
 
 type Props = {
@@ -11,14 +11,6 @@ type Props = {
   role?: 'judge' | 'judged';
   onDone: () => void;
 };
-
-// "12 min", "10 min cap" for a For Time's time cap (change for-time-cap), or
-// "30 min max · until failure" for an EMOM that stops at its first miss (change emom-progressive-reps).
-function formatDuration(config: WodConfig): string {
-  const m = Math.floor(config.totalSeconds / 60);
-  if (capSeconds(config) != null) return `${m} min cap`;
-  return config.block.stopOnMiss ? `${m} min max · until failure` : `${m} min`;
-}
 
 export function StartOverlay({ config, athleteAlias, role = 'judge', onDone }: Props) {
   const judgingLabel = role === 'judged'
@@ -79,8 +71,8 @@ export function StartOverlay({ config, athleteAlias, role = 'judge', onDone }: P
           <View style={styles.headerText}>
             <Text style={styles.mode}>{config.mode}</Text>
             <Text style={styles.name}>{config.name}</Text>
-            {config.totalSeconds > 0 && (
-              <Text style={styles.duration}>{formatDuration(config)}</Text>
+            {durationLine(config) != null && (
+              <Text style={styles.duration}>{durationLine(config)}</Text>
             )}
             <Text style={styles.judging}>{judgingLabel}</Text>
           </View>

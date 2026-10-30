@@ -1,0 +1,174 @@
+{
+  "result": {
+    "scoreLabel": "SCORE",
+    "scoreValue": "8/8 · 64 reps",
+    "splits": [
+      {
+        "label": "Interval 1 — AIR SQUATS",
+        "reps": 8,
+        "target": 8,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 0,
+        "exIdx": 0
+      },
+      {
+        "label": "Interval 2 — AIR SQUATS",
+        "reps": 8,
+        "target": 8,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 1,
+        "exIdx": 0
+      },
+      {
+        "label": "Interval 3 — AIR SQUATS",
+        "reps": 8,
+        "target": 8,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 2,
+        "exIdx": 0
+      },
+      {
+        "label": "Interval 4 — AIR SQUATS",
+        "reps": 8,
+        "target": 8,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 3,
+        "exIdx": 0
+      },
+      {
+        "label": "Interval 5 — AIR SQUATS",
+        "reps": 8,
+        "target": 8,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 4,
+        "exIdx": 0
+      },
+      {
+        "label": "Interval 6 — AIR SQUATS",
+        "reps": 8,
+        "target": 8,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 5,
+        "exIdx": 0
+      },
+      {
+        "label": "Interval 7 — AIR SQUATS",
+        "reps": 8,
+        "target": 8,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 6,
+        "exIdx": 0
+      },
+      {
+        "label": "Interval 8 — AIR SQUATS",
+        "reps": 8,
+        "target": 8,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 7,
+        "exIdx": 0
+      }
+    ]
+  },
+  "adjusted": {
+    "scoreLabel": "SCORE",
+    "scoreValue": "7/8 · 64 reps",
+    "splits": [
+      {
+        "label": "Interval 1 — AIR SQUATS",
+        "reps": 8,
+        "target": 8,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 0,
+        "exIdx": 0
+      },
+      {
+        "label": "Interval 2 — AIR SQUATS",
+        "reps": 8,
+        "target": 9,
+        "completed": false,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 1,
+        "exIdx": 0
+      },
+      {
+        "label": "Interval 3 — AIR SQUATS",
+        "reps": 8,
+        "target": 8,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 2,
+        "exIdx": 0
+      },
+      {
+        "label": "Interval 4 — AIR SQUATS",
+        "reps": 8,
+        "target": 8,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 3,
+        "exIdx": 0
+      },
+      {
+        "label": "Interval 5 — AIR SQUATS",
+        "reps": 8,
+        "target": 8,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 4,
+        "exIdx": 0
+      },
+      {
+        "label": "Interval 6 — AIR SQUATS",
+        "reps": 8,
+        "target": 8,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 5,
+        "exIdx": 0
+      },
+      {
+        "label": "Interval 7 — AIR SQUATS",
+        "reps": 8,
+        "target": 8,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 6,
+        "exIdx": 0
+      },
+      {
+        "label": "Interval 8 — AIR SQUATS",
+        "reps": 8,
+        "target": 8,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 7,
+        "exIdx": 0
+      }
+    ]
+  }
+}

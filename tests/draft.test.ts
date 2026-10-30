@@ -41,6 +41,7 @@ const fran: ForTimeDraft = {
   rounds: '3',
   sameReps: false,
   cap: '',
+  rest: '',
   rows: [
     { ...emptyLine(), exercise: ex('thrusters'), reps: ['21', '15', '9'], load: '95/65 lb' },
     { ...emptyLine(), exercise: ex('pull-ups'), reps: ['21', '15', '9'] },
@@ -103,6 +104,7 @@ describe('drafts run as saved', () => {
     const draft: Draft = {
       format: 'emom',
       stopOnMiss: false,
+      work: '',
       name: 'three',
       every: '60',
       intervals: '10',
@@ -259,6 +261,7 @@ describe('EMOM interval length (change emom-interval-length)', () => {
   const emom = (every: string, intervals = '10'): Draft => ({
     format: 'emom',
     stopOnMiss: false,
+    work: '',
     name: 'every',
     every,
     intervals,
@@ -306,6 +309,7 @@ describe('several exercises per EMOM interval (change emom-multi-exercise-interv
   const pair: EmomDraft = {
     format: 'emom',
     stopOnMiss: false,
+    work: '',
     name: 'pair',
     every: '60',
     intervals: '6',
@@ -373,6 +377,7 @@ describe('EMOM progression and stop (change emom-progressive-reps)', () => {
     every: '60',
     intervals: '30',
     stopOnMiss: true,
+    work: '',
     slots: [[{ ...emptyLine(), exercise: ex('burpees'), reps: '1', increment: '1' }]],
   };
 
@@ -430,11 +435,73 @@ describe('setLineIncrement', () => {
       every: '60',
       intervals: '4',
       stopOnMiss: false,
+      work: '',
       slots: [
         [{ ...emptyLine(), exercise: ex('pull-ups'), reps: '5', increment: '' }, { ...emptyLine(), exercise: ex('push-ups'), reps: '10', increment: '' }],
         [{ ...emptyLine(), exercise: ex('air-squats'), reps: '15', increment: '' }],
       ],
     };
     expect(setLineIncrement(draft, 1, '2').slots.map((s) => s.map((l) => l.increment))).toEqual([['', '2'], ['']]);
+  });
+});
+
+describe('rest fields (change rest-steps)', () => {
+  const rested: ForTimeDraft = {
+    ...fran,
+    name: 'rested',
+    rounds: '5',
+    sameReps: true,
+    rest: '60',
+    rows: [{ ...emptyLine(), exercise: ex('burpees'), reps: ['10'] }],
+  };
+  const tabata: EmomDraft = {
+    format: 'emom',
+    name: 'tabata',
+    every: '30',
+    intervals: '8',
+    work: '20',
+    stopOnMiss: false,
+    slots: [[{ ...emptyLine(), exercise: ex('air-squats'), reps: '8', increment: '' }]],
+  };
+
+  it('saves a rested For Time and a Tabata with their fields', () => {
+    expect(draftToStoredBlock(rested)).toMatchObject({ rounds: 5, restSeconds: 60 });
+    expect(configOf(rested).description).toBe('5 rounds · burpees · 60 s rest');
+    expect(draftToStoredBlock(tabata)).toEqual({
+      formatId: 'emom',
+      lines: [[{ exerciseId: 'air-squats', target: 8 }]],
+      rounds: 8,
+      durationSeconds: 240,
+      intervalSeconds: 30,
+      workSeconds: 20,
+    });
+    expect(validateDraft(rested)).toEqual({});
+    expect(validateDraft(tabata)).toEqual({});
+  });
+
+  it('writes neither field when empty', () => {
+    expect('restSeconds' in draftToStoredBlock(fran)).toBe(false);
+    expect('workSeconds' in draftToStoredBlock({ ...tabata, work: '' })).toBe(false);
+  });
+
+  it('flags rest on one round, rest out of range and work not shorter than EVERY', () => {
+    expect(validateDraft({ ...rested, rounds: '1' }).rest).toBe('Rest needs 2 rounds or more');
+    expect(validateDraft({ ...rested, rest: '0' }).rest).toBe('Rest must be 1 to 600 seconds');
+    expect(validateDraft({ ...rested, rest: '601' }).rest).toBe('Rest must be 1 to 600 seconds');
+    expect(validateDraft({ ...tabata, work: '30' }).work).toBe('Work must be 1 or more and shorter than EVERY');
+    expect(validateDraft({ ...tabata, work: 'x' }).work).toBe('Work must be 1 or more and shorter than EVERY');
+  });
+
+  it('DUPLICATE keeps both', () => {
+    const restCopy = draftFromBlock('forTime', configOf(rested).block, 'COPY') as ForTimeDraft;
+    expect(restCopy.rest).toBe('60');
+    const tabataCopy = draftFromBlock('emom', configOf(tabata).block, 'COPY') as EmomDraft;
+    expect(tabataCopy.work).toBe('20');
+    expect(draftToStoredBlock(tabataCopy)).toEqual(draftToStoredBlock(tabata));
+  });
+
+  it('switching format starts both empty', () => {
+    expect((switchFormat(tabata, 'forTime') as ForTimeDraft).rest).toBe('');
+    expect((switchFormat(rested, 'emom') as EmomDraft).work).toBe('');
   });
 });

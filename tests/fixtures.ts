@@ -108,6 +108,42 @@ export const SYNTHETIC_WORKOUTS: WorkoutRow[] = [
       stopOnMiss: true,
     }]),
   },
+  {
+    // Change rest-steps: 3 rounds of BURPEES 5, 60 s of rest between rounds.
+    id: 'rested',
+    name: 'RESTED',
+    blocks: JSON.stringify([{
+      formatId: 'forTime',
+      lines: [0, 1, 2].map(() => [{ exerciseId: 'burpees', target: 5 }]),
+      rounds: 3,
+      restSeconds: 60,
+    }]),
+  },
+  {
+    // Change rest-steps: the same with a 2 min cap.
+    id: 'restedCapped',
+    name: 'RESTED CAPPED',
+    blocks: JSON.stringify([{
+      formatId: 'forTime',
+      lines: [0, 1, 2].map(() => [{ exerciseId: 'burpees', target: 5 }]),
+      rounds: 3,
+      durationSeconds: 120,
+      restSeconds: 60,
+    }]),
+  },
+  {
+    // Change rest-steps: a Tabata, 8 intervals of 30 s with 20 s of work, AIR SQUATS 8.
+    id: 'tabata',
+    name: 'TABATA',
+    blocks: JSON.stringify([{
+      formatId: 'emom',
+      lines: [[{ exerciseId: 'air-squats', target: 8 }]],
+      rounds: 8,
+      durationSeconds: 240,
+      intervalSeconds: 30,
+      workSeconds: 20,
+    }]),
+  },
 ];
 
 /** A golden case's workout: a built-in by id, or one of `SYNTHETIC_WORKOUTS`. */
@@ -156,6 +192,9 @@ const FRAN_REPS = 90; // 21+21+15+15+9+9
 const FILTHY_REPS = 500;
 const EMOM_TARGETS = [10, 15, 10, 15, 10, 15, 10, 15, 10, 15];
 const DEATH_BY_12 = Array.from({ length: 12 }, (_, m) => m + 1); // 1, 2, … 12
+const RESTED_ROUNDS = [...run(2000, 5, 2000), ...run(72000, 5, 2000), ...run(142000, 5, 2000)];
+const TABATA_8 = [8, 8, 8, 8, 8, 8, 8, 8];
+const TABATA_REST_REPS = [{ t: 25000, kind: 'rep' as Kind }, { t: 52000, kind: 'rep' as Kind }];
 
 export const CASES: GoldenCase[] = [
   // FRAN (For Time, 3 rounds)
@@ -357,5 +396,44 @@ export const CASES: GoldenCase[] = [
     wodId: 'deathBy',
     log: toLog(perMinute([...DEATH_BY_12, 9])),
     changes: [{ type: 'target', roundIdx: 12, exIdx: 0, newTarget: 9 }],
+  },
+
+  // Change rest-steps: RESTED (3 × BURPEES 5, 60 s rest), RESTED CAPPED (the same,
+  // 2 min cap) and TABATA (8 × 30 s, 20 s of work, AIR SQUATS 8). Each round starts
+  // 2 s after the previous rest ends: round 1 ends at 10 s, round 2 runs 72–80 s,
+  // round 3 runs 142–150 s.
+  { name: 'rested-completed', wodId: 'rested', log: toLog(RESTED_ROUNDS) },
+  {
+    // A crafted rep inside round 1's rest (live never records one): not counted.
+    name: 'rested-rep-in-rest',
+    wodId: 'rested',
+    log: toLog([...RESTED_ROUNDS, { t: 40000, kind: 'rep' as Kind }].sort((a, b) => a.t - b.t)),
+  },
+  {
+    name: 'rested-adjusted-target-down',
+    wodId: 'rested',
+    log: toLog(RESTED_ROUNDS),
+    changes: [{ type: 'target', roundIdx: 0, exIdx: 0, newTarget: 3 }],
+  },
+  // Round 2 ends at 80 s; its rest runs past the 120 s cap: CAP · 10 reps.
+  { name: 'rested-capped-in-rest', wodId: 'restedCapped', log: toLog(RESTED_ROUNDS.slice(0, 10)) },
+  { name: 'tabata-all-completed', wodId: 'tabata', log: toLog(perInterval(30000, TABATA_8)) },
+  {
+    // Crafted reps in the rests of intervals 1 and 2: not counted.
+    name: 'tabata-reps-in-rest',
+    wodId: 'tabata',
+    log: toLog([...perInterval(30000, TABATA_8), ...TABATA_REST_REPS].sort((a, b) => a.t - b.t)),
+  },
+  {
+    name: 'tabata-reps-in-rest-adjusted',
+    wodId: 'tabata',
+    log: toLog([...perInterval(30000, TABATA_8), ...TABATA_REST_REPS].sort((a, b) => a.t - b.t)),
+    changes: [{ type: 'target', roundIdx: 1, exIdx: 0, newTarget: 9 }],
+  },
+  {
+    name: 'tabata-adjusted-target-up',
+    wodId: 'tabata',
+    log: toLog(perInterval(30000, TABATA_8)),
+    changes: [{ type: 'target', roundIdx: 1, exIdx: 0, newTarget: 10 }],
   },
 ];

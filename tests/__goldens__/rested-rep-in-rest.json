@@ -1,0 +1,38 @@
+{
+  "result": {
+    "scoreLabel": "TIME",
+    "scoreValue": "02:30",
+    "splits": [
+      {
+        "label": "Round 1 — BURPEES",
+        "reps": 5,
+        "target": 5,
+        "completed": true,
+        "cumulativeMs": 10000,
+        "lapMs": 10000,
+        "roundIdx": 0,
+        "exIdx": 0
+      },
+      {
+        "label": "Round 2 — BURPEES",
+        "reps": 5,
+        "target": 5,
+        "completed": true,
+        "cumulativeMs": 80000,
+        "lapMs": 70000,
+        "roundIdx": 1,
+        "exIdx": 0
+      },
+      {
+        "label": "Round 3 — BURPEES",
+        "reps": 5,
+        "target": 5,
+        "completed": true,
+        "cumulativeMs": 150000,
+        "lapMs": 70000,
+        "roundIdx": 2,
+        "exIdx": 0
+      }
+    ]
+  }
+}

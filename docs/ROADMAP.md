@@ -343,7 +343,7 @@ Goal: the owner can write any reps-scored metcon, with movements and several blo
      - ✅ **C2b-1** (`emom-interval-length`): EMOM intervals of 10–600 s (EVERY (SEC) + INTERVALS in the editor), "E2MOM · 8" / "EVERY 1:30 · 10", "interval left", "Interval N" splits, the adjusted duration in intervals.
      - ✅ **C2b-2** (`emom-multi-exercise-intervals`): several exercises per EMOM interval, done in order (onTarget within the interval, extras on the last), one split per exercise, an interval completed only when all are, "+ EXERCISE IN MIN n" in the editor.
      - ✅ **C2b-3** (`emom-progressive-reps`): a per-line increment added each time its interval comes round (ladders, Death by), and an optional stop at the first missed interval scored "<completed> + <reps>", recomputed by adjustments; `+/ROUND` and "STOP AT FIRST MISSED INTERVAL" in the editor.
-   - **C2c**: rest steps.
+   - ✅ **C2c** (`rest-steps`): a For Time rest between rounds (clock never stops, TIME and cap include it) and an EMOM work time per interval (Tabata), REST shown with its countdown, gestures ignored and a cue at each rest change; REST (SEC) / WORK (SEC) in the editor.
    - **C2d**: multi-block, including buy-in/cash-out and a scoring block.
 
 ### Out of scope for now

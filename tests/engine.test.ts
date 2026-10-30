@@ -2,7 +2,7 @@
 // live judging (clock ticks interleaved with gestures) must end in exactly the
 // state the result fold derives from the same events.
 import { describe, expect, it } from 'vitest';
-import { EngineEvent, EngineState, START_POSITION, WodConfig, advanceTo, apply, capSeconds, fold, initial, intervalLineAt, intervalSeconds, isComplete, targetAt, view } from '@/constants/wod-engine';
+import { EngineEvent, EngineState, START_POSITION, WodConfig, advanceTo, apply, capSeconds, durationLine, fold, initial, intervalLineAt, intervalSeconds, isComplete, isResting, restLeftSeconds, targetAt, view } from '@/constants/wod-engine';
 import { CASES, builtin, workout } from './fixtures';
 
 const TICK_MS = 250;
@@ -295,5 +295,99 @@ describe('progressive reps and stop at the first miss (change emom-progressive-r
     const state = advanceTo(everyMinute, initial(everyMinute), 150000);
     expect(state.finished).toBe(false);
     expect(state.pos.minuteIdx).toBe(2);
+  });
+});
+
+describe('rest (change rest-steps)', () => {
+  const rested = workout('rested');
+  const restedCapped = workout('restedCapped');
+  const tabata = workout('tabata');
+  const reps = (ts: number[]): EngineEvent[] => ts.map((t) => ({ t, ok: true }));
+  /** `n` valid reps from `from` ms, 2 s apart. */
+  const run = (from: number, n: number) => Array.from({ length: n }, (_, i) => from + i * 2000);
+
+  it('rests between For Time rounds, without counting reps in the rest', () => {
+    // Round 1 ends at 10 s; its rest lasts until 70 s.
+    const afterRound1 = fold(rested, reps(run(2000, 5)), 30000);
+    expect(afterRound1.pos.roundIdx).toBe(1);
+    expect(afterRound1.restUntil).toBe(70000);
+    expect(isResting(rested, afterRound1)).toBe(true);
+    expect(restLeftSeconds(rested, afterRound1)).toBe(40);
+    expect(view(rested, afterRound1).exerciseName).toBe('REST 00:40');
+    expect(view(rested, afterRound1).kpi).toMatchObject({ label: 'round', current: 2 });
+
+    const state = fold(rested, reps([...run(2000, 5), 40000, ...run(70000, 5)]), 90000);
+    expect(state.tagged.find((e) => e.t === 40000)?.counted).toBe(false);
+    // Round 2 ends at 78 s (the rep at 40 s didn't count): round 3 after its rest.
+    expect(state.pos.roundIdx).toBe(2);
+    expect(state.restUntil).toBe(138000);
+    expect(isResting(rested, advanceTo(rested, state, 138000))).toBe(false);
+  });
+
+  it('finishes on the last rep, with no rest after the last round', () => {
+    const state = fold(rested, reps([...run(2000, 5), ...run(70000, 5), ...run(140000, 5)]), Infinity);
+    expect(state.finished).toBe(true);
+    expect(isComplete(rested, state)).toBe(true);
+    expect(isResting(rested, state)).toBe(false);
+    expect(state.t).toBe(148000);
+  });
+
+  it('reaches the cap during a rest', () => {
+    // Round 2 ends at 78 s: rest until 138 s, past the 120 s cap.
+    const state = fold(restedCapped, reps([...run(2000, 5), ...run(70000, 5)]), Infinity);
+    expect(state.finished).toBe(true);
+    expect(state.t).toBe(120000);
+    expect(isComplete(restedCapped, state)).toBe(false);
+  });
+
+  it('counts Tabata reps in work only, with a work/rest timer', () => {
+    const state = fold(tabata, reps([1000, 3000, 21000, 25000]), 26000);
+    expect(state.tagged.map((e) => e.counted)).toEqual([true, true, false, false]);
+    expect(state.raw).toBe(2);
+    expect(isResting(tabata, state)).toBe(true);
+    expect(view(tabata, state)).toMatchObject({ timerStr: '00:04', timerLabel: 'rest left', exerciseName: 'REST 00:04' });
+    const working = advanceTo(tabata, state, 37000);
+    expect(isResting(tabata, working)).toBe(false);
+    expect(view(tabata, working)).toMatchObject({ timerStr: '00:13', timerLabel: 'work left', exerciseName: 'AIR SQUATS' });
+  });
+
+  it('stops a stopping Tabata at the end of the missed work', () => {
+    const stopping: WodConfig = { ...tabata, block: { ...tabata.block, stopOnMiss: true } };
+    // Intervals 1 and 2 completed, interval 3 ends its work with 5 of 8.
+    const state = fold(stopping, reps([...run(1000, 8), ...run(31000, 8), ...run(61000, 5)]), Infinity);
+    expect(state.finished).toBe(true);
+    expect(state.t).toBe(80000);
+    expect(state.pos.minuteIdx).toBe(2);
+    // A whole interval skipped: missed at its work's end.
+    const skipped = advanceTo(stopping, fold(stopping, reps(run(1000, 8)), 2000), 100000);
+    expect(skipped.t).toBe(50000);
+    expect(skipped.pos.minuteIdx).toBe(1);
+  });
+
+  it('shows the rest on the duration line', () => {
+    expect(durationLine(rested)).toBe('60 s rest between rounds');
+    expect(durationLine(restedCapped)).toBe('2 min cap · 60 s rest between rounds');
+    expect(durationLine(tabata)).toBe('4 min · 20 s work / 10 s rest');
+    expect(durationLine({ ...tabata, block: { ...tabata.block, stopOnMiss: true } })).toBe('4 min max · until failure · 20 s work / 10 s rest');
+    expect(durationLine(builtin('fran'))).toBe(null);
+    expect(durationLine(builtin('cindy'))).toBe('12 min');
+    expect(durationLine(workout('franCap10'))).toBe('10 min cap');
+  });
+
+  it('describes the rest and the work time', () => {
+    expect(rested.description).toBe('3 rounds · burpees · 60 s rest');
+    expect(rested.mode).toBe('3 ROUNDS FOR TIME');
+    expect(restedCapped.description).toBe('3 rounds · burpees · 60 s rest · 2 min cap');
+    expect(tabata.description).toBe('8 × 0:30 · air squats · 20 s work');
+    expect(tabata.mode).toBe('EVERY 0:30 · 8');
+  });
+
+  it('leaves workouts without rest unchanged', () => {
+    const fran = builtin('fran');
+    const state = fold(fran, reps(run(2000, 22)), 60000);
+    expect(state.pos.roundIdx).toBe(0);
+    expect(state.restUntil).toBe(null);
+    expect(isResting(fran, state)).toBe(false);
+    expect(view(builtin('everyMinute'), advanceTo(builtin('everyMinute'), initial(builtin('everyMinute')), 75000)).timerLabel).toBe('min left');
   });
 });

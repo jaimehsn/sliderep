@@ -1,0 +1,28 @@
+{
+  "result": {
+    "scoreLabel": "SCORE",
+    "scoreValue": "CAP · 10 reps",
+    "splits": [
+      {
+        "label": "Round 1 — BURPEES",
+        "reps": 5,
+        "target": 5,
+        "completed": true,
+        "cumulativeMs": 10000,
+        "lapMs": 10000,
+        "roundIdx": 0,
+        "exIdx": 0
+      },
+      {
+        "label": "Round 2 — BURPEES",
+        "reps": 5,
+        "target": 5,
+        "completed": true,
+        "cumulativeMs": 80000,
+        "lapMs": 70000,
+        "roundIdx": 1,
+        "exIdx": 0
+      }
+    ]
+  }
+}

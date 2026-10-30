@@ -12,17 +12,9 @@ import { useSQLiteContext } from 'expo-sqlite';
 import { withProfile } from '@/components/editor/profile-gate';
 import { Screen } from '@/components/screen';
 import { HF } from '@/constants/hf';
-import { WodConfig, capSeconds } from '@/constants/wod-engine';
+import { durationLine } from '@/constants/wod-engine';
 import { Workout, archiveWorkout, getWorkout, isOwn } from '@/db/workouts';
 import { useProfile } from '@/hooks/use-profile';
-
-// "12 min", "10 min cap" for a For Time's time cap (change for-time-cap), or
-// "30 min max · until failure" for an EMOM that stops at its first miss (change emom-progressive-reps).
-function formatDuration(config: WodConfig): string {
-  const m = Math.floor(config.totalSeconds / 60);
-  if (capSeconds(config) != null) return `${m} min cap`;
-  return config.block.stopOnMiss ? `${m} min max · until failure` : `${m} min`;
-}
 
 export default function LibraryDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -84,8 +76,8 @@ export default function LibraryDetailScreen() {
               {own && <Text style={styles.mineTag}>MINE</Text>}
             </View>
             <Text style={styles.name}>{config.name}</Text>
-            {config.totalSeconds > 0 && (
-              <Text style={styles.duration}>{formatDuration(config)}</Text>
+            {durationLine(config) != null && (
+              <Text style={styles.duration}>{durationLine(config)}</Text>
             )}
           </View>
           <Pressable

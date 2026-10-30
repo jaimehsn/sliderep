@@ -152,7 +152,9 @@ function deriveAdjustedOnClock(config: WodConfig, log: LogEntry[], changes: Adju
   const interval = intervalSeconds(config);
   const intervalMs = interval * 1000;
   const totalIntervals = Math.ceil((cutoffSeconds ?? config.totalSeconds) / interval);
-  const okLog = log.filter((e) => e.ok).sort((a, b) => a.t - b.t);
+  // A rep in an interval's rest never counts (change rest-steps); live never records one.
+  const workMs = config.block.workSeconds != null ? config.block.workSeconds * 1000 : null;
+  const okLog = log.filter((e) => e.ok && (workMs == null || e.t % intervalMs < workMs)).sort((a, b) => a.t - b.t);
 
   const splits: Split[] = [];
   let intervalsCompleted = 0;

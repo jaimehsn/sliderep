@@ -28,6 +28,10 @@ export type StoredBlock = {
   intervalSeconds?: number;
   /** EMOM only: stop at the first missed interval, absent when off (change emom-progressive-reps). */
   stopOnMiss?: boolean;
+  /** For Time only: rest between rounds in seconds, absent when none (change rest-steps). */
+  restSeconds?: number;
+  /** EMOM only: work time per interval in seconds, the rest of it is rest; absent when none (change rest-steps). */
+  workSeconds?: number;
 };
 
 // Strict on purpose: rows this can't read can't exist until engine v2 (change C)
@@ -45,6 +49,8 @@ export function parseWorkoutRow(row: WorkoutRow, exerciseNames: Map<string, stri
     durationSeconds: stored.durationSeconds,
     intervalSeconds: stored.intervalSeconds,
     stopOnMiss: stored.stopOnMiss,
+    restSeconds: stored.restSeconds,
+    workSeconds: stored.workSeconds,
     lines: stored.lines.map((round) =>
       round.map((line) => {
         const exercise = exerciseNames.get(line.exerciseId);

@@ -185,9 +185,22 @@ export default function NewWorkoutScreen() {
                 keyboardType="number-pad"
                 style={styles.numberInput}
               />
+              {/* Label and field kept together when the row wraps (change rest-steps). */}
+              <View style={[styles.paramPair, styles.paramGap]}>
+                <Text style={styles.label}>REST (SEC)</Text>
+                <TextInput
+                  value={draft.rest}
+                  onChangeText={(rest) => setDraft({ ...draft, rest })}
+                  placeholder="NONE"
+                  placeholderTextColor={HF.mutedDim}
+                  keyboardType="number-pad"
+                  style={styles.numberInput}
+                />
+              </View>
             </View>
             {problems.rounds && <Text style={styles.problem}>{problems.rounds}</Text>}
             {problems.cap && <Text style={styles.problem}>{problems.cap}</Text>}
+            {problems.rest && <Text style={styles.problem}>{problems.rest}</Text>}
             <Pressable
               onPress={() => setDraft(setSameReps(draft, !draft.sameReps))}
               style={({ pressed }) => [styles.checkRow, pressed && styles.pressed]}
@@ -226,11 +239,24 @@ export default function NewWorkoutScreen() {
                 keyboardType="number-pad"
                 style={styles.numberInput}
               />
+              {/* Label and field kept together when the row wraps (change rest-steps). */}
+              <View style={[styles.paramPair, styles.paramGap]}>
+                <Text style={styles.label}>WORK (SEC)</Text>
+                <TextInput
+                  value={draft.work}
+                  onChangeText={(work) => setDraft({ ...draft, work })}
+                  placeholder="ALL"
+                  placeholderTextColor={HF.mutedDim}
+                  keyboardType="number-pad"
+                  style={styles.numberInput}
+                />
+              </View>
             </View>
             {/* On its own line: beside EVERY / INTERVALS it ran off narrow screens. */}
             {emomTotal != null && <Text style={[styles.label, styles.totalLine]}>TOTAL {emomTotal}</Text>}
             {problems.every && <Text style={styles.problem}>{problems.every}</Text>}
             {problems.intervals && <Text style={styles.problem}>{problems.intervals}</Text>}
+            {problems.work && <Text style={styles.problem}>{problems.work}</Text>}
             <Pressable
               onPress={() => setDraft({ ...draft, stopOnMiss: !draft.stopOnMiss })}
               style={({ pressed }) => [styles.checkRow, pressed && styles.pressed]}
@@ -506,6 +532,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     rowGap: 8,
     marginTop: 8,
+  },
+  paramPair: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   totalLine: {
     marginTop: 8,
