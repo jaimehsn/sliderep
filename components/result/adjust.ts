@@ -1,6 +1,6 @@
-import { START_POSITION, WodConfig, WodSession, capSeconds, fold, formatTime, intervalLineAt, intervalLines, intervalSeconds, targetAt } from '@/constants/wod-engine';
+import { START_POSITION, WodConfig, WodSession, capSeconds, isSequence, fold, formatTime, intervalLineAt, intervalLines, intervalSeconds, targetAt } from '@/constants/wod-engine';
 import type { LogEntry } from '@/components/judge/types';
-import { WodResult, Split, intervalSplitLabel, splitLabel, deriveResult, stopAtFirstMiss } from '@/components/result/replay';
+import { WodResult, Split, blockLogs, combineBlockResults, intervalSplitLabel, splitLabel, deriveResult, stopAtFirstMiss } from '@/components/result/replay';
 import type { AdjustmentChange } from '@/db/session-adjustments';
 
 type Tagged = { t: number; roundIdx: number; exIdx: number; originalTarget: number };
@@ -205,6 +205,17 @@ function deriveAdjustedOnClock(config: WodConfig, log: LogEntry[], changes: Adju
 
 export function deriveAdjustedResult(config: WodConfig, log: LogEntry[], changes: AdjustmentChange[]): WodResult {
   if (changes.length === 0) return deriveResult(config, log);
+  if (isSequence(config)) {
+    // Each block on its own local log (boundaries from the original fold); targets
+    // by block (none means block 0), the duration only for the last block.
+    const logs = blockLogs(config, log);
+    const last = config.parts.length - 1;
+    const results = config.parts.map((part, i) => {
+      const own = changes.filter((c) => (c.type === 'target' ? (c.blockIdx ?? 0) === i : i === last));
+      return deriveAdjustedResult(part, logs[i], own);
+    });
+    return combineBlockResults(config, results);
+  }
   return config.advanceMode === 'onClock'
     ? deriveAdjustedOnClock(config, log, changes)
     : deriveAdjustedOnTarget(config, log, changes);

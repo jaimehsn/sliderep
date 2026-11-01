@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert, BackHandler, StyleSheet, View } from 'react-native';
+import { Alert, BackHandler, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import {
   useFonts,
@@ -111,6 +111,8 @@ function RunSession({ config, setup }: { config: WodConfig; setup: SessionSetup 
       />
 
       <View style={styles.exerciseZone}>
+        {/* Workouts of several blocks only (change multi-block-workouts). */}
+        {judge.blockLabel != null && <Text style={styles.blockLabel}>{judge.blockLabel}</Text>}
         <ExerciseName name={judge.exerciseName} animatedStyle={judge.exerciseNameStyle} />
       </View>
 
@@ -138,6 +140,13 @@ const styles = StyleSheet.create({
   },
   exerciseZone: {
     flex: 92,
+  },
+  blockLabel: {
+    fontFamily: 'IBMPlexMono_400Regular',
+    fontSize: 10,
+    color: HF.muted,
+    letterSpacing: 2,
+    textAlign: 'center',
   },
   countZone: {
     flex: 288,

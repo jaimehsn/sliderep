@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { Fragment, useCallback, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
@@ -21,7 +21,7 @@ import { Workout, getWorkout } from '@/db/workouts';
 import { AdjustmentChange, SessionAdjustment, addAdjustment, getAdjustments } from '@/db/session-adjustments';
 import { deriveAdjustedResult } from '@/components/result/adjust';
 import { Split } from '@/components/result/replay';
-import { capSeconds, intervalSeconds } from '@/constants/wod-engine';
+import { capSeconds, intervalSeconds, isSequence } from '@/constants/wod-engine';
 
 export default function AdjustScreen() {
   const { sessionId } = useLocalSearchParams<{ sessionId: string }>();
@@ -66,18 +66,23 @@ export default function AdjustScreen() {
   const approvedChanges = useMemo(() => adjustments.flatMap((a) => a.changes), [adjustments]);
   const previewChanges = useMemo(() => [...approvedChanges, ...pending], [approvedChanges, pending]);
   const result = config ? deriveAdjustedResult(config, log, previewChanges) : null;
-  const isEmom = config?.advanceMode === 'onClock';
+  const sequence = config != null && isSequence(config);
+  // The duration is the last block's on a workout of several blocks (change multi-block-workouts).
+  const durationConfig = config != null && isSequence(config) ? config.parts[config.parts.length - 1] : config;
+  const isEmom = durationConfig?.advanceMode === 'onClock';
   // The duration field's unit in seconds: an EMOM's interval (minutes at 60 s), else plain seconds.
-  const durationUnit = config && isEmom ? intervalSeconds(config) : 1;
+  const durationUnit = durationConfig && isEmom ? intervalSeconds(durationConfig) : 1;
   const durationUnitLabel = !isEmom ? 'SEC' : durationUnit === 60 ? 'MIN' : 'INTERVALS';
-  const hasDuration = (config?.totalSeconds ?? 0) > 0;
+  const hasDuration = (durationConfig?.totalSeconds ?? 0) > 0;
   const remaining = 3 - adjustments.length;
 
-  if (!fontsLoaded || !loaded || !config || !result) {
+  if (!fontsLoaded || !loaded || !config || !durationConfig || !result) {
     return <View style={{ flex: 1, backgroundColor: HF.bg }} />;
   }
 
-  const keyOf = (split: Split) => `${split.roundIdx}:${split.exIdx}`;
+  const keyOf = (split: Split) => `${split.blockIdx ?? 0}:${split.roundIdx}:${split.exIdx}`;
+  const sameTarget = (c: AdjustmentChange, split: Split) =>
+    c.type === 'target' && c.roundIdx === split.roundIdx && c.exIdx === split.exIdx && (c.blockIdx ?? 0) === (split.blockIdx ?? 0);
 
   const startEdit = (split: Split) => {
     setEditingKey(keyOf(split));
@@ -88,14 +93,16 @@ export default function AdjustScreen() {
     const n = parseInt(editingValue, 10);
     setEditingKey(null);
     if (!Number.isFinite(n) || n <= 0 || n === split.target) return;
+    // A workout of several blocks names the block; one block writes the change as before.
+    const block = sequence ? { blockIdx: split.blockIdx ?? 0 } : {};
     setPending((prev) => [
-      ...prev.filter((c) => !(c.type === 'target' && c.roundIdx === split.roundIdx && c.exIdx === split.exIdx)),
-      { type: 'target', roundIdx: split.roundIdx, exIdx: split.exIdx, newTarget: n },
+      ...prev.filter((c) => !sameTarget(c, split)),
+      { type: 'target', roundIdx: split.roundIdx, exIdx: split.exIdx, newTarget: n, ...block },
     ]);
   };
 
   const currentDurationSeconds = (() => {
-    let value = config.totalSeconds;
+    let value = durationConfig.totalSeconds;
     for (const c of previewChanges) if (c.type === 'duration') value = c.newDurationSeconds;
     return value;
   })();
@@ -139,7 +146,10 @@ export default function AdjustScreen() {
 
       {hasDuration && (
         <View style={styles.durationRow}>
-          <Text style={styles.durationLabel}>{capSeconds(config) != null ? 'TIME CAP' : 'DURATION'} ({durationUnitLabel})</Text>
+          <Text style={styles.durationLabel}>
+            {sequence ? 'LAST BLOCK ' : ''}
+            {capSeconds(durationConfig) != null ? 'TIME CAP' : 'DURATION'} ({durationUnitLabel})
+          </Text>
           {durationDraft != null ? (
             <TextInput
               style={styles.durationInput}
@@ -163,24 +173,29 @@ export default function AdjustScreen() {
           const key = keyOf(split);
           const editing = editingKey === key;
           return (
-            <Pressable key={i} onPress={() => !editing && startEdit(split)} style={styles.splitRow}>
-              <View style={styles.splitLeft}>
-                <Text style={[styles.splitLabel, !split.completed && styles.splitLabelPartial]}>{split.label}</Text>
-                {editing ? (
-                  <TextInput
-                    style={styles.editInput}
-                    value={editingValue}
-                    onChangeText={setEditingValue}
-                    keyboardType="number-pad"
-                    autoFocus
-                    onBlur={() => commitEdit(split)}
-                    onSubmitEditing={() => commitEdit(split)}
-                  />
-                ) : (
-                  <Text style={styles.splitReps}>{split.reps}/{split.target}</Text>
-                )}
-              </View>
-            </Pressable>
+            <Fragment key={i}>
+              {result.groups != null && split.blockIdx !== result.splits[i - 1]?.blockIdx && (
+                <Text style={styles.groupTitle}>{result.groups[split.blockIdx ?? 0].title}</Text>
+              )}
+              <Pressable onPress={() => !editing && startEdit(split)} style={styles.splitRow}>
+                <View style={styles.splitLeft}>
+                  <Text style={[styles.splitLabel, !split.completed && styles.splitLabelPartial]}>{split.label}</Text>
+                  {editing ? (
+                    <TextInput
+                      style={styles.editInput}
+                      value={editingValue}
+                      onChangeText={setEditingValue}
+                      keyboardType="number-pad"
+                      autoFocus
+                      onBlur={() => commitEdit(split)}
+                      onSubmitEditing={() => commitEdit(split)}
+                    />
+                  ) : (
+                    <Text style={styles.splitReps}>{split.reps}/{split.target}</Text>
+                  )}
+                </View>
+              </Pressable>
+            </Fragment>
           );
         })}
       </ScrollView>
@@ -283,6 +298,14 @@ const styles = StyleSheet.create({
   splitsContent: {
     paddingHorizontal: 24,
     paddingBottom: 24,
+  },
+  groupTitle: {
+    fontFamily: 'IBMPlexMono_500Medium',
+    fontSize: 11,
+    color: HF.muted,
+    letterSpacing: 1.5,
+    paddingTop: 20,
+    paddingBottom: 4,
   },
   splitRow: {
     paddingVertical: 12,

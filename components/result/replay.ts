@@ -1,5 +1,6 @@
 import {
   START_POSITION,
+  SequenceConfig,
   TaggedEvent,
   WodConfig,
   WodSession,
@@ -11,6 +12,7 @@ import {
   intervalSeconds,
   intervalUnit,
   isComplete,
+  isSequence,
   kpiAt,
   targetAt,
 } from '@/constants/wod-engine';
@@ -33,12 +35,19 @@ export type Split = {
   lapMs: number | null;
   roundIdx: number;
   exIdx: number;
+  /** Workouts of several blocks: the block it belongs to (change multi-block-workouts). */
+  blockIdx?: number;
 };
+
+/** One block's splits on a workout of several blocks, headed "BLOCK n · mode · score". */
+export type SplitGroup = { blockIdx: number; title: string; splits: Split[] };
 
 export type WodResult = {
   scoreLabel: string;
   scoreValue: string;
   splits: Split[];
+  /** Workouts of several blocks only: `splits` grouped per block (change multi-block-workouts). */
+  groups?: SplitGroup[];
 };
 
 function titleCase(s: string): string {
@@ -182,6 +191,40 @@ function deriveOnTarget(config: WodConfig, log: LogEntry[]): WodResult {
   };
 }
 
+// ─── Workouts of several blocks (change multi-block-workouts) ───────────────
+
+/**
+ * Each block's own log on its block-local clock: the events the sequence fold
+ * applied in that block, shifted by the block's start. Block boundaries come
+ * from this one fold over the original config, so an adjustment never moves a
+ * block's start or a rep from one block to another.
+ */
+export function blockLogs(config: SequenceConfig, log: LogEntry[]): LogEntry[][] {
+  const state = fold(config, log, Infinity);
+  const ends = state.seq!.ends;
+  const starts = config.parts.map((_, i) => (i === 0 ? 0 : ends[i - 1] + config.restAfter[i - 1] * 1000));
+  return config.parts.map((_, i) =>
+    state.tagged
+      .filter((e) => e.block === i)
+      .map((e, k) => ({ id: k, ok: e.ok, t: e.t - starts[i] })),
+  );
+}
+
+/** The scoring block's score, every block's splits in order, and one group per block. */
+export function combineBlockResults(config: SequenceConfig, results: WodResult[]): WodResult {
+  const groups = results.map((r, blockIdx) => ({
+    blockIdx,
+    title: `BLOCK ${blockIdx + 1} · ${config.parts[blockIdx].mode} · ${r.scoreValue}`,
+    splits: r.splits.map((s) => ({ ...s, blockIdx })),
+  }));
+  const scoring = results[config.scoringBlock];
+  return { scoreLabel: scoring.scoreLabel, scoreValue: scoring.scoreValue, splits: groups.flatMap((g) => g.splits), groups };
+}
+
 export function deriveResult(config: WodConfig, log: LogEntry[]): WodResult {
+  if (isSequence(config)) {
+    const logs = blockLogs(config, log);
+    return combineBlockResults(config, config.parts.map((part, i) => deriveResult(part, logs[i])));
+  }
   return config.advanceMode === 'onClock' ? deriveOnClock(config, log) : deriveOnTarget(config, log);
 }

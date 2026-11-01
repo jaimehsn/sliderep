@@ -331,20 +331,22 @@ Assumptions (not confirmed):
 
 ## WOD editor plan
 
+✅ **Done** (2026-11-01, with C2d).
+
 Goal: the owner can write any reps-scored metcon, with movements and several blocks, without code. Delivered as ordered OpenSpec changes:
 
 1. ✅ `exercise-catalog-from-db`: the 83-exercise catalog lives in the DB.
 2. ✅ `workouts-from-db`: workouts are read only from the DB.
 3. ✅ `unified-engine` (C1): one incremental engine for live judging and results, with vitest goldens. Followed by ✅ `fix-amrap-partial-reps`.
-4. `wod-editor` (D): create, duplicate and archive single-block FOR TIME / AMRAP / EMOM workouts, with rep descriptions and load per line. The editor comes **before** the remaining engine primitives, so every later change can be tested on a device as it lands.
-5. Then four changes. Each one extends the engine **and** the editor:
+4. ✅ `wod-editor` (D): create, duplicate and archive single-block FOR TIME / AMRAP / EMOM workouts, with rep descriptions and load per line. The editor comes **before** the remaining engine primitives, so every later change can be tested on a device as it lands.
+5. ✅ Then four changes. Each one extends the engine **and** the editor:
    - ✅ **C2a** (`for-time-cap`): time cap on For Time / Chipper — counting-up clock labelled with the cap, end sound at the cap, "CAP · N reps", adjustable cap, TIME CAP (MIN) in the editor.
    - ✅ **C2b**, split into three changes:
      - ✅ **C2b-1** (`emom-interval-length`): EMOM intervals of 10–600 s (EVERY (SEC) + INTERVALS in the editor), "E2MOM · 8" / "EVERY 1:30 · 10", "interval left", "Interval N" splits, the adjusted duration in intervals.
      - ✅ **C2b-2** (`emom-multi-exercise-intervals`): several exercises per EMOM interval, done in order (onTarget within the interval, extras on the last), one split per exercise, an interval completed only when all are, "+ EXERCISE IN MIN n" in the editor.
      - ✅ **C2b-3** (`emom-progressive-reps`): a per-line increment added each time its interval comes round (ladders, Death by), and an optional stop at the first missed interval scored "<completed> + <reps>", recomputed by adjustments; `+/ROUND` and "STOP AT FIRST MISSED INTERVAL" in the editor.
    - ✅ **C2c** (`rest-steps`): a For Time rest between rounds (clock never stops, TIME and cap include it) and an EMOM work time per interval (Tabata), REST shown with its countdown, gestures ignored and a cue at each rest change; REST (SEC) / WORK (SEC) in the editor.
-   - **C2d**: multi-block, including buy-in/cash-out and a scoring block.
+   - ✅ **C2d** (`multi-block-workouts`): workouts of several blocks in any order (buy-in / cash-out, two AMRAPs with a rest), an optional rest after each block but the last, one scoring block; "BLOCK n/N" and a cue at each block change while judging, splits grouped per block with block-local times, targets adjustable in any block and the duration only in the last; "+ BLOCK", REST AFTER (SEC) and SCORES in the editor.
 
 ### Out of scope for now
 

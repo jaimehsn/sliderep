@@ -1,0 +1,306 @@
+{
+  "result": {
+    "scoreLabel": "SCORE",
+    "scoreValue": "CAP · 15 reps",
+    "splits": [
+      {
+        "label": "Round 1 — BURPEES",
+        "reps": 10,
+        "target": 10,
+        "completed": true,
+        "cumulativeMs": 30000,
+        "lapMs": 30000,
+        "roundIdx": 0,
+        "exIdx": 0,
+        "blockIdx": 0
+      },
+      {
+        "label": "Round 2 — BURPEES",
+        "reps": 10,
+        "target": 10,
+        "completed": true,
+        "cumulativeMs": 60000,
+        "lapMs": 30000,
+        "roundIdx": 1,
+        "exIdx": 0,
+        "blockIdx": 0
+      },
+      {
+        "label": "Round 3 — BURPEES",
+        "reps": 10,
+        "target": 10,
+        "completed": true,
+        "cumulativeMs": 90000,
+        "lapMs": 30000,
+        "roundIdx": 2,
+        "exIdx": 0,
+        "blockIdx": 0
+      },
+      {
+        "label": "Round 4 — BURPEES",
+        "reps": 10,
+        "target": 10,
+        "completed": true,
+        "cumulativeMs": 120000,
+        "lapMs": 30000,
+        "roundIdx": 3,
+        "exIdx": 0,
+        "blockIdx": 0
+      },
+      {
+        "label": "Round 1 — AIR SQUATS",
+        "reps": 10,
+        "target": 10,
+        "completed": true,
+        "cumulativeMs": 20000,
+        "lapMs": 20000,
+        "roundIdx": 0,
+        "exIdx": 0,
+        "blockIdx": 1
+      },
+      {
+        "label": "Round 2 — AIR SQUATS",
+        "reps": 5,
+        "target": 10,
+        "completed": false,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 1,
+        "exIdx": 0,
+        "blockIdx": 1
+      }
+    ],
+    "groups": [
+      {
+        "blockIdx": 0,
+        "title": "BLOCK 1 · 3-MIN AMRAP · 4 + 0",
+        "splits": [
+          {
+            "label": "Round 1 — BURPEES",
+            "reps": 10,
+            "target": 10,
+            "completed": true,
+            "cumulativeMs": 30000,
+            "lapMs": 30000,
+            "roundIdx": 0,
+            "exIdx": 0,
+            "blockIdx": 0
+          },
+          {
+            "label": "Round 2 — BURPEES",
+            "reps": 10,
+            "target": 10,
+            "completed": true,
+            "cumulativeMs": 60000,
+            "lapMs": 30000,
+            "roundIdx": 1,
+            "exIdx": 0,
+            "blockIdx": 0
+          },
+          {
+            "label": "Round 3 — BURPEES",
+            "reps": 10,
+            "target": 10,
+            "completed": true,
+            "cumulativeMs": 90000,
+            "lapMs": 30000,
+            "roundIdx": 2,
+            "exIdx": 0,
+            "blockIdx": 0
+          },
+          {
+            "label": "Round 4 — BURPEES",
+            "reps": 10,
+            "target": 10,
+            "completed": true,
+            "cumulativeMs": 120000,
+            "lapMs": 30000,
+            "roundIdx": 3,
+            "exIdx": 0,
+            "blockIdx": 0
+          }
+        ]
+      },
+      {
+        "blockIdx": 1,
+        "title": "BLOCK 2 · 2 ROUNDS FOR TIME · CAP · 15 reps",
+        "splits": [
+          {
+            "label": "Round 1 — AIR SQUATS",
+            "reps": 10,
+            "target": 10,
+            "completed": true,
+            "cumulativeMs": 20000,
+            "lapMs": 20000,
+            "roundIdx": 0,
+            "exIdx": 0,
+            "blockIdx": 1
+          },
+          {
+            "label": "Round 2 — AIR SQUATS",
+            "reps": 5,
+            "target": 10,
+            "completed": false,
+            "cumulativeMs": null,
+            "lapMs": null,
+            "roundIdx": 1,
+            "exIdx": 0,
+            "blockIdx": 1
+          }
+        ]
+      }
+    ]
+  },
+  "adjusted": {
+    "scoreLabel": "SCORE",
+    "scoreValue": "CAP · 9 reps",
+    "splits": [
+      {
+        "label": "Round 1 — BURPEES",
+        "reps": 10,
+        "target": 10,
+        "completed": true,
+        "cumulativeMs": 30000,
+        "lapMs": 30000,
+        "roundIdx": 0,
+        "exIdx": 0,
+        "blockIdx": 0
+      },
+      {
+        "label": "Round 2 — BURPEES",
+        "reps": 10,
+        "target": 10,
+        "completed": true,
+        "cumulativeMs": 60000,
+        "lapMs": 30000,
+        "roundIdx": 1,
+        "exIdx": 0,
+        "blockIdx": 0
+      },
+      {
+        "label": "Round 3 — BURPEES",
+        "reps": 10,
+        "target": 10,
+        "completed": true,
+        "cumulativeMs": 90000,
+        "lapMs": 30000,
+        "roundIdx": 2,
+        "exIdx": 0,
+        "blockIdx": 0
+      },
+      {
+        "label": "Round 4 — BURPEES",
+        "reps": 10,
+        "target": 10,
+        "completed": true,
+        "cumulativeMs": 120000,
+        "lapMs": 30000,
+        "roundIdx": 3,
+        "exIdx": 0,
+        "blockIdx": 0
+      },
+      {
+        "label": "Round 1 — AIR SQUATS",
+        "reps": 9,
+        "target": 10,
+        "completed": false,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 0,
+        "exIdx": 0,
+        "blockIdx": 1
+      },
+      {
+        "label": "Round 2 — AIR SQUATS",
+        "reps": 0,
+        "target": 10,
+        "completed": false,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 1,
+        "exIdx": 0,
+        "blockIdx": 1
+      }
+    ],
+    "groups": [
+      {
+        "blockIdx": 0,
+        "title": "BLOCK 1 · 3-MIN AMRAP · 4 + 0",
+        "splits": [
+          {
+            "label": "Round 1 — BURPEES",
+            "reps": 10,
+            "target": 10,
+            "completed": true,
+            "cumulativeMs": 30000,
+            "lapMs": 30000,
+            "roundIdx": 0,
+            "exIdx": 0,
+            "blockIdx": 0
+          },
+          {
+            "label": "Round 2 — BURPEES",
+            "reps": 10,
+            "target": 10,
+            "completed": true,
+            "cumulativeMs": 60000,
+            "lapMs": 30000,
+            "roundIdx": 1,
+            "exIdx": 0,
+            "blockIdx": 0
+          },
+          {
+            "label": "Round 3 — BURPEES",
+            "reps": 10,
+            "target": 10,
+            "completed": true,
+            "cumulativeMs": 90000,
+            "lapMs": 30000,
+            "roundIdx": 2,
+            "exIdx": 0,
+            "blockIdx": 0
+          },
+          {
+            "label": "Round 4 — BURPEES",
+            "reps": 10,
+            "target": 10,
+            "completed": true,
+            "cumulativeMs": 120000,
+            "lapMs": 30000,
+            "roundIdx": 3,
+            "exIdx": 0,
+            "blockIdx": 0
+          }
+        ]
+      },
+      {
+        "blockIdx": 1,
+        "title": "BLOCK 2 · 2 ROUNDS FOR TIME · CAP · 9 reps",
+        "splits": [
+          {
+            "label": "Round 1 — AIR SQUATS",
+            "reps": 9,
+            "target": 10,
+            "completed": false,
+            "cumulativeMs": null,
+            "lapMs": null,
+            "roundIdx": 0,
+            "exIdx": 0,
+            "blockIdx": 1
+          },
+          {
+            "label": "Round 2 — AIR SQUATS",
+            "reps": 0,
+            "target": 10,
+            "completed": false,
+            "cumulativeMs": null,
+            "lapMs": null,
+            "roundIdx": 1,
+            "exIdx": 0,
+            "blockIdx": 1
+          }
+        ]
+      }
+    ]
+  }
+}

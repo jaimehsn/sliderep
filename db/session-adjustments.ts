@@ -2,7 +2,8 @@ import { SQLiteDatabase } from 'expo-sqlite';
 import { makeId } from './sessions';
 
 export type AdjustmentChange =
-  | { type: 'target'; roundIdx: number; exIdx: number; newTarget: number }
+  // `blockIdx`: on workouts of several blocks, the block; absent means block 0 (change multi-block-workouts).
+  | { type: 'target'; roundIdx: number; exIdx: number; newTarget: number; blockIdx?: number }
   | { type: 'duration'; newDurationSeconds: number };
 // For onClock (EMOM) WODs, `roundIdx` is reused as the minute index and `exIdx`
 // is always 0 — each EMOM interval has exactly one line (alternating exercises).

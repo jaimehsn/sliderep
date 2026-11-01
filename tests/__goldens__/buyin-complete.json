@@ -1,0 +1,292 @@
+{
+  "result": {
+    "scoreLabel": "SCORE",
+    "scoreValue": "4 + 10",
+    "splits": [
+      {
+        "label": "Station 1 — BURPEES",
+        "reps": 20,
+        "target": 20,
+        "completed": true,
+        "cumulativeMs": 40000,
+        "lapMs": 40000,
+        "roundIdx": 0,
+        "exIdx": 0,
+        "blockIdx": 0
+      },
+      {
+        "label": "Round 1 — PULL-UPS",
+        "reps": 5,
+        "target": 5,
+        "completed": true,
+        "cumulativeMs": 14000,
+        "lapMs": 14000,
+        "roundIdx": 0,
+        "exIdx": 0,
+        "blockIdx": 1
+      },
+      {
+        "label": "Round 1 — AIR SQUATS",
+        "reps": 15,
+        "target": 15,
+        "completed": true,
+        "cumulativeMs": 59000,
+        "lapMs": 45000,
+        "roundIdx": 0,
+        "exIdx": 1,
+        "blockIdx": 1
+      },
+      {
+        "label": "Round 2 — PULL-UPS",
+        "reps": 5,
+        "target": 5,
+        "completed": true,
+        "cumulativeMs": 74000,
+        "lapMs": 15000,
+        "roundIdx": 1,
+        "exIdx": 0,
+        "blockIdx": 1
+      },
+      {
+        "label": "Round 2 — AIR SQUATS",
+        "reps": 15,
+        "target": 15,
+        "completed": true,
+        "cumulativeMs": 119000,
+        "lapMs": 45000,
+        "roundIdx": 1,
+        "exIdx": 1,
+        "blockIdx": 1
+      },
+      {
+        "label": "Round 3 — PULL-UPS",
+        "reps": 5,
+        "target": 5,
+        "completed": true,
+        "cumulativeMs": 134000,
+        "lapMs": 15000,
+        "roundIdx": 2,
+        "exIdx": 0,
+        "blockIdx": 1
+      },
+      {
+        "label": "Round 3 — AIR SQUATS",
+        "reps": 15,
+        "target": 15,
+        "completed": true,
+        "cumulativeMs": 179000,
+        "lapMs": 45000,
+        "roundIdx": 2,
+        "exIdx": 1,
+        "blockIdx": 1
+      },
+      {
+        "label": "Round 4 — PULL-UPS",
+        "reps": 5,
+        "target": 5,
+        "completed": true,
+        "cumulativeMs": 194000,
+        "lapMs": 15000,
+        "roundIdx": 3,
+        "exIdx": 0,
+        "blockIdx": 1
+      },
+      {
+        "label": "Round 4 — AIR SQUATS",
+        "reps": 15,
+        "target": 15,
+        "completed": true,
+        "cumulativeMs": 239000,
+        "lapMs": 45000,
+        "roundIdx": 3,
+        "exIdx": 1,
+        "blockIdx": 1
+      },
+      {
+        "label": "Round 5 — PULL-UPS",
+        "reps": 5,
+        "target": 5,
+        "completed": true,
+        "cumulativeMs": 254000,
+        "lapMs": 15000,
+        "roundIdx": 4,
+        "exIdx": 0,
+        "blockIdx": 1
+      },
+      {
+        "label": "Round 5 — AIR SQUATS",
+        "reps": 5,
+        "target": 15,
+        "completed": false,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 4,
+        "exIdx": 1,
+        "blockIdx": 1
+      },
+      {
+        "label": "Station 1 — BURPEES",
+        "reps": 20,
+        "target": 20,
+        "completed": true,
+        "cumulativeMs": 40000,
+        "lapMs": 40000,
+        "roundIdx": 0,
+        "exIdx": 0,
+        "blockIdx": 2
+      }
+    ],
+    "groups": [
+      {
+        "blockIdx": 0,
+        "title": "BLOCK 1 · FOR TIME · 00:40",
+        "splits": [
+          {
+            "label": "Station 1 — BURPEES",
+            "reps": 20,
+            "target": 20,
+            "completed": true,
+            "cumulativeMs": 40000,
+            "lapMs": 40000,
+            "roundIdx": 0,
+            "exIdx": 0,
+            "blockIdx": 0
+          }
+        ]
+      },
+      {
+        "blockIdx": 1,
+        "title": "BLOCK 2 · 5-MIN AMRAP · 4 + 10",
+        "splits": [
+          {
+            "label": "Round 1 — PULL-UPS",
+            "reps": 5,
+            "target": 5,
+            "completed": true,
+            "cumulativeMs": 14000,
+            "lapMs": 14000,
+            "roundIdx": 0,
+            "exIdx": 0,
+            "blockIdx": 1
+          },
+          {
+            "label": "Round 1 — AIR SQUATS",
+            "reps": 15,
+            "target": 15,
+            "completed": true,
+            "cumulativeMs": 59000,
+            "lapMs": 45000,
+            "roundIdx": 0,
+            "exIdx": 1,
+            "blockIdx": 1
+          },
+          {
+            "label": "Round 2 — PULL-UPS",
+            "reps": 5,
+            "target": 5,
+            "completed": true,
+            "cumulativeMs": 74000,
+            "lapMs": 15000,
+            "roundIdx": 1,
+            "exIdx": 0,
+            "blockIdx": 1
+          },
+          {
+            "label": "Round 2 — AIR SQUATS",
+            "reps": 15,
+            "target": 15,
+            "completed": true,
+            "cumulativeMs": 119000,
+            "lapMs": 45000,
+            "roundIdx": 1,
+            "exIdx": 1,
+            "blockIdx": 1
+          },
+          {
+            "label": "Round 3 — PULL-UPS",
+            "reps": 5,
+            "target": 5,
+            "completed": true,
+            "cumulativeMs": 134000,
+            "lapMs": 15000,
+            "roundIdx": 2,
+            "exIdx": 0,
+            "blockIdx": 1
+          },
+          {
+            "label": "Round 3 — AIR SQUATS",
+            "reps": 15,
+            "target": 15,
+            "completed": true,
+            "cumulativeMs": 179000,
+            "lapMs": 45000,
+            "roundIdx": 2,
+            "exIdx": 1,
+            "blockIdx": 1
+          },
+          {
+            "label": "Round 4 — PULL-UPS",
+            "reps": 5,
+            "target": 5,
+            "completed": true,
+            "cumulativeMs": 194000,
+            "lapMs": 15000,
+            "roundIdx": 3,
+            "exIdx": 0,
+            "blockIdx": 1
+          },
+          {
+            "label": "Round 4 — AIR SQUATS",
+            "reps": 15,
+            "target": 15,
+            "completed": true,
+            "cumulativeMs": 239000,
+            "lapMs": 45000,
+            "roundIdx": 3,
+            "exIdx": 1,
+            "blockIdx": 1
+          },
+          {
+            "label": "Round 5 — PULL-UPS",
+            "reps": 5,
+            "target": 5,
+            "completed": true,
+            "cumulativeMs": 254000,
+            "lapMs": 15000,
+            "roundIdx": 4,
+            "exIdx": 0,
+            "blockIdx": 1
+          },
+          {
+            "label": "Round 5 — AIR SQUATS",
+            "reps": 5,
+            "target": 15,
+            "completed": false,
+            "cumulativeMs": null,
+            "lapMs": null,
+            "roundIdx": 4,
+            "exIdx": 1,
+            "blockIdx": 1
+          }
+        ]
+      },
+      {
+        "blockIdx": 2,
+        "title": "BLOCK 3 · FOR TIME · 00:40",
+        "splits": [
+          {
+            "label": "Station 1 — BURPEES",
+            "reps": 20,
+            "target": 20,
+            "completed": true,
+            "cumulativeMs": 40000,
+            "lapMs": 40000,
+            "roundIdx": 0,
+            "exIdx": 0,
+            "blockIdx": 2
+          }
+        ]
+      }
+    ]
+  }
+}

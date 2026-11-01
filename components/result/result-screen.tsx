@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { Fragment, useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
@@ -68,24 +68,30 @@ export function ResultScreen({ config, log, athleteAlias, role = 'judge', saved,
 
       <ScrollView style={styles.splits} contentContainerStyle={styles.splitsContent}>
         {result.splits.map((split, i) => (
-          <View key={i} style={styles.splitRow}>
-            <View style={styles.splitLeft}>
-              <Text style={[styles.splitLabel, !split.completed && styles.splitLabelPartial]}>
-                {split.label}
-              </Text>
-              <Text style={styles.splitReps}>{split.reps}/{split.target}</Text>
-            </View>
-            {split.cumulativeMs != null && (
-              <View style={styles.splitRight}>
-                <Text style={styles.splitCumulative}>
-                  {formatTime(Math.round(split.cumulativeMs / 1000))}
-                </Text>
-                {split.lapMs != null && (
-                  <Text style={styles.splitLap}>+{formatTime(Math.round(split.lapMs / 1000))}</Text>
-                )}
-              </View>
+          <Fragment key={i}>
+            {/* Workouts of several blocks: a header before each block's splits (change multi-block-workouts). */}
+            {result.groups != null && split.blockIdx !== result.splits[i - 1]?.blockIdx && (
+              <Text style={styles.groupTitle}>{result.groups[split.blockIdx ?? 0].title}</Text>
             )}
-          </View>
+            <View style={styles.splitRow}>
+              <View style={styles.splitLeft}>
+                <Text style={[styles.splitLabel, !split.completed && styles.splitLabelPartial]}>
+                  {split.label}
+                </Text>
+                <Text style={styles.splitReps}>{split.reps}/{split.target}</Text>
+              </View>
+              {split.cumulativeMs != null && (
+                <View style={styles.splitRight}>
+                  <Text style={styles.splitCumulative}>
+                    {formatTime(Math.round(split.cumulativeMs / 1000))}
+                  </Text>
+                  {split.lapMs != null && (
+                    <Text style={styles.splitLap}>+{formatTime(Math.round(split.lapMs / 1000))}</Text>
+                  )}
+                </View>
+              )}
+            </View>
+          </Fragment>
         ))}
       </ScrollView>
     </View>
@@ -171,6 +177,14 @@ const styles = StyleSheet.create({
   splitsContent: {
     paddingHorizontal: 24,
     paddingBottom: 24,
+  },
+  groupTitle: {
+    fontFamily: 'IBMPlexMono_500Medium',
+    fontSize: 11,
+    color: HF.muted,
+    letterSpacing: 1.5,
+    paddingTop: 20,
+    paddingBottom: 4,
   },
   splitRow: {
     flexDirection: 'row',

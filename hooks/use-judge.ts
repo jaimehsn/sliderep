@@ -1,6 +1,6 @@
 import type { LogEntry } from '@/components/judge/types';
 import { HF } from '@/constants/hf';
-import { EngineState, WodConfig, advanceTo, apply, initial, isComplete, isResting, view } from '@/constants/wod-engine';
+import { EngineState, WodConfig, advanceTo, apply, blockIndexOf, initial, isComplete, isResting, view } from '@/constants/wod-engine';
 import { useSoundCue } from '@/hooks/use-sound-cue';
 import * as Haptics from 'expo-haptics';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -57,8 +57,13 @@ export function useJudge(config: WodConfig) {
       // cap); a For Time / Chipper finishing on its last rep stays silent.
       if (!isComplete(config, next)) playEnd();
       setIsRunning(false);
-    } else if (next.pos.minuteIdx > prev.pos.minuteIdx || isResting(config, next) !== isResting(config, prev)) {
-      // A new interval, or a rest starting or ending (change rest-steps): one cue even when both happen together.
+    } else if (
+      next.pos.minuteIdx > prev.pos.minuteIdx ||
+      isResting(config, next) !== isResting(config, prev) ||
+      blockIndexOf(next) !== blockIndexOf(prev)
+    ) {
+      // A new interval, a rest starting or ending (change rest-steps), or a new block
+      // (change multi-block-workouts): one cue even when several happen together.
       playMinute();
     }
   }, [config, playMinute, playEnd]);
@@ -143,7 +148,7 @@ export function useJudge(config: WodConfig) {
 
   const gesture = Gesture.Exclusive(pan, tap);
 
-  const { exerciseName, target, done, kpi, timerStr, timerLabel } = view(config, state);
+  const { exerciseName, target, done, kpi, timerStr, timerLabel, blockLabel } = view(config, state);
   // The raw input log, as saved: every recorded gesture with its session-clock t.
   const log: LogEntry[] = useMemo(() => state.tagged.map((e, i) => ({ id: i, ok: e.ok, t: e.t })), [state.tagged]);
 
@@ -172,6 +177,7 @@ export function useJudge(config: WodConfig) {
     target,
     exerciseName,
     kpi,
+    blockLabel,
     finished: state.finished,
     log,
     gesture,

@@ -3,7 +3,8 @@
 // Number fields are kept as the strings typed into the form; `validateDraft`
 // reports anything that isn't a whole number of 1 or more, and the stored block
 // is only built from a draft that validated.
-import type { Block, WodLine } from '@/constants/wod-engine';
+import { isSequence } from '@/constants/wod-engine';
+import type { Block, WodConfig, WodLine } from '@/constants/wod-engine';
 import type { StoredBlock, StoredLine } from '@/db/workouts';
 
 export type DraftFormat = 'forTime' | 'amrap' | 'emom';
@@ -390,4 +391,93 @@ export function draftFromBlock(formatId: string, block: Block, name: string): Dr
     };
   }
   throw new Error(`Unknown format ${formatId}`);
+}
+
+// ─── Workouts of several blocks (change multi-block-workouts) ───────────────
+//
+// A workout is a list of block drafts: each block is today's `Draft` with its
+// own `name` left empty (the workout's name is kept once, here), plus the rest
+// after it. One block is stored exactly as before.
+
+export type BlockDraft = { draft: Draft; restAfter: string };
+export type WorkoutDraft = { name: string; scoringBlock: number; blocks: BlockDraft[] };
+
+export function emptyWorkoutDraft(name = ''): WorkoutDraft {
+  return { name, scoringBlock: 0, blocks: [{ draft: emptyDraft('forTime'), restAfter: '' }] };
+}
+
+/** Adds a FOR TIME block at the end. */
+export function addBlock(workout: WorkoutDraft): WorkoutDraft {
+  return { ...workout, blocks: [...workout.blocks, { draft: emptyDraft('forTime'), restAfter: '' }] };
+}
+
+/** Removes a block (never the only one); the scoring block stays where it was, or moves to block 0 if it was removed. */
+export function removeBlock(workout: WorkoutDraft, index: number): WorkoutDraft {
+  if (workout.blocks.length <= 1) return workout;
+  const blocks = workout.blocks.filter((_, i) => i !== index);
+  // The new last block has no rest after it.
+  blocks[blocks.length - 1] = { ...blocks[blocks.length - 1], restAfter: '' };
+  const s = workout.scoringBlock;
+  return { ...workout, blocks, scoringBlock: s === index ? 0 : s > index ? s - 1 : s };
+}
+
+export function updateBlock(workout: WorkoutDraft, index: number, patch: Partial<BlockDraft>): WorkoutDraft {
+  return { ...workout, blocks: workout.blocks.map((b, i) => (i === index ? { ...b, ...patch } : b)) };
+}
+
+/** The workout's name as saved: trimmed and upper-cased. */
+export function savedWorkoutName(workout: WorkoutDraft): string {
+  return workout.name.trim().toUpperCase();
+}
+
+/**
+ * 'name' once, then each block's problems keyed `block:<index>:<key>` (its own
+ * 'name' problem ignored), and `block:<index>:restAfter` for a REST AFTER that
+ * isn't 1–600 seconds.
+ */
+export function validateWorkoutDraft(workout: WorkoutDraft): DraftProblems {
+  const problems: DraftProblems = {};
+  if (savedWorkoutName(workout) === '') problems.name = 'Name is required';
+  workout.blocks.forEach(({ draft, restAfter }, i) => {
+    for (const [key, problem] of Object.entries(validateDraft(draft))) {
+      if (key !== 'name') problems[`block:${i}:${key}`] = problem;
+    }
+    if (i < workout.blocks.length - 1 && restAfter.trim() !== '') {
+      const rest = parseCount(restAfter);
+      if (rest == null || rest > 600) problems[`block:${i}:restAfter`] = 'Rest must be 1 to 600 seconds';
+    }
+  });
+  return problems;
+}
+
+/** A block's problems with its `block:<index>:` prefix taken off, for its own editor. */
+export function blockProblems(problems: DraftProblems, index: number): DraftProblems {
+  const prefix = `block:${index}:`;
+  return Object.fromEntries(
+    Object.entries(problems).filter(([k]) => k.startsWith(prefix)).map(([k, v]) => [k.slice(prefix.length), v]),
+  );
+}
+
+/** The stored blocks: each block as before, with `restAfterSeconds` only when set (never on the last). */
+export function workoutToStoredBlocks(workout: WorkoutDraft): StoredBlock[] {
+  return workout.blocks.map(({ draft, restAfter }, i) => {
+    const block = draftToStoredBlock(draft);
+    const rest = i < workout.blocks.length - 1 ? parseCount(restAfter) : null;
+    return rest != null ? { ...block, restAfterSeconds: rest } : block;
+  });
+}
+
+/** The workout draft a workout opens as for DUPLICATE: every block, its rest and the scoring block. */
+export function workoutDraftFromConfig(config: WodConfig, name: string): WorkoutDraft {
+  if (!isSequence(config)) {
+    return { name, scoringBlock: 0, blocks: [{ draft: draftFromBlock(config.format.id, config.block, ''), restAfter: '' }] };
+  }
+  return {
+    name,
+    scoringBlock: config.scoringBlock,
+    blocks: config.parts.map((part, i) => ({
+      draft: draftFromBlock(part.format.id, part.block, ''),
+      restAfter: config.restAfter[i] > 0 ? String(config.restAfter[i]) : '',
+    })),
+  };
 }

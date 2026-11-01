@@ -29,7 +29,7 @@ A session SHALL accept at most 3 adjustment packages. Each saved package SHALL r
 - **THEN** the adjust screen reads "3 of 3 packages used", SAVE PACKAGE is disabled, and ADJUST RESULT disappears from the result
 
 ### Requirement: Editable values
-On the adjust screen, the owner SHALL be able to tap any split to set a new positive target for that position, and, for formats with a duration, set a new positive duration (seconds for AMRAP and for a capped For Time or Chipper; for EMOM, whole minutes with 60-second intervals and a number of intervals otherwise). For Time and Chipper without a cap SHALL NOT offer a duration.
+On the adjust screen, the owner SHALL be able to tap any split, of any block, to set a new positive target for that position, and, for formats with a duration, set a new positive duration (seconds for AMRAP and for a capped For Time or Chipper; for EMOM, whole minutes with 60-second intervals and a number of intervals otherwise). For Time and Chipper without a cap SHALL NOT offer a duration, and with several blocks only the last block SHALL offer one.
 
 #### Scenario: Editing a split target
 - **WHEN** the owner taps "Round 2 — THRUSTERS 15/15" and enters 12
@@ -50,6 +50,10 @@ On the adjust screen, the owner SHALL be able to tap any split to set a new posi
 #### Scenario: Interval EMOM duration
 - **WHEN** the owner sets an EMOM of 10 intervals of 90 seconds to 6 intervals
 - **THEN** a pending duration change of 540 seconds is added
+
+#### Scenario: Duration with several blocks
+- **WHEN** the owner adjusts a workout whose blocks are a 12-min AMRAP and a For Time with a 5 min cap
+- **THEN** only the For Time's cap is offered as a duration
 
 ### Requirement: Live preview and saving
 The adjust screen SHALL show the score and splits with the saved packages plus the pending changes applied. SAVE PACKAGE SHALL store the pending changes as one package and SHALL be disabled when there is nothing pending. Leaving with ✕ SHALL discard pending changes.
@@ -135,3 +139,10 @@ For an EMOM that stops at its first missed interval, the adjusted result SHALL s
 #### Scenario: Lowering the missed interval's target
 - **WHEN** a stopping Death by that scored 12 + 9 has minute 13's target lowered to 9
 - **THEN** minute 13 is completed, and the adjusted score reads 13 + 0 with minute 14 listed at 0 reps
+
+### Requirement: Adjusting several blocks
+A target change SHALL apply to its own block's position only, and SHALL NOT move any block's start or any rep into another block. A saved adjustment without a block SHALL apply to block 1. The adjusted score SHALL be the scoring block's, recomputed with that block's own rules.
+
+#### Scenario: Target in a block that doesn't score
+- **WHEN** the owner raises the buy-in's BURPEES target from 20 to 25, with 20 counted
+- **THEN** the buy-in's group shows it unfinished, and the scoring AMRAP's score is unchanged

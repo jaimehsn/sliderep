@@ -144,6 +144,40 @@ export const SYNTHETIC_WORKOUTS: WorkoutRow[] = [
       workSeconds: 20,
     }]),
   },
+  {
+    // Change multi-block-workouts: For Time BURPEES 20 → scoring 5-min AMRAP of
+    // PULL-UPS 5 / AIR SQUATS 15 → For Time BURPEES 20.
+    id: 'buyInAmrap',
+    name: 'BUY-IN AMRAP',
+    scoringBlock: 1,
+    blocks: JSON.stringify([
+      { formatId: 'forTime', lines: [[{ exerciseId: 'burpees', target: 20 }]], rounds: 1 },
+      { formatId: 'amrap', lines: [[{ exerciseId: 'pull-ups', target: 5 }, { exerciseId: 'air-squats', target: 15 }]], durationSeconds: 300 },
+      { formatId: 'forTime', lines: [[{ exerciseId: 'burpees', target: 20 }]], rounds: 1 },
+    ]),
+  },
+  {
+    // Change multi-block-workouts: 4-min AMRAP of BURPEES 10, 60 s of rest, then a
+    // scoring 4-min AMRAP of AIR SQUATS 15.
+    id: 'twoAmraps',
+    name: 'TWO AMRAPS',
+    scoringBlock: 1,
+    blocks: JSON.stringify([
+      { formatId: 'amrap', lines: [[{ exerciseId: 'burpees', target: 10 }]], durationSeconds: 240, restAfterSeconds: 60 },
+      { formatId: 'amrap', lines: [[{ exerciseId: 'air-squats', target: 15 }]], durationSeconds: 240 },
+    ]),
+  },
+  {
+    // Change multi-block-workouts: 3-min AMRAP of BURPEES 10, then a scoring 2-round
+    // For Time of AIR SQUATS 10 with a 5 min cap.
+    id: 'amrapThenForTime',
+    name: 'AMRAP THEN FOR TIME',
+    scoringBlock: 1,
+    blocks: JSON.stringify([
+      { formatId: 'amrap', lines: [[{ exerciseId: 'burpees', target: 10 }]], durationSeconds: 180 },
+      { formatId: 'forTime', lines: [[{ exerciseId: 'air-squats', target: 10 }], [{ exerciseId: 'air-squats', target: 10 }]], rounds: 2, durationSeconds: 300 },
+    ]),
+  },
 ];
 
 /** A golden case's workout: a built-in by id, or one of `SYNTHETIC_WORKOUTS`. */
@@ -194,6 +228,7 @@ const EMOM_TARGETS = [10, 15, 10, 15, 10, 15, 10, 15, 10, 15];
 const DEATH_BY_12 = Array.from({ length: 12 }, (_, m) => m + 1); // 1, 2, … 12
 const RESTED_ROUNDS = [...run(2000, 5, 2000), ...run(72000, 5, 2000), ...run(142000, 5, 2000)];
 const TABATA_8 = [8, 8, 8, 8, 8, 8, 8, 8];
+const BUY_IN_RUN = [...run(2000, 20, 2000), ...run(42000, 90, 3000), ...run(342000, 20, 2000)];
 const TABATA_REST_REPS = [{ t: 25000, kind: 'rep' as Kind }, { t: 52000, kind: 'rep' as Kind }];
 
 export const CASES: GoldenCase[] = [
@@ -435,5 +470,42 @@ export const CASES: GoldenCase[] = [
     wodId: 'tabata',
     log: toLog(perInterval(30000, TABATA_8)),
     changes: [{ type: 'target', roundIdx: 1, exIdx: 0, newTarget: 10 }],
+  },
+
+  // Change multi-block-workouts. BUY-IN AMRAP: the buy-in runs 2–40 s (ends at 40 s),
+  // the AMRAP 40–340 s (90 reps from 42 s, 4 + 10), the cash-out from 342 s (ends at
+  // 380 s, 00:40 on its own clock).
+  { name: 'buyin-complete', wodId: 'buyInAmrap', log: toLog(BUY_IN_RUN) },
+  {
+    // The buy-in's target lowered to 15: its TIME moves, the scoring AMRAP doesn't.
+    name: 'buyin-adjusted-target-down',
+    wodId: 'buyInAmrap',
+    log: toLog(BUY_IN_RUN),
+    changes: [{ type: 'target', roundIdx: 0, exIdx: 0, newTarget: 15, blockIdx: 0 }],
+  },
+  {
+    // A change with no block applies to block 1: the buy-in raised to 25, the AMRAP unchanged.
+    name: 'buyin-adjusted-legacy-change',
+    wodId: 'buyInAmrap',
+    log: toLog(BUY_IN_RUN),
+    changes: [{ type: 'target', roundIdx: 0, exIdx: 0, newTarget: 25 }],
+  },
+  {
+    // TWO AMRAPS: 70 reps in block 1 (7 + 0), a rep in the 240–300 s rest (not
+    // counted), 50 reps in block 2 from 303 s (3 + 5).
+    name: 'two-amraps-rep-in-rest',
+    wodId: 'twoAmraps',
+    log: toLog([...run(3000, 70, 3000), { t: 270000, kind: 'rep' as Kind }, ...run(303000, 50, 3000)]),
+  },
+  // AMRAP THEN FOR TIME: 40 reps in the 3-min AMRAP (4 + 0), then the capped For
+  // Time from 180 s: 20 reps finish it (00:40), 15 reach the cap (CAP · 15 reps).
+  { name: 'amrap-then-for-time-complete', wodId: 'amrapThenForTime', log: toLog([...run(3000, 40, 3000), ...run(182000, 20, 2000)]) },
+  { name: 'amrap-then-for-time-capped', wodId: 'amrapThenForTime', log: toLog([...run(3000, 40, 3000), ...run(182000, 15, 2000)]) },
+  {
+    // The last block's cap lowered to 20 s: the reps before 20 s on its own clock, CAP · 9 reps.
+    name: 'amrap-then-for-time-adjusted-cap',
+    wodId: 'amrapThenForTime',
+    log: toLog([...run(3000, 40, 3000), ...run(182000, 15, 2000)]),
+    changes: [{ type: 'duration', newDurationSeconds: 20 }],
   },
 ];

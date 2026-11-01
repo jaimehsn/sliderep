@@ -1,5 +1,5 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
-import { Block, FORMATS, WodConfig, WodLine, buildWodConfig } from '@/constants/wod-engine';
+import { Block, FORMATS, Format, WodConfig, WodLine, buildSequenceConfig, buildWodConfig } from '@/constants/wod-engine';
 import { makeId } from '@/db/sessions';
 
 /**
@@ -9,7 +9,8 @@ import { makeId } from '@/db/sessions';
  */
 export type Workout = { id: string; origin: 'builtin' | 'user'; ownerId: string | null; config: WodConfig };
 
-export type WorkoutRow = { id: string; name: string; blocks: string; origin?: string; ownerId?: string | null };
+/** `scoringBlock`: the index of the block that scores, 0 when absent (change multi-block-workouts). */
+export type WorkoutRow = { id: string; name: string; blocks: string; scoringBlock?: number; origin?: string; ownerId?: string | null };
 
 export type StoredLine = {
   exerciseId: string;
@@ -32,17 +33,36 @@ export type StoredBlock = {
   restSeconds?: number;
   /** EMOM only: work time per interval in seconds, the rest of it is rest; absent when none (change rest-steps). */
   workSeconds?: number;
+  /** Every block but the last: rest after it in seconds, absent when none (change multi-block-workouts). */
+  restAfterSeconds?: number;
 };
 
-// Strict on purpose: rows this can't read can't exist until engine v2 (change C)
-// widens the stored shape, and C widens this parser with it. A throw is a bug.
+// Strict on purpose: an unknown format or exercise, or a scoring block out of
+// range, can't be stored by the app, so a throw is a bug.
 // Exported for tests, which build the built-ins from the frozen v2 seed rows.
 export function parseWorkoutRow(row: WorkoutRow, exerciseNames: Map<string, string>): Workout {
   const blocks: StoredBlock[] = JSON.parse(row.blocks);
-  if (blocks.length !== 1) throw new Error(`Workout ${row.id}: expected 1 block, got ${blocks.length}`);
-  const [stored] = blocks;
+  if (blocks.length === 0) throw new Error(`Workout ${row.id}: no blocks`);
+  const parsed = blocks.map((stored) => parseBlock(row.id, stored, exerciseNames));
+  // One block: exactly today's config. Several: one config per block, wrapped (change multi-block-workouts).
+  const configs = parsed.map(({ block, format }) => buildWodConfig({ id: row.id, name: row.name, block }, format));
+  let config = configs[0];
+  if (configs.length > 1) {
+    const scoringBlock = row.scoringBlock ?? 0;
+    if (scoringBlock < 0 || scoringBlock >= configs.length) throw new Error(`Workout ${row.id}: no block ${scoringBlock} to score`);
+    config = buildSequenceConfig(row.name, configs, blocks.map((b) => b.restAfterSeconds ?? 0), scoringBlock);
+  }
+  return {
+    id: row.id,
+    origin: row.origin === 'user' ? 'user' : 'builtin',
+    ownerId: row.ownerId ?? null,
+    config,
+  };
+}
+
+function parseBlock(id: string, stored: StoredBlock, exerciseNames: Map<string, string>): { block: Block; format: Format } {
   const format = FORMATS[stored.formatId];
-  if (!format) throw new Error(`Workout ${row.id}: unknown format ${stored.formatId}`);
+  if (!format) throw new Error(`Workout ${id}: unknown format ${stored.formatId}`);
 
   const block: Block = {
     rounds: stored.rounds,
@@ -54,7 +74,7 @@ export function parseWorkoutRow(row: WorkoutRow, exerciseNames: Map<string, stri
     lines: stored.lines.map((round) =>
       round.map((line) => {
         const exercise = exerciseNames.get(line.exerciseId);
-        if (exercise == null) throw new Error(`Workout ${row.id}: unknown exercise ${line.exerciseId}`);
+        if (exercise == null) throw new Error(`Workout ${id}: unknown exercise ${line.exerciseId}`);
         return {
           exerciseId: line.exerciseId,
           exercise,
@@ -66,12 +86,7 @@ export function parseWorkoutRow(row: WorkoutRow, exerciseNames: Map<string, stri
       }),
     ),
   };
-  return {
-    id: row.id,
-    origin: row.origin === 'user' ? 'user' : 'builtin',
-    ownerId: row.ownerId ?? null,
-    config: buildWodConfig({ id: row.id, name: row.name, block }, format),
-  };
+  return { block, format };
 }
 
 // Unfiltered on purpose (unlike db/exercises.ts's getExercises): an archived
@@ -85,7 +100,7 @@ async function getExerciseNames(db: SQLiteDatabase): Promise<Map<string, string>
 export async function listWorkouts(db: SQLiteDatabase): Promise<Workout[]> {
   const [rows, names] = await Promise.all([
     db.getAllAsync<WorkoutRow>(
-      'SELECT id, name, blocks, origin, ownerId FROM workouts WHERE archivedAt IS NULL ORDER BY createdAt, rowid',
+      'SELECT id, name, blocks, scoringBlock, origin, ownerId FROM workouts WHERE archivedAt IS NULL ORDER BY createdAt, rowid',
     ),
     getExerciseNames(db),
   ]);
@@ -95,7 +110,7 @@ export async function listWorkouts(db: SQLiteDatabase): Promise<Workout[]> {
 /** Any workout by id, archived or not — saved sessions must keep resolving theirs. */
 export async function getWorkout(db: SQLiteDatabase, id: string): Promise<Workout | null> {
   const [row, names] = await Promise.all([
-    db.getFirstAsync<WorkoutRow>('SELECT id, name, blocks, origin, ownerId FROM workouts WHERE id = ?', [id]),
+    db.getFirstAsync<WorkoutRow>('SELECT id, name, blocks, scoringBlock, origin, ownerId FROM workouts WHERE id = ?', [id]),
     getExerciseNames(db),
   ]);
   return row ? parseWorkoutRow(row, names) : null;
@@ -106,15 +121,16 @@ export function isOwn(workout: Workout, profileId: string | null | undefined): b
   return workout.origin === 'user' && profileId != null && workout.ownerId === profileId;
 }
 
-export type NewWorkout = { name: string; block: StoredBlock; ownerId: string; derivedFrom: string | null };
+/** `blocks`: one or more; `scoringBlock`: the index of the block that scores (change multi-block-workouts). */
+export type NewWorkout = { name: string; blocks: StoredBlock[]; scoringBlock: number; ownerId: string; derivedFrom: string | null };
 
-/** Inserts a new single-block user workout and returns its id. Never touches an existing row. */
+/** Inserts a new user workout and returns its id. Never touches an existing row. */
 export async function createWorkout(db: SQLiteDatabase, input: NewWorkout): Promise<string> {
   const id = makeId();
   await db.runAsync(
     `INSERT INTO workouts (id, name, blocks, scoringBlock, origin, ownerId, derivedFrom, createdAt)
-     VALUES (?, ?, ?, 0, 'user', ?, ?, ?)`,
-    [id, input.name, JSON.stringify([input.block]), input.ownerId, input.derivedFrom, Date.now()],
+     VALUES (?, ?, ?, ?, 'user', ?, ?, ?)`,
+    [id, input.name, JSON.stringify(input.blocks), input.scoringBlock, input.ownerId, input.derivedFrom, Date.now()],
   );
   return id;
 }

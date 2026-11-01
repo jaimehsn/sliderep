@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { HF } from '@/constants/hf';
+import { WorkoutBreakdown } from '@/components/workout-breakdown';
 import { WodConfig, durationLine } from '@/constants/wod-engine';
 import { useSoundCue } from '@/hooks/use-sound-cue';
 
@@ -94,15 +95,7 @@ export function StartOverlay({ config, athleteAlias, role = 'judge', onDone }: P
         contentContainerStyle={styles.exerciseListContent}
         scrollIndicatorInsets={{ right: 1 }}
       >
-        {config.exercises.map((ex, i) => (
-          <View key={i} style={styles.exerciseRow}>
-            <View style={styles.exerciseText}>
-              <Text style={styles.exerciseName}>{ex.name}</Text>
-              {ex.note != null && <Text style={styles.exerciseNote}>{ex.note}</Text>}
-            </View>
-            <Text style={styles.exerciseDetail}>{ex.detail}</Text>
-          </View>
-        ))}
+        <WorkoutBreakdown config={config} />
       </ScrollView>
 
       <View style={styles.divider} />
@@ -198,38 +191,6 @@ const styles = StyleSheet.create({
   exerciseListContent: {
     paddingHorizontal: 24,
     paddingVertical: 8,
-  },
-  exerciseRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: HF.hairline,
-  },
-  exerciseText: {
-    flex: 1,
-    marginRight: 12,
-  },
-  exerciseNote: {
-    fontFamily: 'IBMPlexMono_400Regular',
-    fontSize: 11,
-    color: HF.muted,
-    letterSpacing: 1,
-    marginTop: 2,
-  },
-  exerciseName: {
-    fontFamily: 'BarlowCondensed_600SemiBold',
-    fontSize: 20,
-    color: HF.ink,
-    letterSpacing: 1.5,
-    textTransform: 'uppercase',
-  },
-  exerciseDetail: {
-    fontFamily: 'IBMPlexMono_400Regular',
-    fontSize: 12,
-    color: HF.muted,
-    letterSpacing: 1,
   },
 
   // ── Ready: footer button ───────────────────────────────────────────────────

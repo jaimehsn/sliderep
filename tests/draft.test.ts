@@ -7,11 +7,14 @@ import {
   ForTimeDraft,
   addLine,
   addLineToSlot,
+  addBlock,
+  blockProblems,
   draftFromBlock,
   draftLines,
   draftToStoredBlock,
   emptyDraft,
   emptyLine,
+  removeBlock,
   removeLine,
   setLineIncrement,
   setLineReps,
@@ -19,12 +22,18 @@ import {
   setSameReps,
   switchFormat,
   updateLineFields,
+  updateBlock,
   validateDraft,
+  validateWorkoutDraft,
+  WorkoutDraft,
+  emptyWorkoutDraft,
+  workoutDraftFromConfig,
+  workoutToStoredBlocks,
 } from '@/components/editor/draft';
 import { START_POSITION, WodConfig, exerciseNameAt, fold, targetAt } from '@/constants/wod-engine';
 import { V2_EXERCISES, V2_WORKOUTS } from '@/db/seeds/v2-builtins';
 import { parseWorkoutRow } from '@/db/workouts';
-import { builtin } from './fixtures';
+import { SYNTHETIC_WORKOUTS, builtin } from './fixtures';
 
 const names = new Map(V2_EXERCISES.map((e) => [e.id, e.name]));
 const ex = (id: string) => ({ id, name: names.get(id) ?? id });
@@ -503,5 +512,67 @@ describe('rest fields (change rest-steps)', () => {
   it('switching format starts both empty', () => {
     expect((switchFormat(tabata, 'forTime') as ForTimeDraft).rest).toBe('');
     expect((switchFormat(rested, 'emom') as EmomDraft).work).toBe('');
+  });
+});
+
+describe('workouts of several blocks (change multi-block-workouts)', () => {
+  const block = (draft: Draft) => ({ draft: { ...draft, name: '' }, restAfter: '' });
+  const amrap: Draft = { format: 'amrap', name: '', minutes: '5', rows: [{ ...emptyLine(), exercise: ex('pull-ups'), reps: '5' }] };
+  const buyIn: Draft = { ...(emptyDraft('forTime') as ForTimeDraft), rows: [{ ...emptyLine(), exercise: ex('burpees'), reps: ['20'] }] };
+  const three: WorkoutDraft = {
+    name: ' buy-in ',
+    scoringBlock: 1,
+    blocks: [block(buyIn), { ...block(amrap), restAfter: '30' }, block(buyIn)],
+  };
+
+  it('stores one block exactly as today, and the built-ins round-trip through the workout draft', () => {
+    expect(workoutToStoredBlocks({ name: 'my fran', scoringBlock: 0, blocks: [block(fran)] })).toEqual([draftToStoredBlock(fran)]);
+    for (const row of V2_WORKOUTS) {
+      const { config } = parseWorkoutRow(row, names);
+      const workout = workoutDraftFromConfig(config, config.name);
+      expect(workout.blocks).toHaveLength(1);
+      expect(workout.scoringBlock).toBe(0);
+      expect(workoutToStoredBlocks(workout)).toEqual(JSON.parse(row.blocks));
+    }
+  });
+
+  it('stores three blocks with their rest and runs as a sequence scored by its marked block', () => {
+    const stored = workoutToStoredBlocks(three);
+    expect(stored.map((b) => b.restAfterSeconds)).toEqual([undefined, 30, undefined]);
+    const { config } = parseWorkoutRow({ id: 'w', name: 'BUY-IN', blocks: JSON.stringify(stored), scoringBlock: 1 }, names);
+    expect(config.parts).toHaveLength(3);
+    expect(config.restAfter).toEqual([0, 30, 0]);
+    expect(config.mode).toBe('5-MIN AMRAP · 3 BLOCKS');
+  });
+
+  it('adds FOR TIME blocks and keeps the scoring marker on removal', () => {
+    const added = addBlock(emptyWorkoutDraft('x'));
+    expect(added.blocks.map((b) => b.draft.format)).toEqual(['forTime', 'forTime']);
+    expect(removeBlock(three, 0).scoringBlock).toBe(0); // the AMRAP moved to index 0
+    expect(removeBlock(three, 2).scoringBlock).toBe(1);
+    expect(removeBlock(three, 1).scoringBlock).toBe(0); // the scoring block itself removed
+    expect(removeBlock(three, 2).blocks[1].restAfter).toBe(''); // the new last block has no rest after it
+    expect(removeBlock(emptyWorkoutDraft('x'), 0).blocks).toHaveLength(1);
+  });
+
+  it('keys block problems by block, the name once', () => {
+    const bad = updateBlock({ ...three, name: ' ' }, 1, { draft: { ...amrap, minutes: '0' }, restAfter: '601' });
+    const problems = validateWorkoutDraft(bad);
+    expect(problems.name).toBe('Name is required');
+    expect(problems['block:1:minutes']).toBe('Minutes must be 1 or more');
+    expect(problems['block:1:restAfter']).toBe('Rest must be 1 to 600 seconds');
+    expect(Object.keys(problems).some((k) => k.endsWith(':name'))).toBe(false);
+    expect(blockProblems(problems, 1)).toEqual({ minutes: 'Minutes must be 1 or more', restAfter: 'Rest must be 1 to 600 seconds' });
+    expect(validateWorkoutDraft(three)).toEqual({});
+  });
+
+  it('DUPLICATE keeps every block, the rest and the scoring block', () => {
+    for (const id of ['buyInAmrap', 'twoAmraps', 'amrapThenForTime']) {
+      const row = SYNTHETIC_WORKOUTS.find((w) => w.id === id)!;
+      const { config } = parseWorkoutRow(row, names);
+      const workout = workoutDraftFromConfig(config, `${config.name} COPY`);
+      expect(workout.scoringBlock).toBe(row.scoringBlock);
+      expect(workoutToStoredBlocks(workout)).toEqual(JSON.parse(row.blocks));
+    }
   });
 });

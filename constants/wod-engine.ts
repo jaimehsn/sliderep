@@ -41,7 +41,23 @@ export type WodConfig = {
   /** The data the engine interprets (see the engine section below). */
   format: Format;
   block: Block;
+  /**
+   * A workout of several blocks (change multi-block-workouts): one config per block,
+   * the rest after each in seconds (0 for none) and the block that scores. Absent on
+   * a one-block config; on a multi-block one, `format`/`block`/`timerMode`/
+   * `advanceMode`/`totalSeconds`/`engineVersion` are the scoring part's.
+   */
+  parts?: WodConfig[];
+  restAfter?: number[];
+  scoringBlock?: number;
 };
+
+export type SequenceConfig = WodConfig & { parts: WodConfig[]; restAfter: number[]; scoringBlock: number };
+
+/** Whether the config is a workout of several blocks — the one check (change multi-block-workouts). */
+export function isSequence(config: WodConfig): config is SequenceConfig {
+  return config.parts != null && config.parts.length > 1;
+}
 
 // ─── Format primitives ──────────────────────────────────────────────────────
 
@@ -255,6 +271,24 @@ export function buildWodConfig(definition: WodDefinition, format: Format): WodCo
   };
 }
 
+/**
+ * A workout of several blocks (change multi-block-workouts): the scoring part's
+ * mode with " · N BLOCKS", the parts' descriptions joined with " → ".
+ */
+export function buildSequenceConfig(name: string, parts: WodConfig[], restAfter: number[], scoringBlock: number): SequenceConfig {
+  const scoring = parts[scoringBlock];
+  return {
+    ...scoring,
+    name,
+    mode: `${scoring.mode} · ${parts.length} BLOCKS`,
+    description: parts.map((p) => p.description).join(' → '),
+    exercises: parts.flatMap((p) => p.exercises),
+    parts,
+    restAfter: parts.map((_, i) => (i < parts.length - 1 ? restAfter[i] ?? 0 : 0)),
+    scoringBlock,
+  };
+}
+
 // ─── Positions ──────────────────────────────────────────────────────────────
 //
 // A position is a WodSession (round/line for onTarget, interval for perInterval).
@@ -371,6 +405,8 @@ export function capSeconds(config: WodConfig): number | null {
  * "60 s rest between rounds" or "20 s work / 10 s rest".
  */
 export function durationLine(config: WodConfig): string | null {
+  // Each block of a sequence has its own line (change multi-block-workouts).
+  if (isSequence(config)) return null;
   const { block } = config;
   const parts: string[] = [];
   const m = Math.floor(config.totalSeconds / 60);
@@ -390,6 +426,11 @@ export function durationLine(config: WodConfig): string | null {
  * with the final count (see `apply`), so that is what's checked.
  */
 export function isComplete(config: WodConfig, state: EngineState): boolean {
+  if (isSequence(config)) {
+    const seq = state.seq!;
+    const last = config.parts.length - 1;
+    return state.finished && seq.idx === last && isComplete(config.parts[last], seq.inner);
+  }
   return (
     config.format.repeat === 'rounds' &&
     isCompleteAt(config, nextPosition(config, state.pos)) &&
@@ -421,6 +462,8 @@ export type TaggedEvent = {
   target: number;
   /** Whether it counted as a valid rep (no-reps and ignored events don't). */
   counted: boolean;
+  /** Workouts of several blocks: the block it was applied in; absent between blocks and on one-block workouts. */
+  block?: number;
 };
 
 export type EngineState = {
@@ -435,7 +478,17 @@ export type EngineState = {
   tagged: TaggedEvent[];
   /** 'rounds' with rest: session-clock ms the current rest ends at, null when not resting (change rest-steps). */
   restUntil: number | null;
+  /** Workouts of several blocks only (change multi-block-workouts); `pos`/`done`/`raw` then mirror `seq.inner`. */
+  seq?: SequenceState;
 };
+
+/**
+ * Where a workout of several blocks is: block `idx`, started at `start` on the
+ * session clock, whose own engine state `inner` runs on the block-local clock
+ * `t - start`; `restUntil` is the end of the rest after it, and `ends` each
+ * finished block's end time.
+ */
+export type SequenceState = { idx: number; start: number; inner: EngineState; restUntil: number | null; ends: number[] };
 
 export function formatTime(seconds: number): string {
   const s = Math.abs(seconds);
@@ -449,10 +502,15 @@ function totalIntervals(config: WodConfig): number {
 }
 
 export function initial(config: WodConfig): EngineState {
+  if (isSequence(config)) {
+    const inner = initial(config.parts[0]);
+    return { ...inner, seq: { idx: 0, start: 0, inner, restUntil: null, ends: [] } };
+  }
   return { pos: START_POSITION, done: 0, raw: 0, finished: false, t: 0, tagged: [], restUntil: null };
 }
 
 export function advanceTo(config: WodConfig, state: EngineState, t: number): EngineState {
+  if (isSequence(config)) return advanceSequence(config, state, t);
   if (state.finished || t <= state.t) return state;
   const { repeat } = config.format;
   if (repeat === 'cycle') {
@@ -504,17 +562,27 @@ function inIntervalRest(config: WodConfig, t: number): boolean {
  */
 export function isResting(config: WodConfig, state: EngineState): boolean {
   if (state.finished) return false;
+  if (isSequence(config)) {
+    const seq = state.seq!;
+    return seq.restUntil != null || isResting(config.parts[seq.idx], seq.inner);
+  }
   return state.restUntil != null || inIntervalRest(config, state.t);
 }
 
 /** Seconds left in the current rest (0 when not resting). */
 export function restLeftSeconds(config: WodConfig, state: EngineState): number {
   if (!isResting(config, state)) return 0;
+  if (isSequence(config)) {
+    const seq = state.seq!;
+    if (seq.restUntil == null) return restLeftSeconds(config.parts[seq.idx], seq.inner);
+    return Math.max(0, Math.ceil((seq.restUntil - state.t) / 1000));
+  }
   const end = state.restUntil ?? (Math.floor(state.t / (intervalSeconds(config) * 1000)) + 1) * intervalSeconds(config) * 1000;
   return Math.max(0, Math.ceil((end - state.t) / 1000));
 }
 
 export function apply(config: WodConfig, state: EngineState, event: EngineEvent): EngineState {
+  if (isSequence(config)) return applySequence(config, state, event);
   const { repeat } = config.format;
   const s = advanceTo(config, state, event.t);
   const target = targetAt(config, s.pos);
@@ -554,7 +622,104 @@ export function fold(config: WodConfig, events: EngineEvent[], endT: number): En
   return advanceTo(config, state, endT);
 }
 
-export function view(config: WodConfig, state: EngineState) {
+// ─── Workouts of several blocks (change multi-block-workouts) ───────────────
+//
+// Each block runs on its own engine, untouched, on the block-local clock
+// `t - start`; this layer only routes the clock and the events to the current
+// block and moves on when it finishes (after its rest, if any). The session
+// clock never stops, and `t`, `finished` and `tagged` stay global.
+
+/** The current block's index, 0 for a one-block workout (the cue on a block change reads it). */
+export function blockIndexOf(state: EngineState): number {
+  return state.seq?.idx ?? 0;
+}
+
+// The top-level position and counts mirror the current block's.
+function withSequence(state: EngineState, seq: SequenceState): EngineState {
+  return { ...state, pos: seq.inner.pos, done: seq.inner.done, raw: seq.inner.raw, seq };
+}
+
+// Block `seq.idx` ended at session-clock `end`: the workout finishes, its rest starts, or the next block does.
+function endBlock(config: SequenceConfig, seq: SequenceState, end: number): { seq: SequenceState; finished: boolean } {
+  const ends = [...seq.ends, end];
+  if (seq.idx === config.parts.length - 1) return { seq: { ...seq, ends }, finished: true };
+  const rest = config.restAfter[seq.idx] ?? 0;
+  if (rest > 0) return { seq: { ...seq, ends, restUntil: end + rest * 1000 }, finished: false };
+  const idx = seq.idx + 1;
+  return { seq: { idx, start: end, inner: initial(config.parts[idx]), restUntil: null, ends }, finished: false };
+}
+
+function advanceSequence(config: SequenceConfig, state: EngineState, t: number): EngineState {
+  if (state.finished || t <= state.t) return state;
+  let seq = state.seq!;
+  // A loop: one jump of the clock can cross several blocks and rests.
+  for (;;) {
+    if (seq.restUntil != null) {
+      if (t < seq.restUntil) break;
+      const idx = seq.idx + 1;
+      seq = { ...seq, idx, start: seq.restUntil, inner: initial(config.parts[idx]), restUntil: null };
+      continue;
+    }
+    const inner = advanceTo(config.parts[seq.idx], seq.inner, t - seq.start);
+    seq = { ...seq, inner };
+    if (!inner.finished) break;
+    const end = seq.start + inner.t;
+    const next = endBlock(config, seq, end);
+    if (next.finished) return { ...withSequence(state, next.seq), t: end, finished: true };
+    seq = next.seq;
+  }
+  return { ...withSequence(state, seq), t };
+}
+
+function applySequence(config: SequenceConfig, state: EngineState, event: EngineEvent): EngineState {
+  const s = advanceTo(config, state, event.t);
+  const seq = s.seq!;
+  if (s.finished || seq.restUntil != null) {
+    // After the end or between blocks: recorded nowhere, never counted.
+    return { ...s, tagged: [...s.tagged, { t: event.t, ok: event.ok, pos: s.pos, target: 0, counted: false }] };
+  }
+  const inner = apply(config.parts[seq.idx], seq.inner, { t: event.t - seq.start, ok: event.ok });
+  const own = inner.tagged[inner.tagged.length - 1];
+  const tagged = [...s.tagged, { t: event.t, ok: event.ok, pos: own.pos, target: own.target, counted: own.counted, block: seq.idx }];
+  let next: SequenceState = { ...seq, inner };
+  if (inner.finished && !seq.inner.finished) {
+    // The block ended on this event (a For Time's last rep).
+    const ended = endBlock(config, next, event.t);
+    if (ended.finished) return { ...withSequence(s, ended.seq), tagged, finished: true };
+    next = ended.seq;
+  }
+  return { ...withSequence(s, next), tagged };
+}
+
+function viewSequence(config: SequenceConfig, state: EngineState) {
+  const seq = state.seq!;
+  const count = config.parts.length;
+  if (seq.restUntil != null && !state.finished) {
+    // Between blocks: REST, with the next block's start shown below it.
+    const next = config.parts[seq.idx + 1];
+    const left = restLeftSeconds(config, state);
+    return {
+      ...view(next, initial(next)),
+      exerciseName: `REST ${formatTime(left)}`,
+      timerStr: formatTime(left),
+      timerLabel: 'rest left',
+      blockLabel: `BLOCK ${seq.idx + 2}/${count}`,
+    };
+  }
+  return { ...view(config.parts[seq.idx], seq.inner), blockLabel: `BLOCK ${seq.idx + 1}/${count}` };
+}
+
+export function view(config: WodConfig, state: EngineState): {
+  exerciseName: string;
+  target: number;
+  done: number;
+  kpi: WodKpi;
+  timerStr: string;
+  timerLabel: string;
+  /** "BLOCK n/N" on a workout of several blocks, null otherwise. */
+  blockLabel: string | null;
+} {
+  if (isSequence(config)) return viewSequence(config, state);
   const elapsed = Math.floor(state.t / 1000);
   const interval = intervalSeconds(config);
   const work = config.block.workSeconds;
@@ -578,5 +743,6 @@ export function view(config: WodConfig, state: EngineState) {
     kpi: kpiAt(config, state.pos),
     timerStr,
     timerLabel: cap != null ? `${timerLabel} · cap ${formatTime(cap)}` : timerLabel,
+    blockLabel: null,
   };
 }

@@ -12,6 +12,7 @@ import { useSQLiteContext } from 'expo-sqlite';
 import { withProfile } from '@/components/editor/profile-gate';
 import { Screen } from '@/components/screen';
 import { HF } from '@/constants/hf';
+import { WorkoutBreakdown } from '@/components/workout-breakdown';
 import { durationLine } from '@/constants/wod-engine';
 import { Workout, archiveWorkout, getWorkout, isOwn } from '@/db/workouts';
 import { useProfile } from '@/hooks/use-profile';
@@ -98,15 +99,7 @@ export default function LibraryDetailScreen() {
         contentContainerStyle={styles.exerciseListContent}
         scrollIndicatorInsets={{ right: 1 }}
       >
-        {config.exercises.map((ex, i) => (
-          <View key={i} style={styles.exerciseRow}>
-            <View style={styles.exerciseText}>
-              <Text style={styles.exerciseName}>{ex.name}</Text>
-              {ex.note != null && <Text style={styles.exerciseNote}>{ex.note}</Text>}
-            </View>
-            <Text style={styles.exerciseDetail}>{ex.detail}</Text>
-          </View>
-        ))}
+        <WorkoutBreakdown config={config} />
       </ScrollView>
 
       {/* Actions — no START here: judging starts only from workout selection */}
@@ -240,37 +233,5 @@ const styles = StyleSheet.create({
   exerciseListContent: {
     paddingHorizontal: 24,
     paddingVertical: 8,
-  },
-  exerciseRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: HF.hairline,
-  },
-  exerciseText: {
-    flex: 1,
-    marginRight: 12,
-  },
-  exerciseNote: {
-    fontFamily: 'IBMPlexMono_400Regular',
-    fontSize: 11,
-    color: HF.muted,
-    letterSpacing: 1,
-    marginTop: 2,
-  },
-  exerciseName: {
-    fontFamily: 'BarlowCondensed_600SemiBold',
-    fontSize: 20,
-    color: HF.ink,
-    letterSpacing: 1.5,
-    textTransform: 'uppercase',
-  },
-  exerciseDetail: {
-    fontFamily: 'IBMPlexMono_400Regular',
-    fontSize: 12,
-    color: HF.muted,
-    letterSpacing: 1,
   },
 });

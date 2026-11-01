@@ -2,7 +2,7 @@
 // live judging (clock ticks interleaved with gestures) must end in exactly the
 // state the result fold derives from the same events.
 import { describe, expect, it } from 'vitest';
-import { EngineEvent, EngineState, START_POSITION, WodConfig, advanceTo, apply, capSeconds, durationLine, fold, initial, intervalLineAt, intervalSeconds, isComplete, isResting, restLeftSeconds, targetAt, view } from '@/constants/wod-engine';
+import { EngineEvent, EngineState, START_POSITION, WodConfig, advanceTo, apply, blockIndexOf, capSeconds, durationLine, fold, initial, intervalLineAt, intervalSeconds, isComplete, isResting, restLeftSeconds, targetAt, view } from '@/constants/wod-engine';
 import { CASES, builtin, workout } from './fixtures';
 
 const TICK_MS = 250;
@@ -389,5 +389,78 @@ describe('rest (change rest-steps)', () => {
     expect(state.restUntil).toBe(null);
     expect(isResting(fran, state)).toBe(false);
     expect(view(builtin('everyMinute'), advanceTo(builtin('everyMinute'), initial(builtin('everyMinute')), 75000)).timerLabel).toBe('min left');
+  });
+});
+
+describe('several blocks (change multi-block-workouts)', () => {
+  const buyIn = workout('buyInAmrap');
+  const twoAmraps = workout('twoAmraps');
+  const thenForTime = workout('amrapThenForTime');
+  /** `n` valid reps from `from` ms, 1 s apart. */
+  const reps = (from: number, n: number): EngineEvent[] => Array.from({ length: n }, (_, i) => ({ t: from + i * 1000, ok: true }));
+
+  it('moves to the next block on a For Time block\'s last rep', () => {
+    const state = fold(buyIn, reps(1000, 20), 20000);
+    expect(state.finished).toBe(false);
+    expect(blockIndexOf(state)).toBe(1);
+    expect(state.seq?.start).toBe(20000);
+    expect(view(buyIn, state)).toMatchObject({ blockLabel: 'BLOCK 2/3', timerLabel: 'remaining', timerStr: '05:00', exerciseName: 'PULL-UPS' });
+    expect(isComplete(buyIn, state)).toBe(false);
+  });
+
+  it('starts the next block when an AMRAP block ends, and finishes on the last block', () => {
+    const state = fold(buyIn, [...reps(1000, 20), ...reps(321000, 20)], Infinity);
+    expect(state.seq?.ends).toEqual([20000, 320000, 340000]);
+    expect(state.finished).toBe(true);
+    expect(state.t).toBe(340000);
+    expect(isComplete(buyIn, state)).toBe(true);
+    expect(view(buyIn, state).exerciseName).toBe('DONE');
+  });
+
+  it('rests between blocks, ignoring gestures, and can jump across a block and its rest', () => {
+    const resting = advanceTo(twoAmraps, initial(twoAmraps), 250000);
+    expect(isResting(twoAmraps, resting)).toBe(true);
+    expect(restLeftSeconds(twoAmraps, resting)).toBe(50);
+    expect(view(twoAmraps, resting)).toMatchObject({ exerciseName: 'REST 00:50', timerLabel: 'rest left', blockLabel: 'BLOCK 2/2', target: 15 });
+    const tapped = apply(twoAmraps, resting, { t: 251000, ok: true });
+    expect(tapped.tagged.at(-1)).toMatchObject({ counted: false });
+    expect(tapped.tagged.at(-1)?.block).toBeUndefined();
+    const jumped = advanceTo(twoAmraps, initial(twoAmraps), 330000);
+    expect(blockIndexOf(jumped)).toBe(1);
+    expect(jumped.seq?.start).toBe(300000);
+    expect(isResting(twoAmraps, jumped)).toBe(false);
+    expect(view(twoAmraps, jumped).timerStr).toBe('03:30');
+  });
+
+  it('tags counted events with their block on the block-local position', () => {
+    const state = fold(twoAmraps, [...reps(1000, 3), ...reps(301000, 2)], 310000);
+    expect(state.tagged.map((e) => e.block)).toEqual([0, 0, 0, 1, 1]);
+    expect(state.done).toBe(2);
+  });
+
+  it('is complete only on the last block', () => {
+    const finished = fold(thenForTime, reps(181000, 20), Infinity);
+    expect(finished.t).toBe(200000);
+    expect(isComplete(thenForTime, finished)).toBe(true);
+    const capped = fold(thenForTime, reps(181000, 15), Infinity);
+    expect(capped.finished).toBe(true);
+    expect(capped.t).toBe(480000);
+    expect(isComplete(thenForTime, capped)).toBe(false);
+  });
+
+  it('labels the workout from its scoring block', () => {
+    expect(buyIn.mode).toBe('5-MIN AMRAP · 3 BLOCKS');
+    expect(buyIn.description).toBe('1 stations · 20 reps each → 5 min · pull-ups + air squats → 1 stations · 20 reps each');
+    expect(thenForTime.mode).toBe('2 ROUNDS FOR TIME · 2 BLOCKS');
+    expect(durationLine(buyIn)).toBe(null);
+    expect(buyIn.parts?.map((p) => durationLine(p))).toEqual([null, '5 min', null]);
+  });
+
+  it('leaves one-block workouts without parts or a sequence state', () => {
+    const fran = builtin('fran');
+    expect(fran.parts).toBeUndefined();
+    expect(initial(fran).seq).toBeUndefined();
+    expect(view(fran, initial(fran)).blockLabel).toBe(null);
+    expect(blockIndexOf(initial(fran))).toBe(0);
   });
 });
