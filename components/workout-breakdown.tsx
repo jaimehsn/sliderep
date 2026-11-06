@@ -1,5 +1,6 @@
 import { Fragment } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { Text } from '@/components/text';
 
 import { HF } from '@/constants/hf';
 import { WodConfig, WodExercise, durationLine, isSequence } from '@/constants/wod-engine';

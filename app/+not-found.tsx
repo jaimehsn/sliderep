@@ -1,5 +1,6 @@
 import { Link, Stack } from 'expo-router';
-import { StyleSheet, Text } from 'react-native';
+import { StyleSheet } from 'react-native';
+import { Text } from '@/components/text';
 import { Screen } from '@/components/screen';
 import { HF } from '@/constants/hf';
 

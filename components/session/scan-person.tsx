@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Text } from '@/components/text';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { HF } from '@/constants/hf';
 import { parseQrPayload } from '@/constants/profile';
@@ -67,7 +68,7 @@ export function ScanPerson({ title, onDone, selfId }: Props) {
   }
 
   return (
-    <View style={[styles.root, styles.center]}>
+    <ScrollView style={styles.root} contentContainerStyle={styles.center} keyboardShouldPersistTaps="handled">
       <Text style={styles.title}>{title}</Text>
       {permission != null && !permission.granted && !permission.canAskAgain && (
         <Text style={styles.hint}>Camera access was denied — you can still continue anonymously.</Text>
@@ -84,7 +85,7 @@ export function ScanPerson({ title, onDone, selfId }: Props) {
       >
         <Text style={styles.skipBtnText}>SKIP — ANONYMOUS</Text>
       </Pressable>
-    </View>
+    </ScrollView>
   );
 }
 
@@ -93,7 +94,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: HF.bg,
   },
+  // The choice view scrolls only when it doesn't fit (change responsive-review); the camera view doesn't.
   center: {
+    flexGrow: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 32,

@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Text } from '@/components/text';
 import { router, useFocusEffect } from 'expo-router';
 import Constants from 'expo-constants';
 import {
@@ -50,7 +51,7 @@ export default function SettingsScreen() {
       <View style={styles.divider} />
 
       {/* Settings rows */}
-      <View style={styles.sections}>
+      <ScrollView style={styles.sections}>
         <Pressable
           style={({ pressed }) => [styles.sectionBtn, pressed && styles.sectionBtnPressed]}
           onPress={() => router.push('/profile')}
@@ -63,7 +64,7 @@ export default function SettingsScreen() {
           <Text style={styles.sectionLabel}>VERSION</Text>
           <Text style={styles.sectionSub}>v{Constants.expoConfig?.version ?? '—'}</Text>
         </View>
-      </View>
+      </ScrollView>
 
     </Screen>
   );

@@ -3,6 +3,18 @@ import { makeId } from './sessions';
 
 export type AthleteProfile = { id: string; alias: string; createdAt: number };
 
+/**
+ * Longest alias the profile screen accepts, after trimming (change responsive-review).
+ * Only new input is limited: a longer stored alias, or one read from another person's QR, is kept as it is.
+ */
+export const MAX_ALIAS_LENGTH = 24;
+
+/** Whether a typed alias can be saved: non-empty and within the limit, after trimming. */
+export function isValidAlias(alias: string): boolean {
+  const trimmed = alias.trim();
+  return trimmed !== '' && trimmed.length <= MAX_ALIAS_LENGTH;
+}
+
 // `athlete_profile` is a 0-or-1-row table: no local account system, just
 // whether this device has created a profile yet.
 export async function getProfile(db: SQLiteDatabase): Promise<AthleteProfile | null> {

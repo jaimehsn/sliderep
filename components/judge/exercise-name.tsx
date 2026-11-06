@@ -1,4 +1,5 @@
 import { StyleSheet, TextStyle, View } from 'react-native';
+import { MAX_FONT_SCALE } from '@/components/text';
 import Animated, { AnimatedStyle } from 'react-native-reanimated';
 
 type Props = {
@@ -15,6 +16,7 @@ export function ExerciseName({ name, animatedStyle }: Props) {
         numberOfLines={1}
         adjustsFontSizeToFit
         minimumFontScale={0.6}
+        maxFontSizeMultiplier={MAX_FONT_SCALE}
       >
         {name}
       </Animated.Text>

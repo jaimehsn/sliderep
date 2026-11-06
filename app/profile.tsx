@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Text, TextInput } from '@/components/text';
 import { router } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import {
@@ -11,7 +12,7 @@ import { IBMPlexMono_400Regular } from '@expo-google-fonts/ibm-plex-mono';
 import { HF } from '@/constants/hf';
 import { Screen } from '@/components/screen';
 import { useProfile } from '@/hooks/use-profile';
-import { createProfile, deleteProfile, updateAlias } from '@/db/profile';
+import { MAX_ALIAS_LENGTH, createProfile, deleteProfile, isValidAlias, updateAlias } from '@/db/profile';
 
 export default function ProfileScreen() {
   const [fontsLoaded] = useFonts({
@@ -30,7 +31,7 @@ export default function ProfileScreen() {
 
   const handleCreate = async () => {
     const trimmed = aliasInput.trim();
-    if (!trimmed) return;
+    if (!isValidAlias(trimmed)) return;
     await createProfile(db, trimmed);
     setAliasInput('');
     await refresh();
@@ -39,7 +40,7 @@ export default function ProfileScreen() {
   const handleSave = async () => {
     if (!profile) return;
     const trimmed = (editedAlias ?? '').trim();
-    if (!trimmed || trimmed === profile.alias) return;
+    if (!isValidAlias(trimmed) || trimmed === profile.alias) return;
     await updateAlias(db, profile.id, trimmed);
     setEditedAlias(null);
     await refresh();
@@ -65,7 +66,11 @@ export default function ProfileScreen() {
   };
 
   const aliasValue = editedAlias ?? profile?.alias ?? '';
-  const canSave = profile != null && editedAlias != null && editedAlias.trim() !== '' && editedAlias.trim() !== profile.alias;
+  const canSave = profile != null && editedAlias != null && isValidAlias(editedAlias) && editedAlias.trim() !== profile.alias;
+  const canCreate = isValidAlias(aliasInput);
+  // Android's maxLength also cuts text set from code, so an alias saved before the limit gets no maxLength
+  // and shows in full; it only changes if the owner edits and saves it (change responsive-review).
+  const editMaxLength = profile != null && profile.alias.length <= MAX_ALIAS_LENGTH ? MAX_ALIAS_LENGTH : undefined;
 
   return (
     <Screen style={styles.root} minBottomPadding={24}>
@@ -79,7 +84,7 @@ export default function ProfileScreen() {
         </Pressable>
       </View>
 
-      <View style={styles.center}>
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.center} keyboardShouldPersistTaps="handled">
         {profile == null ? (
           <>
             <Text style={styles.title}>CREATE PROFILE</Text>
@@ -90,13 +95,14 @@ export default function ProfileScreen() {
               placeholder="Your name"
               placeholderTextColor={HF.muted}
               autoCapitalize="words"
+              maxLength={MAX_ALIAS_LENGTH}
             />
             <Pressable
               onPress={handleCreate}
-              disabled={!aliasInput.trim()}
+              disabled={!canCreate}
               style={({ pressed }) => [
                 styles.primaryBtn,
-                !aliasInput.trim() && styles.btnDisabled,
+                !canCreate && styles.btnDisabled,
                 pressed && styles.btnPressed,
               ]}
             >
@@ -112,6 +118,7 @@ export default function ProfileScreen() {
               onChangeText={setEditedAlias}
               placeholderTextColor={HF.muted}
               autoCapitalize="words"
+              maxLength={editMaxLength}
             />
             <Pressable
               onPress={handleSave}
@@ -138,7 +145,7 @@ export default function ProfileScreen() {
             </Pressable>
           </>
         )}
-      </View>
+      </ScrollView>
     </Screen>
   );
 }
@@ -162,8 +169,13 @@ const styles = StyleSheet.create({
     fontSize: 20,
     color: HF.muted,
   },
-  center: {
+  // Scrolls only when its content doesn't fit, e.g. with the keyboard open (change responsive-review);
+  // otherwise centered as before.
+  scroll: {
     flex: 1,
+  },
+  center: {
+    flexGrow: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 32,

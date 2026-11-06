@@ -4,7 +4,8 @@ Working agreement: work is split in two tracks. **Track A** (foundations) is def
 
 ## Product context
 
-- Android app, personal use for now (scope may change later: iOS, stores).
+- Android app, aimed at the popular phones held in portrait (from 360 × 640 dp up; decided 2026-11-05 in `responsive-review`). Tested on Android only; tablets, open foldables, screens narrower than 360 dp, landscape and iOS are out for now (scope may change later: iOS, stores).
+- Text follows the system font size up to 1.3×; the judging timer, rep count, reps left and result scores keep their size (`components/text.tsx`).
 - **One judge counts one athlete's reps at a time**, minimizing visual attention.
 - UI language: **English**.
 - Visual style: current tokens in `constants/hf.ts` (dark + mono) are the reference. The judging screen follows the **"Ghost · base"** design from Claude Design (see *Design: screens and routes*); its handoff bundle is kept locally in `design/`, which is git-ignored.
@@ -354,7 +355,7 @@ Undo last rep, keep-awake, tests, iOS / store release, volume buttons as rep / n
 
 ## Known issues (code)
 
-- **Responsive review of every view** (open, raised 2026-10-30): two layouts only broke on a real phone — the judging header's round pips with 30 intervals pushed "N/total" off screen, and the EMOM editor's total ran past the right edge (both fixed in `emom-progressive-reps`). Review every screen for rows that can outgrow the width (long names, many items, large numbers, the keyboard) and make them wrap, shrink or truncate; from now on, every change's device check also covers the layout of the views it touches with long or extreme content.
+- ~~**Responsive review of every view** (raised 2026-10-30): two layouts only broke on a real phone — the judging header's round pips with 30 intervals pushed "N/total" off screen, and the EMOM editor's total ran past the right edge (both fixed in `emom-progressive-reps`). Review every screen for rows that can outgrow the width (long names, many items, large numbers, the keyboard) and make them wrap, shrink or truncate; from now on, every change's device check also covers the layout of the views it touches with long or extreme content.~~ — addressed by `responsive-review` (2026-11-06): History scrolls, the setup header keeps its exit, the rep count and scores fit, result/adjust/forms scroll, names/aliases/reps are bounded and text scaling is capped; the device review on 360 × 640, ~412 × 915 and the owner's phone is done by the owner (that change's `tasks.md`, group 7).
 
 - ~~Tap is announced ("tap = rep" in the footer) but does not count~~ — fixed, see B2.
 - ~~EMOM timing desync~~ — fixed, see B3.

@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Text, TextInput } from '@/components/text';
 import { router, useLocalSearchParams } from 'expo-router';
 import {
   useFonts,
@@ -11,6 +12,8 @@ import { useSQLiteContext } from 'expo-sqlite';
 
 import { BlockEditor } from '@/components/editor/block-editor';
 import {
+  MAX_NAME_LENGTH,
+  copyName,
   DraftProblems,
   WorkoutDraft,
   addBlock,
@@ -59,7 +62,7 @@ export default function NewWorkoutScreen() {
         return;
       }
       const { config } = source;
-      setWorkout(workoutDraftFromConfig(config, `${config.name} COPY`));
+      setWorkout(workoutDraftFromConfig(config, copyName(config.name)));
     });
   }, [db, from]);
 
@@ -117,6 +120,7 @@ export default function NewWorkoutScreen() {
           placeholderTextColor={HF.mutedDim}
           autoCapitalize="characters"
           autoCorrect={false}
+          maxLength={MAX_NAME_LENGTH}
           style={styles.nameInput}
         />
         {problems.name && <Text style={styles.problem}>{problems.name}</Text>}

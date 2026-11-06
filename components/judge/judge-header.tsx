@@ -1,4 +1,5 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { Text } from '@/components/text';
 import { HF } from '@/constants/hf';
 import { WodKpi } from '@/constants/wod-engine';
 import { MAX_PIPS, RoundPips } from './round-pips';
@@ -16,14 +17,17 @@ export function JudgeHeader({ timerLabel, timerStr, kpi, onAbortPress }: Props) 
       <Pressable
         onPress={onAbortPress}
         hitSlop={12}
-        style={({ pressed }) => [pressed && styles.timerPressed]}
+        style={({ pressed }) => [styles.timerBlock, pressed && styles.timerPressed]}
       >
-        <Text style={[styles.tag, styles.timerTag]}>{timerLabel}</Text>
-        <Text style={styles.time}>{timerStr}</Text>
+        {/* One line each, shrinking if needed, so a long cap label or a 100:00+ timer never pushes the KPI out. */}
+        <Text style={[styles.tag, styles.timerTag]} numberOfLines={1}>{timerLabel}</Text>
+        <Text style={styles.time} allowFontScaling={false} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>
+          {timerStr}
+        </Text>
       </Pressable>
       <View style={styles.right}>
-        <Text style={[styles.tag, styles.kpiTag]}>{kpi.label}</Text>
-        <Text style={styles.value}>
+        <Text style={[styles.tag, styles.kpiTag]} numberOfLines={1}>{kpi.label}</Text>
+        <Text style={styles.value} numberOfLines={1}>
           {kpi.current}
           {kpi.total != null && <Text style={styles.total}>/{kpi.total}</Text>}
         </Text>
@@ -53,6 +57,9 @@ const styles = StyleSheet.create({
     color: HF.muted,
     letterSpacing: 2,
     textTransform: 'uppercase',
+  },
+  timerBlock: {
+    flexShrink: 1,
   },
   timerTag: {
     marginBottom: 4,

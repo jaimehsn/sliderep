@@ -25,6 +25,8 @@ type Props = {
   /** Last gesture; `dropKey` changes on every gesture so the travel line restarts. */
   kind: Kind | null;
   dropKey: number;
+  /** Band height; the design's BAND_HEIGHT unless a short screen needs less (`app/session/run.tsx`). */
+  height?: number;
 };
 
 export const BAND_HEIGHT = 220;
@@ -34,7 +36,7 @@ export const BAND_HEIGHT = 220;
  * (no-rep on the left, rep on the right), a breathing dot that follows the finger, and a
  * line that travels toward the side of the last gesture.
  */
-export function SwipeBand({ gesture, drag, dotColorStyle, kind, dropKey }: Props) {
+export function SwipeBand({ gesture, drag, dotColorStyle, kind, dropKey, height = BAND_HEIGHT }: Props) {
   const breathe = useSharedValue(0.3);
 
   useEffect(() => {
@@ -51,7 +53,7 @@ export function SwipeBand({ gesture, drag, dotColorStyle, kind, dropKey }: Props
 
   return (
     <GestureDetector gesture={gesture}>
-      <View style={styles.band}>
+      <View style={[styles.band, { height }]}>
         <View style={[styles.mark, styles.markTop]} />
         <View style={[styles.mark, styles.markBottom]} />
         <View style={[styles.edge, styles.edgeLeft]} />
@@ -96,9 +98,7 @@ function TravelLine({ kind }: { kind: Kind }) {
 }
 
 const styles = StyleSheet.create({
-  band: {
-    height: BAND_HEIGHT,
-  },
+  band: {},
   mark: {
     position: 'absolute',
     left: '50%',

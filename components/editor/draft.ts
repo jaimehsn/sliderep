@@ -207,6 +207,19 @@ export function setSameReps(draft: ForTimeDraft, on: boolean): ForTimeDraft {
   };
 }
 
+/** Longest workout name the editor accepts, after trimming (change responsive-review). */
+export const MAX_NAME_LENGTH = 40;
+
+/** Most reps a line can be written with: three digits (change responsive-review). An EMOM increment may go past it over time. */
+export const MAX_REPS = 999;
+
+/** DUPLICATE's name: the source's name + " COPY", the source's part shortened only as much as the limit needs. */
+export function copyName(name: string): string {
+  const suffix = ' COPY';
+  const base = name.length + suffix.length > MAX_NAME_LENGTH ? name.slice(0, MAX_NAME_LENGTH - suffix.length).trimEnd() : name;
+  return `${base}${suffix}`;
+}
+
 /** The name as saved: trimmed and upper-cased, like the built-ins. */
 export function savedName(draft: Draft): string {
   return draft.name.trim().toUpperCase();
@@ -223,6 +236,7 @@ export type DraftProblems = Record<string, string>;
 function lineProblem(line: LineFields, reps: string[]): string | null {
   if (!line.exercise) return 'Pick an exercise';
   if (reps.some((r) => parseCount(r) == null)) return 'Reps must be 1 or more';
+  if (reps.some((r) => parseCount(r)! > MAX_REPS)) return `Reps must be ${MAX_REPS} or less`;
   if (line.repDescription && parseCount(line.repDescription.amount) == null) return 'Amount must be 1 or more';
   return null;
 }
@@ -437,7 +451,9 @@ export function savedWorkoutName(workout: WorkoutDraft): string {
  */
 export function validateWorkoutDraft(workout: WorkoutDraft): DraftProblems {
   const problems: DraftProblems = {};
-  if (savedWorkoutName(workout) === '') problems.name = 'Name is required';
+  const name = savedWorkoutName(workout);
+  if (name === '') problems.name = 'Name is required';
+  else if (name.length > MAX_NAME_LENGTH) problems.name = `Name must be ${MAX_NAME_LENGTH} characters or less`;
   workout.blocks.forEach(({ draft, restAfter }, i) => {
     for (const [key, problem] of Object.entries(validateDraft(draft))) {
       if (key !== 'name') problems[`block:${i}:${key}`] = problem;

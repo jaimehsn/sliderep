@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Text } from '@/components/text';
 import { router } from 'expo-router';
 import {
   useFonts,
@@ -37,7 +38,7 @@ export default function FirstRunScreen() {
 
   return (
     <Screen style={styles.root} minBottomPadding={24}>
-      <View style={styles.center}>
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.center} keyboardShouldPersistTaps="handled">
         <Text style={styles.title}>WELCOME TO SLIDEREP</Text>
         <Text style={styles.subtext}>
           Create a local profile to save your sessions, or skip for now — you can always create one later.
@@ -56,7 +57,7 @@ export default function FirstRunScreen() {
         >
           <Text style={styles.skipBtnText}>CONTINUE ANONYMOUS</Text>
         </Pressable>
-      </View>
+      </ScrollView>
     </Screen>
   );
 }
@@ -66,8 +67,13 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: HF.bg,
   },
-  center: {
+  // Scrolls only when its content doesn't fit, e.g. with the keyboard open (change responsive-review);
+  // otherwise centered as before.
+  scroll: {
     flex: 1,
+  },
+  center: {
+    flexGrow: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 32,

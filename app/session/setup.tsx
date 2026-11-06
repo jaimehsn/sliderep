@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Text } from '@/components/text';
 import { router } from 'expo-router';
 import {
   useFonts,
@@ -70,7 +71,7 @@ export default function SessionSetupScreen() {
     <Screen style={styles.root} minBottomPadding={24}>
       <View style={styles.header}>
         <View style={styles.headerRow}>
-          <View>
+          <View style={styles.headerText}>
             <Text style={styles.mode}>{config.mode}</Text>
             <Text style={styles.name}>{config.name}</Text>
           </View>
@@ -94,7 +95,7 @@ export default function SessionSetupScreen() {
       </View>
 
       {phase === 'role' && (
-        <View style={styles.center}>
+        <ScrollView style={styles.scroll} contentContainerStyle={styles.center} keyboardShouldPersistTaps="handled">
           <Text style={styles.title}>CHOOSE YOUR ROLE</Text>
           <Pressable
             style={({ pressed }) => [styles.roleBtn, pressed && styles.btnPressed]}
@@ -108,7 +109,7 @@ export default function SessionSetupScreen() {
           >
             <Text style={styles.roleBtnText}>I&rsquo;LL BE JUDGED</Text>
           </Pressable>
-        </View>
+        </ScrollView>
       )}
 
       {phase === 'scan' && (
@@ -122,7 +123,7 @@ export default function SessionSetupScreen() {
       {/* Two "won't be saved" warnings: judge + skip (anonymous athlete), and
           judged without a local profile (no registered athlete to save for). */}
       {(phase === 'skipBanner' || phase === 'noProfileBanner') && (
-        <View style={styles.center}>
+        <ScrollView style={styles.scroll} contentContainerStyle={styles.center} keyboardShouldPersistTaps="handled">
           <Text style={styles.title}>THIS SESSION WON&rsquo;T BE SAVED</Text>
           <Text style={styles.subtext}>
             {phase === 'skipBanner'
@@ -141,7 +142,7 @@ export default function SessionSetupScreen() {
           >
             <Text style={styles.skipBtnText}>GO BACK</Text>
           </Pressable>
-        </View>
+        </ScrollView>
       )}
     </Screen>
   );
@@ -162,6 +163,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
+  },
+  // Takes the row's free width so a long name wraps instead of pushing the exit off screen.
+  headerText: {
+    flex: 1,
   },
   mode: {
     fontFamily: 'IBMPlexMono_400Regular',
@@ -204,8 +209,13 @@ const styles = StyleSheet.create({
     opacity: 0.55,
   },
 
-  center: {
+  // Scrolls only when its content doesn't fit, e.g. with the keyboard open (change responsive-review);
+  // otherwise centered as before.
+  scroll: {
     flex: 1,
+  },
+  center: {
+    flexGrow: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 32,

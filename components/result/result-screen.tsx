@@ -1,5 +1,6 @@
 import { Fragment, useCallback, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Text } from '@/components/text';
 import { router, useFocusEffect } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { HF } from '@/constants/hf';
@@ -45,7 +46,8 @@ export function ResultScreen({ config, log, athleteAlias, role = 'judge', saved,
     'Not saved';
 
   return (
-    <View style={styles.container}>
+    // Header, score and splits scroll as one (change responsive-review), so a long header can't squeeze the splits.
+    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.header}>
         <Text style={styles.mode}>{config.mode}</Text>
         <Text style={styles.name}>{config.name}</Text>
@@ -63,10 +65,12 @@ export function ResultScreen({ config, log, athleteAlias, role = 'judge', saved,
 
       <View style={styles.scoreBlock}>
         <Text style={styles.scoreLabel}>{result.scoreLabel}</Text>
-        <Text style={styles.scoreValue}>{result.scoreValue}</Text>
+        <Text style={styles.scoreValue} allowFontScaling={false} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.3}>
+          {result.scoreValue}
+        </Text>
       </View>
 
-      <ScrollView style={styles.splits} contentContainerStyle={styles.splitsContent}>
+      <View style={styles.splitsContent}>
         {result.splits.map((split, i) => (
           <Fragment key={i}>
             {/* Workouts of several blocks: a header before each block's splits (change multi-block-workouts). */}
@@ -93,14 +97,17 @@ export function ResultScreen({ config, log, athleteAlias, role = 'judge', saved,
             </View>
           </Fragment>
         ))}
-      </ScrollView>
-    </View>
+      </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  content: {
+    paddingBottom: 24,
   },
   header: {
     paddingHorizontal: 24,
@@ -154,6 +161,7 @@ const styles = StyleSheet.create({
   scoreBlock: {
     alignItems: 'center',
     paddingVertical: 28,
+    paddingHorizontal: 24,
   },
   scoreLabel: {
     fontFamily: 'IBMPlexMono_400Regular',
@@ -170,13 +178,12 @@ const styles = StyleSheet.create({
     letterSpacing: -2,
     color: HF.ink,
     fontVariant: ['tabular-nums'],
-  },
-  splits: {
-    flex: 1,
+    // Full width, so a long score shrinks to the screen instead of wrapping.
+    alignSelf: 'stretch',
+    textAlign: 'center',
   },
   splitsContent: {
     paddingHorizontal: 24,
-    paddingBottom: 24,
   },
   groupTitle: {
     fontFamily: 'IBMPlexMono_500Medium',

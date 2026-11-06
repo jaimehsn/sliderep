@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { Text } from '@/components/text';
 import { router, useFocusEffect } from 'expo-router';
 import {
   useFonts,

@@ -1,8 +1,10 @@
 import { Fragment, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Text, TextInput } from '@/components/text';
 
 import { ExercisePicker } from '@/components/editor/exercise-picker';
 import {
+  MAX_REPS,
   DRAFT_FORMATS,
   Draft,
   DraftProblems,
@@ -24,6 +26,9 @@ import {
 } from '@/components/editor/draft';
 import { HF } from '@/constants/hf';
 import type { Exercise } from '@/db/exercises';
+
+/** A reps field takes as many digits as the limit has (change responsive-review). */
+const REPS_DIGITS = String(MAX_REPS).length;
 
 const UNITS: RepUnit[] = ['m', 'cal', 's'];
 
@@ -216,6 +221,7 @@ export function BlockEditor({
                       value={forTimeReps(draft, draft.rows[i], r)}
                       onChangeText={(value) => onChange(setLineReps(draft, i, value, r))}
                       keyboardType="number-pad"
+                      maxLength={REPS_DIGITS}
                       style={styles.numberInput}
                     />
                   </View>
@@ -228,6 +234,7 @@ export function BlockEditor({
                   value={draft.format === 'forTime' ? forTimeReps(draft, draft.rows[i], 0) : draft.format === 'amrap' ? draft.rows[i].reps : draft.slots.flat()[i].reps}
                   onChangeText={(value) => onChange(setLineReps(draft, i, value))}
                   keyboardType="number-pad"
+                  maxLength={REPS_DIGITS}
                   style={styles.numberInput}
                 />
                 {draft.format === 'emom' && (

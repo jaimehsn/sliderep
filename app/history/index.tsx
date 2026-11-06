@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Text } from '@/components/text';
 import { router, useFocusEffect } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import {
@@ -80,7 +81,7 @@ export default function HistoryIndexScreen() {
           <Text style={styles.emptyText}>No sessions yet</Text>
         </View>
       ) : (
-        <View style={styles.list}>
+        <ScrollView style={styles.list} contentContainerStyle={styles.listContent}>
           {sessions.map((session, i) => {
             const config = configs.get(session.wodId);
             if (!config) return null;
@@ -106,7 +107,7 @@ export default function HistoryIndexScreen() {
               </View>
             );
           })}
-        </View>
+        </ScrollView>
       )}
     </Screen>
   );
@@ -165,6 +166,8 @@ const styles = StyleSheet.create({
   },
   list: {
     flex: 1,
+  },
+  listContent: {
     paddingHorizontal: 24,
     paddingTop: 8,
   },

@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert, BackHandler, StyleSheet, Text, View } from 'react-native';
+import { Alert, BackHandler, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Text } from '@/components/text';
 import { router } from 'expo-router';
 import {
   useFonts,
@@ -19,7 +21,7 @@ import { Screen } from '@/components/screen';
 import { StartOverlay } from '@/components/judge/start-overlay';
 import { JudgeHeader } from '@/components/judge/judge-header';
 import { ExerciseName } from '@/components/judge/exercise-name';
-import { SwipeBand } from '@/components/judge/swipe-band';
+import { BAND_HEIGHT, SwipeBand } from '@/components/judge/swipe-band';
 import { CountReadout } from '@/components/judge/count-readout';
 import { SideRails } from '@/components/judge/side-rails';
 
@@ -54,6 +56,7 @@ function RunSession({ config, setup }: { config: WodConfig; setup: SessionSetup 
   const [phase, setPhase] = useState<'ready' | 'judging'>('ready');
   const startedAtRef = useRef<number | null>(null);
   const outcomeSetRef = useRef(false);
+  const bandHeight = useBandHeight();
 
   const handleAbort = useCallback(() => {
     Alert.alert(
@@ -122,6 +125,7 @@ function RunSession({ config, setup }: { config: WodConfig; setup: SessionSetup 
         dotColorStyle={judge.dotStyle}
         kind={judge.lastKind}
         dropKey={judge.dropKey}
+        height={bandHeight}
       />
 
       <View style={styles.countZone}>
@@ -132,7 +136,27 @@ function RunSession({ config, setup }: { config: WodConfig; setup: SessionSetup 
 }
 
 // Proportions of the "Ghost" design (360×740): header 140 · exercise 92 · band 220 · count 288.
-// Header and band are fixed; the two zones around the band share the rest of the height.
+// The header is fixed; the two zones around the band share the rest of the height.
+const HEADER_HEIGHT = 140;
+/** Height below the header in the design: exercise + band + count. */
+const DESIGN_BODY = 92 + BAND_HEIGHT + 288;
+/** The band never gets shorter than this: it's the input surface, so it stays comfortable to swipe. */
+const BAND_FLOOR = 160;
+/** The exercise zone holds BLOCK n/N and the name's line even on the shortest screen. */
+const EXERCISE_MIN = 64;
+
+/**
+ * The band's height (change responsive-review): the design's 220 whenever the screen is as tall as
+ * the design, otherwise its share of the height below the header, down to BAND_FLOOR. The band gives
+ * up height first; past its floor the zones shrink, and the count with them (`countFontSize`).
+ */
+function useBandHeight(): number {
+  const { height } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  const body = height - insets.top - insets.bottom - HEADER_HEIGHT;
+  return Math.round(Math.max(BAND_FLOOR, Math.min(BAND_HEIGHT, (body * BAND_HEIGHT) / DESIGN_BODY)));
+}
+
 const styles = StyleSheet.create({
   root: {
     flex: 1,
@@ -140,6 +164,7 @@ const styles = StyleSheet.create({
   },
   exerciseZone: {
     flex: 92,
+    minHeight: EXERCISE_MIN,
   },
   blockLabel: {
     fontFamily: 'IBMPlexMono_400Regular',

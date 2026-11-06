@@ -9,6 +9,7 @@ import {
   addLineToSlot,
   addBlock,
   blockProblems,
+  copyName,
   draftFromBlock,
   draftLines,
   draftToStoredBlock,
@@ -263,6 +264,40 @@ describe('validation', () => {
 
   it('accepts a complete draft', () => {
     expect(validateDraft(fran)).toEqual({});
+  });
+});
+
+describe('input limits (change responsive-review)', () => {
+  const workoutOf = (name: string, draft: Draft = fran): WorkoutDraft => ({ name, scoringBlock: 0, blocks: [{ draft, restAfter: '' }] });
+
+  it('accepts a 40-character name and flags 41, after trimming', () => {
+    expect(validateWorkoutDraft(workoutOf('A'.repeat(40)))).toEqual({});
+    expect(validateWorkoutDraft(workoutOf(`  ${'A'.repeat(40)}  `))).toEqual({});
+    expect(validateWorkoutDraft(workoutOf('A'.repeat(41))).name).toBe('Name must be 40 characters or less');
+  });
+
+  it('accepts 999 reps and flags 1000', () => {
+    const withReps = (reps: string[]): ForTimeDraft => ({ ...fran, rows: [{ ...fran.rows[0], reps }, fran.rows[1]] });
+    expect(validateDraft(withReps(['999', '15', '9']))).toEqual({});
+    expect(validateDraft(withReps(['21', '1000', '9']))['line:0']).toBe('Reps must be 999 or less');
+    expect(validateWorkoutDraft(workoutOf('BIG', withReps(['1000', '15', '9'])))['block:0:line:0']).toBe('Reps must be 999 or less');
+  });
+
+  it('does not limit an EMOM increment', () => {
+    const emom = setLineIncrement(
+      { ...emptyDraft('emom', 'LADDER'), intervals: '10', slots: [[{ ...emptyLine(), exercise: fran.rows[0].exercise, reps: '900', increment: '' }]] } as EmomDraft,
+      0,
+      '200',
+    );
+    expect(validateDraft(emom)).toEqual({});
+  });
+
+  it('builds the DUPLICATE name within the limit', () => {
+    expect(copyName('FRAN')).toBe('FRAN COPY');
+    expect(copyName('A'.repeat(35))).toBe(`${'A'.repeat(35)} COPY`);
+    expect(copyName('A'.repeat(40))).toBe(`${'A'.repeat(35)} COPY`);
+    expect(copyName(`${'A'.repeat(34)} BCDEF`)).toBe(`${'A'.repeat(34)} COPY`); // the cut lands on a space
+    expect(copyName('A'.repeat(40)).length).toBeLessThanOrEqual(40);
   });
 });
 

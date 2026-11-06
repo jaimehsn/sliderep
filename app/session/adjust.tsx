@@ -1,5 +1,6 @@
 import { Fragment, useCallback, useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Text, TextInput } from '@/components/text';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import {
@@ -22,6 +23,10 @@ import { AdjustmentChange, SessionAdjustment, addAdjustment, getAdjustments } fr
 import { deriveAdjustedResult } from '@/components/result/adjust';
 import { Split } from '@/components/result/replay';
 import { capSeconds, intervalSeconds, isSequence } from '@/constants/wod-engine';
+import { MAX_REPS } from '@/components/editor/draft';
+
+/** A new target takes as many digits as the reps limit has (change responsive-review). */
+const TARGET_DIGITS = String(MAX_REPS).length;
 
 export default function AdjustScreen() {
   const { sessionId } = useLocalSearchParams<{ sessionId: string }>();
@@ -92,7 +97,7 @@ export default function AdjustScreen() {
   const commitEdit = (split: Split) => {
     const n = parseInt(editingValue, 10);
     setEditingKey(null);
-    if (!Number.isFinite(n) || n <= 0 || n === split.target) return;
+    if (!Number.isFinite(n) || n <= 0 || n > MAX_REPS || n === split.target) return;
     // A workout of several blocks names the block; one block writes the change as before.
     const block = sequence ? { blockIdx: split.blockIdx ?? 0 } : {};
     setPending((prev) => [
@@ -139,65 +144,74 @@ export default function AdjustScreen() {
         </Pressable>
       </View>
 
-      <View style={styles.scoreBlock}>
-        <Text style={styles.scoreLabel}>{result.scoreLabel}</Text>
-        <Text style={styles.scoreValue}>{result.scoreValue}</Text>
-      </View>
-
-      {hasDuration && (
-        <View style={styles.durationRow}>
-          <Text style={styles.durationLabel}>
-            {sequence ? 'LAST BLOCK ' : ''}
-            {capSeconds(durationConfig) != null ? 'TIME CAP' : 'DURATION'} ({durationUnitLabel})
+      {/* Score, duration and splits scroll as one under the fixed title row (change responsive-review);
+          SAVE PACKAGE stays below, outside the scroller. */}
+      <ScrollView style={styles.splits} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+        <View style={styles.scoreBlock}>
+          <Text style={styles.scoreLabel}>{result.scoreLabel}</Text>
+          <Text style={styles.scoreValue} allowFontScaling={false} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.3}>
+            {result.scoreValue}
           </Text>
-          {durationDraft != null ? (
-            <TextInput
-              style={styles.durationInput}
-              value={durationDraft}
-              onChangeText={setDurationDraft}
-              keyboardType="number-pad"
-              autoFocus
-              onBlur={commitDuration}
-              onSubmitEditing={commitDuration}
-            />
-          ) : (
-            <Pressable onPress={() => setDurationDraft(durationDisplay)}>
-              <Text style={styles.durationValue}>{durationDisplay}</Text>
-            </Pressable>
-          )}
         </View>
-      )}
 
-      <ScrollView style={styles.splits} contentContainerStyle={styles.splitsContent}>
-        {result.splits.map((split, i) => {
-          const key = keyOf(split);
-          const editing = editingKey === key;
-          return (
-            <Fragment key={i}>
-              {result.groups != null && split.blockIdx !== result.splits[i - 1]?.blockIdx && (
-                <Text style={styles.groupTitle}>{result.groups[split.blockIdx ?? 0].title}</Text>
-              )}
-              <Pressable onPress={() => !editing && startEdit(split)} style={styles.splitRow}>
-                <View style={styles.splitLeft}>
-                  <Text style={[styles.splitLabel, !split.completed && styles.splitLabelPartial]}>{split.label}</Text>
-                  {editing ? (
-                    <TextInput
-                      style={styles.editInput}
-                      value={editingValue}
-                      onChangeText={setEditingValue}
-                      keyboardType="number-pad"
-                      autoFocus
-                      onBlur={() => commitEdit(split)}
-                      onSubmitEditing={() => commitEdit(split)}
-                    />
-                  ) : (
-                    <Text style={styles.splitReps}>{split.reps}/{split.target}</Text>
-                  )}
-                </View>
+        {hasDuration && (
+          <View style={styles.durationRow}>
+            <Text style={styles.durationLabel}>
+              {sequence ? 'LAST BLOCK ' : ''}
+              {capSeconds(durationConfig) != null ? 'TIME CAP' : 'DURATION'} ({durationUnitLabel})
+            </Text>
+            {durationDraft != null ? (
+              <TextInput
+                style={styles.durationInput}
+                value={durationDraft}
+                onChangeText={setDurationDraft}
+                keyboardType="number-pad"
+                autoFocus
+                onBlur={commitDuration}
+                onSubmitEditing={commitDuration}
+              />
+            ) : (
+              <Pressable onPress={() => setDurationDraft(durationDisplay)}>
+                <Text style={styles.durationValue}>{durationDisplay}</Text>
               </Pressable>
-            </Fragment>
-          );
-        })}
+            )}
+          </View>
+        )}
+
+        <View style={styles.splitsContent}>
+          {result.splits.map((split, i) => {
+            const key = keyOf(split);
+            const editing = editingKey === key;
+            return (
+              <Fragment key={i}>
+                {result.groups != null && split.blockIdx !== result.splits[i - 1]?.blockIdx && (
+                  <Text style={styles.groupTitle}>{result.groups[split.blockIdx ?? 0].title}</Text>
+                )}
+                <Pressable onPress={() => !editing && startEdit(split)} style={styles.splitRow}>
+                  <View style={styles.splitLeft}>
+                    <Text style={[styles.splitLabel, !split.completed && styles.splitLabelPartial]}>{split.label}</Text>
+                    {editing ? (
+                      <TextInput
+                        style={styles.editInput}
+                        value={editingValue}
+                        onChangeText={setEditingValue}
+                        keyboardType="number-pad"
+                        // Android's maxLength also cuts the prefilled value: a target past the limit
+                        // (an EMOM increment can reach one) is shown whole, and only a new one is limited.
+                        maxLength={split.target <= MAX_REPS ? TARGET_DIGITS : undefined}
+                        autoFocus
+                        onBlur={() => commitEdit(split)}
+                        onSubmitEditing={() => commitEdit(split)}
+                      />
+                    ) : (
+                      <Text style={styles.splitReps}>{split.reps}/{split.target}</Text>
+                    )}
+                  </View>
+                </Pressable>
+              </Fragment>
+            );
+          })}
+        </View>
       </ScrollView>
 
       <Pressable
@@ -248,6 +262,7 @@ const styles = StyleSheet.create({
   scoreBlock: {
     alignItems: 'center',
     paddingVertical: 20,
+    paddingHorizontal: 24,
   },
   scoreLabel: {
     fontFamily: 'IBMPlexMono_400Regular',
@@ -262,6 +277,9 @@ const styles = StyleSheet.create({
     fontSize: 48,
     color: HF.ink,
     fontVariant: ['tabular-nums'],
+    // Full width, so a long score shrinks to the screen instead of wrapping.
+    alignSelf: 'stretch',
+    textAlign: 'center',
   },
   durationRow: {
     flexDirection: 'row',
@@ -273,6 +291,8 @@ const styles = StyleSheet.create({
     borderBottomColor: HF.hairline,
   },
   durationLabel: {
+    flexShrink: 1,
+    marginRight: 16,
     fontFamily: 'IBMPlexMono_400Regular',
     fontSize: 11,
     color: HF.muted,
@@ -295,9 +315,11 @@ const styles = StyleSheet.create({
   splits: {
     flex: 1,
   },
+  scrollContent: {
+    paddingBottom: 24,
+  },
   splitsContent: {
     paddingHorizontal: 24,
-    paddingBottom: 24,
   },
   groupTitle: {
     fontFamily: 'IBMPlexMono_500Medium',
