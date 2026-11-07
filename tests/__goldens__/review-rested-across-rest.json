@@ -37,15 +37,15 @@
   },
   "adjusted": {
     "scoreLabel": "TIME",
-    "scoreValue": "02:30",
+    "scoreValue": "02:28",
     "splits": [
       {
         "label": "Round 1 — BURPEES",
-        "reps": 3,
-        "target": 3,
+        "reps": 5,
+        "target": 5,
         "completed": true,
-        "cumulativeMs": 6000,
-        "lapMs": 6000,
+        "cumulativeMs": 8000,
+        "lapMs": 8000,
         "roundIdx": 0,
         "exIdx": 0
       },
@@ -54,8 +54,8 @@
         "reps": 5,
         "target": 5,
         "completed": true,
-        "cumulativeMs": 80000,
-        "lapMs": 74000,
+        "cumulativeMs": 78000,
+        "lapMs": 70000,
         "roundIdx": 1,
         "exIdx": 0
       },
@@ -64,7 +64,7 @@
         "reps": 5,
         "target": 5,
         "completed": true,
-        "cumulativeMs": 150000,
+        "cumulativeMs": 148000,
         "lapMs": 70000,
         "roundIdx": 2,
         "exIdx": 0

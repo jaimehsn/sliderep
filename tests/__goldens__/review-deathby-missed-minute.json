@@ -1,7 +1,7 @@
 {
   "result": {
     "scoreLabel": "SCORE",
-    "scoreValue": "12 + 9",
+    "scoreValue": "12 + 12",
     "splits": [
       {
         "label": "Minute 1 — BURPEES",
@@ -125,7 +125,7 @@
       },
       {
         "label": "Minute 13 — BURPEES",
-        "reps": 9,
+        "reps": 12,
         "target": 13,
         "completed": false,
         "cumulativeMs": null,
@@ -261,8 +261,8 @@
       },
       {
         "label": "Minute 13 — BURPEES",
-        "reps": 9,
-        "target": 9,
+        "reps": 13,
+        "target": 13,
         "completed": true,
         "cumulativeMs": null,
         "lapMs": null,

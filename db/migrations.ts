@@ -16,7 +16,10 @@ import { V5_EXISTING_CATEGORIES, V5_NEW_EXERCISES } from './seeds/v5-exercises';
 // required in app code — the column itself is nullable, same `ADD COLUMN` approach
 // as v4), fills it in for the 14 exercises v2 seeded and inserts the rest of the
 // built-in catalog, all from the frozen `seeds/v5-exercises.ts`.
-const DATABASE_VERSION = 5;
+// Schema v6 (change no-rep-review): deletes every `session_adjustments` row. They
+// were all target/duration packages from test sessions; a package is now a list of
+// accepted no-reps (`session-adjustments.ts`), and the old shape is no longer read.
+const DATABASE_VERSION = 6;
 
 export async function migrateDbIfNeeded(db: SQLiteDatabase): Promise<void> {
   const row = await db.getFirstAsync<{ user_version: number }>('PRAGMA user_version');
@@ -180,6 +183,12 @@ export async function migrateDbIfNeeded(db: SQLiteDatabase): Promise<void> {
       }
     });
     version = 5;
+    await db.execAsync(`PRAGMA user_version = ${version}`);
+  }
+
+  if (version === 5) {
+    await db.execAsync('DELETE FROM session_adjustments;');
+    version = 6;
     await db.execAsync(`PRAGMA user_version = ${version}`);
   }
 

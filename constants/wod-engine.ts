@@ -323,7 +323,7 @@ export function intervalLines(config: WodConfig, intervalIdx: number): WodLine[]
  * EMOM: the line of interval `intervalIdx` that its `k`-th valid rep (0-based)
  * counts toward. Lines fill in order up to their targets and the last one takes
  * any extra reps — the rule `apply` follows live (change
- * emom-multi-exercise-intervals), shared with adjustments so both place a rep alike.
+ * emom-multi-exercise-intervals) — the pure statement of that rule, tested against `apply`.
  */
 export function intervalLineAt(config: WodConfig, intervalIdx: number, k: number): number {
   const lines = intervalLines(config, intervalIdx);
@@ -451,7 +451,8 @@ export function isComplete(config: WodConfig, state: EngineState): boolean {
 //                 (intervalLineAt); reps beyond the last line's target count (raw)
 //                 but the live count is capped; events at/after the last interval ignored
 
-export type EngineEvent = { t: number; ok: boolean };
+/** `id`: the event's index in the stored log, carried into its tag (change no-rep-review). */
+export type EngineEvent = { t: number; ok: boolean; id?: number };
 
 export type TaggedEvent = {
   t: number;
@@ -462,6 +463,13 @@ export type TaggedEvent = {
   target: number;
   /** Whether it counted as a valid rep (no-reps and ignored events don't). */
   counted: boolean;
+  /**
+   * Whether it was applied while its block was running — it would have counted had
+   * it been a rep (change no-rep-review: the no-reps the judge can review). For a rep, `counted === inPlay`.
+   */
+  inPlay: boolean;
+  /** The event's `id` (its index in the stored log), when it had one. */
+  id?: number;
   /** Workouts of several blocks: the block it was applied in; absent between blocks and on one-block workouts. */
   block?: number;
 };
@@ -581,13 +589,19 @@ export function restLeftSeconds(config: WodConfig, state: EngineState): number {
   return Math.max(0, Math.ceil((end - state.t) / 1000));
 }
 
+// Only an event that has an id gives its tag one, so tags without ids stay as they were.
+function idOf(event: EngineEvent): { id?: number } {
+  return event.id != null ? { id: event.id } : {};
+}
+
 export function apply(config: WodConfig, state: EngineState, event: EngineEvent): EngineState {
   if (isSequence(config)) return applySequence(config, state, event);
   const { repeat } = config.format;
   const s = advanceTo(config, state, event.t);
   const target = targetAt(config, s.pos);
-  const ignored = !event.ok || (s.finished && repeat !== 'cycle') || isResting(config, s);
-  const tag: TaggedEvent = { t: event.t, ok: event.ok, pos: s.pos, target, counted: !ignored };
+  const inPlay = !((s.finished && repeat !== 'cycle') || isResting(config, s));
+  const ignored = !event.ok || !inPlay;
+  const tag: TaggedEvent = { t: event.t, ok: event.ok, pos: s.pos, target, counted: !ignored, inPlay, ...idOf(event) };
   const tagged = [...s.tagged, tag];
   if (ignored) return { ...s, tagged };
 
@@ -676,11 +690,11 @@ function applySequence(config: SequenceConfig, state: EngineState, event: Engine
   const seq = s.seq!;
   if (s.finished || seq.restUntil != null) {
     // After the end or between blocks: recorded nowhere, never counted.
-    return { ...s, tagged: [...s.tagged, { t: event.t, ok: event.ok, pos: s.pos, target: 0, counted: false }] };
+    return { ...s, tagged: [...s.tagged, { t: event.t, ok: event.ok, pos: s.pos, target: 0, counted: false, inPlay: false, ...idOf(event) }] };
   }
-  const inner = apply(config.parts[seq.idx], seq.inner, { t: event.t - seq.start, ok: event.ok });
+  const inner = apply(config.parts[seq.idx], seq.inner, { t: event.t - seq.start, ok: event.ok, ...idOf(event) });
   const own = inner.tagged[inner.tagged.length - 1];
-  const tagged = [...s.tagged, { t: event.t, ok: event.ok, pos: own.pos, target: own.target, counted: own.counted, block: seq.idx }];
+  const tagged = [...s.tagged, { t: event.t, ok: event.ok, pos: own.pos, target: own.target, counted: own.counted, inPlay: own.inPlay, block: seq.idx, ...idOf(event) }];
   let next: SequenceState = { ...seq, inner };
   if (inner.finished && !seq.inner.finished) {
     // The block ended on this event (a For Time's last rep).

@@ -214,6 +214,21 @@ function perInterval(intervalMs: number, reps: number[]) {
   return reps.flatMap((n, i) => run(i * intervalMs + 1000, n, 2000));
 }
 
+/**
+ * Change no-rep-review: events in time order where `accept` marks a no-rep the judge
+ * accepts — the log records it as a no-rep, and the case's changes accept its index.
+ */
+function reviewed(events: { t: number; kind: Kind | 'accept' }[]): { log: LogEntry[]; changes: AdjustmentChange[] } {
+  const sorted = [...events].sort((a, b) => a.t - b.t);
+  return {
+    log: toLog(sorted.map((e) => ({ t: e.t, kind: e.kind === 'accept' ? 'noRep' : e.kind }))),
+    changes: sorted.flatMap((e, i) => (e.kind === 'accept' ? [{ type: 'acceptNoRep' as const, eventIdx: i }] : [])),
+  };
+}
+
+const accept = (t: number) => ({ t, kind: 'accept' as const });
+const noRep = (t: number) => ({ t, kind: 'noRep' as Kind });
+
 export type GoldenCase = {
   name: string;
   /** A built-in id, or a `SYNTHETIC_WORKOUTS` id. */
@@ -237,18 +252,6 @@ export const CASES: GoldenCase[] = [
   { name: 'fran-mid-round', wodId: 'fran', log: toLog(run(2000, 30, 2000)) },
   { name: 'fran-no-reps', wodId: 'fran', log: toLog(withNoReps(2000, FRAN_REPS, 2000, 5)) },
   { name: 'fran-reps-after-last', wodId: 'fran', log: toLog(run(2000, FRAN_REPS + 3, 2000)) },
-  {
-    name: 'fran-adjusted-target-down',
-    wodId: 'fran',
-    log: toLog(run(2000, FRAN_REPS, 2000)),
-    changes: [{ type: 'target', roundIdx: 0, exIdx: 0, newTarget: 15 }],
-  },
-  {
-    name: 'fran-adjusted-target-up',
-    wodId: 'fran',
-    log: toLog(run(2000, FRAN_REPS, 2000)),
-    changes: [{ type: 'target', roundIdx: 2, exIdx: 1, newTarget: 12 }],
-  },
   { name: 'fran-empty', wodId: 'fran', log: [] },
   { name: 'fran-unsorted', wodId: 'fran', log: toLog(run(2000, 30, 2000).reverse()) },
 
@@ -260,28 +263,10 @@ export const CASES: GoldenCase[] = [
   { name: 'cindy-partial-round', wodId: 'cindy', log: toLog(run(3000, 239, 3000)) },
   { name: 'cindy-reps-after-12min', wodId: 'cindy', log: toLog(run(3000, 243, 3000)) },
   { name: 'cindy-no-reps', wodId: 'cindy', log: toLog(withNoReps(3000, 200, 3000, 7)) },
-  {
-    name: 'cindy-adjusted-target',
-    wodId: 'cindy',
-    log: toLog(run(3000, 239, 3000)),
-    changes: [{ type: 'target', roundIdx: 0, exIdx: 0, newTarget: 3 }],
-  },
-  {
-    name: 'cindy-adjusted-duration',
-    wodId: 'cindy',
-    log: toLog(run(3000, 239, 3000)),
-    changes: [{ type: 'duration', newDurationSeconds: 600 }],
-  },
   { name: 'cindy-empty', wodId: 'cindy', log: [] },
   // Change fix-amrap-partial-reps: "+ N" is the whole unfinished round (CINDY rounds are 30 reps).
   { name: 'cindy-two-lines-into-round', wodId: 'cindy', log: toLog(run(3000, 195, 3000)) },
   { name: 'cindy-round-just-finished', wodId: 'cindy', log: toLog(run(3000, 180, 3000)) },
-  {
-    name: 'cindy-adjusted-target-up',
-    wodId: 'cindy',
-    log: toLog(run(3000, 239, 3000)),
-    changes: [{ type: 'target', roundIdx: 2, exIdx: 0, newTarget: 8 }],
-  },
 
   // EVERY MINUTE (10-min EMOM alternating 10 burpees / 15 KB swings)
   { name: 'emom-all-completed', wodId: 'everyMinute', log: toLog(perMinute(EMOM_TARGETS)) },
@@ -298,16 +283,10 @@ export const CASES: GoldenCase[] = [
     log: toLog([...perMinute([10, 15, 10]), ...run(30500, 4, 1000, 'noRep')].sort((a, b) => a.t - b.t)),
   },
   {
+    // Named before change no-rep-review, which retired its target/duration change: only its result stays pinned.
     name: 'emom-adjusted-target',
     wodId: 'everyMinute',
     log: toLog(perMinute([10, 12, 10, 15, 10, 15, 10, 15, 10, 15])),
-    changes: [{ type: 'target', roundIdx: 1, exIdx: 0, newTarget: 12 }],
-  },
-  {
-    name: 'emom-adjusted-duration',
-    wodId: 'everyMinute',
-    log: toLog(perMinute(EMOM_TARGETS)),
-    changes: [{ type: 'duration', newDurationSeconds: 480 }],
   },
   { name: 'emom-empty', wodId: 'everyMinute', log: [] },
 
@@ -322,22 +301,10 @@ export const CASES: GoldenCase[] = [
     log: toLog([...run(5000, 51, 10000), { t: 600000, kind: 'rep' }, { t: 600500, kind: 'rep' }]),
   },
   {
+    // Named before change no-rep-review, which retired its target/duration change: only its result stays pinned.
     name: 'fran-cap-adjusted-shorter',
     wodId: 'franCap10',
     log: toLog(run(6000, FRAN_REPS, 6000)),
-    changes: [{ type: 'duration', newDurationSeconds: 480 }],
-  },
-  {
-    name: 'fran-cap-adjusted-raised',
-    wodId: 'franCap10',
-    log: toLog(run(5000, 51, 10000)),
-    changes: [{ type: 'duration', newDurationSeconds: 900 }],
-  },
-  {
-    name: 'fran-cap-adjusted-target-up',
-    wodId: 'franCap10',
-    log: toLog(run(2000, FRAN_REPS, 2000)),
-    changes: [{ type: 'target', roundIdx: 0, exIdx: 0, newTarget: 24 }],
   },
   { name: 'chipper-cap-finished-under', wodId: 'chipperCap5', log: toLog(run(1000, 60, 4000)) },
   { name: 'chipper-cap-mid-station', wodId: 'chipperCap5', log: toLog(run(3000, 47, 5000)) },
@@ -356,18 +323,6 @@ export const CASES: GoldenCase[] = [
     wodId: 'emom90',
     log: toLog([...perInterval(90000, EMOM_TARGETS), { t: 900000, kind: 'rep' }, { t: 905000, kind: 'rep' }]),
   },
-  {
-    name: 'emom90-adjusted-duration',
-    wodId: 'emom90',
-    log: toLog(perInterval(90000, EMOM_TARGETS)),
-    changes: [{ type: 'duration', newDurationSeconds: 540 }],
-  },
-  {
-    name: 'emom90-adjusted-target-up',
-    wodId: 'emom90',
-    log: toLog(perInterval(90000, EMOM_TARGETS)),
-    changes: [{ type: 'target', roundIdx: 1, exIdx: 0, newTarget: 18 }],
-  },
   { name: 'e2mom8-all-completed', wodId: 'e2mom8', log: toLog(perInterval(120000, EMOM_TARGETS.slice(0, 8))) },
   { name: 'e2mom8-missed-intervals', wodId: 'e2mom8', log: toLog(perInterval(120000, [10, 15, 4, 15, 10, 0, 10, 12])) },
 
@@ -379,30 +334,17 @@ export const CASES: GoldenCase[] = [
   // Extra reps after the last exercise stay on it (minute 1: PUSH-UPS 12, minute 4: AIR SQUATS 18).
   { name: 'pair-extra-reps', wodId: 'emomPair', log: toLog(perMinute([17, 15, 15, 18, 15, 15])) },
   {
-    // PULL-UPS raised to 7: its 5 reps stay put, PUSH-UPS keeps 10/10.
-    name: 'pair-adjusted-target-first-up',
-    wodId: 'emomPair',
-    log: toLog(perMinute([15, 15, 15, 15, 15, 15])),
-    changes: [{ type: 'target', roundIdx: 0, exIdx: 0, newTarget: 7 }],
-  },
-  {
+    // Named before change no-rep-review, which retired its target/duration change: only its result stays pinned.
     name: 'pair-adjusted-target-second-down',
     wodId: 'emomPair',
     log: toLog(perMinute([12, 15, 15, 15, 15, 15])),
-    changes: [{ type: 'target', roundIdx: 0, exIdx: 1, newTarget: 7 }],
   },
   {
-    name: 'pair-adjusted-duration-shorter',
-    wodId: 'emomPair',
-    log: toLog(perMinute([15, 15, 15, 15, 15, 15])),
-    changes: [{ type: 'duration', newDurationSeconds: 240 }],
-  },
-  {
-    // 8 reps after the original end land in minute 7 (the pair): 5 PULL-UPS, 3 PUSH-UPS.
+    // Named before change no-rep-review, which retired its target/duration change: only its result stays pinned.
+    // 8 reps after the end (at or after 6:00), which don't count.
     name: 'pair-adjusted-duration-raised',
     wodId: 'emomPair',
     log: toLog([...perMinute([15, 15, 15, 15, 15, 15]), ...run(361000, 8, 2000)]),
-    changes: [{ type: 'duration', newDurationSeconds: 420 }],
   },
 
   // Change emom-progressive-reps: LADDER (3 +1 / 10 +2, no stop) and DEATH BY
@@ -418,20 +360,6 @@ export const CASES: GoldenCase[] = [
     wodId: 'deathBy',
     log: toLog([...perMinute([...DEATH_BY_12, 9]), { t: 790000, kind: 'rep' }]),
   },
-  {
-    // Minute 5 raised to 6 with 5 reps: stops there, 4 + 5.
-    name: 'deathby-adjusted-target-up',
-    wodId: 'deathBy',
-    log: toLog(perMinute([...DEATH_BY_12, 9])),
-    changes: [{ type: 'target', roundIdx: 4, exIdx: 0, newTarget: 6 }],
-  },
-  {
-    // Minute 13 lowered to 9: completed, stops at the empty minute 14, 13 + 0.
-    name: 'deathby-adjusted-target-down',
-    wodId: 'deathBy',
-    log: toLog(perMinute([...DEATH_BY_12, 9])),
-    changes: [{ type: 'target', roundIdx: 12, exIdx: 0, newTarget: 9 }],
-  },
 
   // Change rest-steps: RESTED (3 × BURPEES 5, 60 s rest), RESTED CAPPED (the same,
   // 2 min cap) and TABATA (8 × 30 s, 20 s of work, AIR SQUATS 8). Each round starts
@@ -444,12 +372,6 @@ export const CASES: GoldenCase[] = [
     wodId: 'rested',
     log: toLog([...RESTED_ROUNDS, { t: 40000, kind: 'rep' as Kind }].sort((a, b) => a.t - b.t)),
   },
-  {
-    name: 'rested-adjusted-target-down',
-    wodId: 'rested',
-    log: toLog(RESTED_ROUNDS),
-    changes: [{ type: 'target', roundIdx: 0, exIdx: 0, newTarget: 3 }],
-  },
   // Round 2 ends at 80 s; its rest runs past the 120 s cap: CAP · 10 reps.
   { name: 'rested-capped-in-rest', wodId: 'restedCapped', log: toLog(RESTED_ROUNDS.slice(0, 10)) },
   { name: 'tabata-all-completed', wodId: 'tabata', log: toLog(perInterval(30000, TABATA_8)) },
@@ -459,37 +381,11 @@ export const CASES: GoldenCase[] = [
     wodId: 'tabata',
     log: toLog([...perInterval(30000, TABATA_8), ...TABATA_REST_REPS].sort((a, b) => a.t - b.t)),
   },
-  {
-    name: 'tabata-reps-in-rest-adjusted',
-    wodId: 'tabata',
-    log: toLog([...perInterval(30000, TABATA_8), ...TABATA_REST_REPS].sort((a, b) => a.t - b.t)),
-    changes: [{ type: 'target', roundIdx: 1, exIdx: 0, newTarget: 9 }],
-  },
-  {
-    name: 'tabata-adjusted-target-up',
-    wodId: 'tabata',
-    log: toLog(perInterval(30000, TABATA_8)),
-    changes: [{ type: 'target', roundIdx: 1, exIdx: 0, newTarget: 10 }],
-  },
 
   // Change multi-block-workouts. BUY-IN AMRAP: the buy-in runs 2–40 s (ends at 40 s),
   // the AMRAP 40–340 s (90 reps from 42 s, 4 + 10), the cash-out from 342 s (ends at
   // 380 s, 00:40 on its own clock).
   { name: 'buyin-complete', wodId: 'buyInAmrap', log: toLog(BUY_IN_RUN) },
-  {
-    // The buy-in's target lowered to 15: its TIME moves, the scoring AMRAP doesn't.
-    name: 'buyin-adjusted-target-down',
-    wodId: 'buyInAmrap',
-    log: toLog(BUY_IN_RUN),
-    changes: [{ type: 'target', roundIdx: 0, exIdx: 0, newTarget: 15, blockIdx: 0 }],
-  },
-  {
-    // A change with no block applies to block 1: the buy-in raised to 25, the AMRAP unchanged.
-    name: 'buyin-adjusted-legacy-change',
-    wodId: 'buyInAmrap',
-    log: toLog(BUY_IN_RUN),
-    changes: [{ type: 'target', roundIdx: 0, exIdx: 0, newTarget: 25 }],
-  },
   {
     // TWO AMRAPS: 70 reps in block 1 (7 + 0), a rep in the 240–300 s rest (not
     // counted), 50 reps in block 2 from 303 s (3 + 5).
@@ -501,11 +397,56 @@ export const CASES: GoldenCase[] = [
   // Time from 180 s: 20 reps finish it (00:40), 15 reach the cap (CAP · 15 reps).
   { name: 'amrap-then-for-time-complete', wodId: 'amrapThenForTime', log: toLog([...run(3000, 40, 3000), ...run(182000, 20, 2000)]) },
   { name: 'amrap-then-for-time-capped', wodId: 'amrapThenForTime', log: toLog([...run(3000, 40, 3000), ...run(182000, 15, 2000)]) },
+
+  // Change no-rep-review: accepted no-reps (design.md decision 1). FRAN's last
+  // position: 81 reps to 2:42, then PULL-UPS 7 to 4:40, a no-rep at 4:43, the 8th at
+  // 4:46 and the 9th at 4:49 — accepted, it completes at 4:46 and 4:49 is surplus.
   {
-    // The last block's cap lowered to 20 s: the reps before 20 s on its own clock, CAP · 9 reps.
-    name: 'amrap-then-for-time-adjusted-cap',
-    wodId: 'amrapThenForTime',
-    log: toLog([...run(3000, 40, 3000), ...run(182000, 15, 2000)]),
-    changes: [{ type: 'duration', newDurationSeconds: 20 }],
+    name: 'review-fran-last-position',
+    wodId: 'fran',
+    ...reviewed([...run(2000, 81, 2000), ...run(268000, 7, 2000), accept(283000), ...run(286000, 2, 3000)]),
   },
+  // Round 1 THRUSTERS: a no-rep at 3 s, then 21 reps 4–44 s; accepted, they complete
+  // at 42 s and every later event moves 2 s earlier: 03:02 becomes 03:00.
+  { name: 'review-fran-round-1', wodId: 'fran', ...reviewed([accept(3000), ...run(4000, 21, 2000), ...run(46000, 69, 2000)]) },
+  // Round 1 THRUSTERS: a no-rep at 30 s among 20 reps to 41 s, a no-rep at 42 s, the
+  // 21st at 44 s; accepting the first makes the 42 s no-rep and the 44 s rep surplus,
+  // 3 s back: 03:02 becomes 02:59.
+  {
+    name: 'review-fran-later-no-rep-surplus',
+    wodId: 'fran',
+    ...reviewed([...run(2000, 14, 2000), accept(30000), ...run(32000, 5, 2000), { t: 41000, kind: 'rep' }, noRep(42000), { t: 44000, kind: 'rep' }, ...run(46000, 69, 2000)]),
+  },
+  // FRAN CAP 10: 81 reps to 8:02, PULL-UPS 8 to 9:20, a no-rep at 9:47, the cap:
+  // CAP · 89 reps; accepted, the last position completes: TIME 09:47.
+  { name: 'review-fran-cap-completes', wodId: 'franCap10', ...reviewed([...run(2000, 81, 6000), ...run(490000, 8, 10000), accept(587000)]) },
+  // A no-rep at 2 s, then 51 reps from 5 s every 10 s to the cap: the THRUSTERS'
+  // 21st rep becomes surplus, the 52nd valid rep takes its place: still CAP · 51 reps.
+  { name: 'review-fran-cap-completed-position', wodId: 'franCap10', ...reviewed([accept(2000), ...run(5000, 51, 10000)]) },
+  // RESTED: a no-rep at 1 s before round 1's 5 reps; accepted, round 1 ends at 8 s,
+  // its rest 2 s earlier, and the TIME 02:30 becomes 02:28.
+  { name: 'review-rested-across-rest', wodId: 'rested', ...reviewed([accept(1000), ...RESTED_ROUNDS]) },
+  // CINDY 14 + 7 (427 reps every 1.5 s): a no-rep at 0.7 s in round 1's PULL-UPS,
+  // a completed position — still 14 + 7.
+  { name: 'review-cindy-completed-position', wodId: 'cindy', ...reviewed([accept(700), ...run(1500, 427, 1500)]) },
+  // The same, with the no-rep at 10:45 among the unfinished round's PUSH-UPS (2/10): 14 + 8.
+  { name: 'review-cindy-unfinished-round', wodId: 'cindy', ...reviewed([...run(1500, 427, 1500), accept(645000)]) },
+  // EVERY MINUTE: 9 BURPEES and a no-rep in minute 1, then the targets: 9/10 · 124
+  // reps; accepted, 10/10 · 125 reps.
+  { name: 'review-emom-missed-minute', wodId: 'everyMinute', ...reviewed([...perMinute([9, ...EMOM_TARGETS.slice(1)]), accept(30000)]) },
+  // Every target met, and a no-rep in minute 1 after its 10 BURPEES: 10/10 · 126 reps.
+  { name: 'review-emom-beyond-target', wodId: 'everyMinute', ...reviewed([...perMinute(EMOM_TARGETS), accept(30000)]) },
+  // EMOM PAIR minute 1: 4 PULL-UPS, a no-rep, a 5th PULL-UP and 10 PUSH-UPS; accepted,
+  // the 5th PULL-UP is surplus and PUSH-UPS keeps its 10.
+  {
+    name: 'review-pair-first-line',
+    wodId: 'emomPair',
+    ...reviewed([...run(1000, 4, 2000), accept(8000), { t: 9000, kind: 'rep' }, ...run(11000, 10, 2000), ...perMinute([0, 15, 15, 15, 15, 15])]),
+  },
+  // DEATH BY: 12 minutes completed, 12 reps and a no-rep in minute 13 (12 + 12);
+  // accepted, minute 13 is completed and it stops at the empty minute 14: 13 + 0.
+  { name: 'review-deathby-missed-minute', wodId: 'deathBy', ...reviewed([...perMinute([...DEATH_BY_12, 12]), accept(750000)]) },
+  // BUY-IN AMRAP: a no-rep at 1 s in the buy-in; accepted, the buy-in's TIME is 00:38
+  // instead of 00:40, the AMRAP block (the score) and the cash-out unchanged.
+  { name: 'review-buyin-no-rep', wodId: 'buyInAmrap', ...reviewed([accept(1000), ...BUY_IN_RUN]) },
 ];

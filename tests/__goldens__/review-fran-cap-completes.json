@@ -1,0 +1,134 @@
+{
+  "result": {
+    "scoreLabel": "SCORE",
+    "scoreValue": "CAP · 89 reps",
+    "splits": [
+      {
+        "label": "Round 1 — THRUSTERS",
+        "reps": 21,
+        "target": 21,
+        "completed": true,
+        "cumulativeMs": 122000,
+        "lapMs": 122000,
+        "roundIdx": 0,
+        "exIdx": 0
+      },
+      {
+        "label": "Round 1 — PULL-UPS",
+        "reps": 21,
+        "target": 21,
+        "completed": true,
+        "cumulativeMs": 248000,
+        "lapMs": 126000,
+        "roundIdx": 0,
+        "exIdx": 1
+      },
+      {
+        "label": "Round 2 — THRUSTERS",
+        "reps": 15,
+        "target": 15,
+        "completed": true,
+        "cumulativeMs": 338000,
+        "lapMs": 90000,
+        "roundIdx": 1,
+        "exIdx": 0
+      },
+      {
+        "label": "Round 2 — PULL-UPS",
+        "reps": 15,
+        "target": 15,
+        "completed": true,
+        "cumulativeMs": 428000,
+        "lapMs": 90000,
+        "roundIdx": 1,
+        "exIdx": 1
+      },
+      {
+        "label": "Round 3 — THRUSTERS",
+        "reps": 9,
+        "target": 9,
+        "completed": true,
+        "cumulativeMs": 482000,
+        "lapMs": 54000,
+        "roundIdx": 2,
+        "exIdx": 0
+      },
+      {
+        "label": "Round 3 — PULL-UPS",
+        "reps": 8,
+        "target": 9,
+        "completed": false,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 2,
+        "exIdx": 1
+      }
+    ]
+  },
+  "adjusted": {
+    "scoreLabel": "TIME",
+    "scoreValue": "09:47",
+    "splits": [
+      {
+        "label": "Round 1 — THRUSTERS",
+        "reps": 21,
+        "target": 21,
+        "completed": true,
+        "cumulativeMs": 122000,
+        "lapMs": 122000,
+        "roundIdx": 0,
+        "exIdx": 0
+      },
+      {
+        "label": "Round 1 — PULL-UPS",
+        "reps": 21,
+        "target": 21,
+        "completed": true,
+        "cumulativeMs": 248000,
+        "lapMs": 126000,
+        "roundIdx": 0,
+        "exIdx": 1
+      },
+      {
+        "label": "Round 2 — THRUSTERS",
+        "reps": 15,
+        "target": 15,
+        "completed": true,
+        "cumulativeMs": 338000,
+        "lapMs": 90000,
+        "roundIdx": 1,
+        "exIdx": 0
+      },
+      {
+        "label": "Round 2 — PULL-UPS",
+        "reps": 15,
+        "target": 15,
+        "completed": true,
+        "cumulativeMs": 428000,
+        "lapMs": 90000,
+        "roundIdx": 1,
+        "exIdx": 1
+      },
+      {
+        "label": "Round 3 — THRUSTERS",
+        "reps": 9,
+        "target": 9,
+        "completed": true,
+        "cumulativeMs": 482000,
+        "lapMs": 54000,
+        "roundIdx": 2,
+        "exIdx": 0
+      },
+      {
+        "label": "Round 3 — PULL-UPS",
+        "reps": 9,
+        "target": 9,
+        "completed": true,
+        "cumulativeMs": 587000,
+        "lapMs": 105000,
+        "roundIdx": 2,
+        "exIdx": 1
+      }
+    ]
+  }
+}

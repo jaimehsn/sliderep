@@ -32,8 +32,8 @@ For Time and Chipper SHALL be scored as TIME: the session-clock time of the last
 - **WHEN** a 21-15-9 For Time with a 10 min cap reaches 10:00 after both round-1 lines (42 reps) and 9 THRUSTERS of round 2
 - **THEN** the score reads CAP · 51 reps, and the last split is "Round 2 — THRUSTERS" at 9/15, partial
 
-### Requirement: AMRAP score
-AMRAP SHALL be scored as "<completed rounds> + <reps in the unfinished round>". The reps in the unfinished round SHALL be the valid reps of every exercise in that round, not only the exercise in progress. In an adjusted result, the unfinished round SHALL be the first round with any position not completed under the adjustment, and its reps SHALL be the reps each of its positions keeps under the adjustment.
+### Requirement: AMRAP rounds and reps
+AMRAP SHALL be scored as "<completed rounds> + <reps in the unfinished round>". The reps in the unfinished round SHALL be the valid reps of every exercise in that round, not only the exercise in progress. An adjusted result SHALL be scored the same way, with the accepted no-reps counted and surplus events left out.
 
 #### Scenario: CINDY score
 - **WHEN** CINDY ends after 14 full rounds and 7 valid reps of the 15th
@@ -47,13 +47,9 @@ AMRAP SHALL be scored as "<completed rounds> + <reps in the unfinished round>". 
 - **WHEN** CINDY ends right after the last AIR SQUAT of its 6th round
 - **THEN** the score reads 6 + 0
 
-#### Scenario: Shortened AMRAP counts the whole unfinished round
-- **WHEN** CINDY's duration is adjusted to 600 seconds and, by 10:00, 6 full rounds plus 5 PULL-UPS, 10 PUSH-UPS and 5 AIR SQUATS of the 7th were recorded
-- **THEN** the adjusted score reads 6 + 20
-
-#### Scenario: Raised target leaves an earlier round unfinished
-- **WHEN** round 3's PULL-UPS, judged at 5/5, are adjusted to a target of 8, and that round's PUSH-UPS (10/10) and AIR SQUATS (15/15) were completed
-- **THEN** the adjusted score reads 2 + 30
+#### Scenario: Accepted no-rep in the unfinished round
+- **WHEN** CINDY ends after 6 full rounds plus 5 PULL-UPS and 4 valid PUSH-UPS of the 7th with 1 no-rep among the PUSH-UPS, and that no-rep is accepted
+- **THEN** the adjusted score reads 6 + 10
 
 ### Requirement: EMOM score
 EMOM SHALL be scored as "<completed intervals>/<total intervals> · <total valid reps> reps". An interval SHALL count as completed when the valid reps of every exercise in it reach that exercise's target. The total SHALL include every valid rep, including reps beyond a target.

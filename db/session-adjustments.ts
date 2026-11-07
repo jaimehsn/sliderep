@@ -1,12 +1,12 @@
 import { SQLiteDatabase } from 'expo-sqlite';
 import { makeId } from './sessions';
 
-export type AdjustmentChange =
-  // `blockIdx`: on workouts of several blocks, the block; absent means block 0 (change multi-block-workouts).
-  | { type: 'target'; roundIdx: number; exIdx: number; newTarget: number; blockIdx?: number }
-  | { type: 'duration'; newDurationSeconds: number };
-// For onClock (EMOM) WODs, `roundIdx` is reused as the minute index and `exIdx`
-// is always 0 — each EMOM interval has exactly one line (alternating exercises).
+/**
+ * One accepted no-rep (change no-rep-review): `eventIdx` is its index in the
+ * session's stored `events` (the `LogEntry.id` screens give it). Accepting is
+ * final — packages only add acceptances, so their order doesn't matter.
+ */
+export type AdjustmentChange = { type: 'acceptNoRep'; eventIdx: number };
 
 export type SessionAdjustment = {
   id: string;

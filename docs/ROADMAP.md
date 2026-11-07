@@ -91,7 +91,7 @@ Today a WOD's identity **is** its format: `WodType = 'forTime' | 'amrap' | 'emom
 - Only **after judging has finished** (while judging, the effective WOD is always the original).
 - **Append-only list, max 3 per session, no way out** (no fork, no consolidation).
 - One modification is a **package** of changes approved by the judge in one go.
-- Scope: only **reps / targets** and **duration / time cap**. They cannot change format, exercises, structure, load or the rep description.
+- Scope: only **accepting a no-rep** the judge gave (change `no-rep-review`, 2026-11-07, which replaced the original reps/targets and duration/time-cap changes). An accepted no-rep counts as a valid rep of its own position; the events of that position after its new completing rep become surplus; on For Time the time between the original and the new completing rep is given back to everything after it in its block. Accepting is final. They cannot change targets, duration, format, exercises, structure, load or the rep description.
 - **Only a registered judge can approve.** With an anonymous judge the session accepts no modifications. `approvedBy = judgeId` is stored (unverified until accounts exist, as in Users). *Interpretation of "not being able to modify results".*
 - **Effective WOD / adjusted result is derived** from `WOD + modifications (+ log)` and is **never stored**.
 
@@ -109,7 +109,7 @@ Conceptual draft (not code):
 - `Workout { id, name, blocks: [{ formatId, lines: [{ exerciseId, target /* reps */, repDescription?: { amount, unit }, load? }], rounds/intervals/duration… }], scoringBlock, origin, ownerId?, derivedFrom?, archivedAt? }` (block content shape: see WOD format as data)
 - `unit ∈ { 'm', 'cal', 's' }` (closed list, extendable)
 - `Format` = declarative behavior data, composed of primitives (see WOD format as data).
-- `SessionAdjustment { id, changes: [reps/target or duration change], approvedBy: judgeId, approvedAt }` (≤ 3 per session, only after judging)
+- `SessionAdjustment { id, changes: [accepted no-rep: event index], approvedBy: judgeId, approvedAt }` (≤ 3 per session, only after judging; change `no-rep-review`)
 - Derived, not persisted: `effectiveWorkout = apply(workout, adjustments)`
 
 ### WOD format as data (decided)
@@ -158,7 +158,7 @@ Consequences:
 - A **primitive interpreter** replaces `WodConfig` / `getWodConfig` (Track B 9, now bigger: engine + blocks).
 - **Engine versioning:** since results are derived from `WOD + format + log`, the semantics of a primitive **never change silently**; a format carries a schema/engine version.
 - **Log position** is no longer just (round, line): it is `(block, round/interval, line)` and is **derived by replay**, not stored (see Exercise sessions).
-- **Post-judging modifications:** a target change addresses a `(block, round/interval, line)` coordinate of the replayed result (see Exercise sessions).
+- **Post-judging modifications:** an accepted no-rep addresses the event itself (its index in the log); its `(block, round/interval, line)` position comes from the replay (see Exercise sessions).
 - **B3 (robust EMOM)** is absorbed by the `onClock` rule derived from `elapsed`; **B6 (end of WOD)** is expressed with `stop`; **B8's EMOM score question** is resolved.
 
 ### Exercise sessions (decided)
@@ -176,7 +176,7 @@ A **session** is one run of one WOD, judged for one athlete. It builds on Users 
 **Stored vs. derived**
 - Stored: session header, raw events, adjustments.
 - Derived (never stored): positions, counted/ignored, splits, score, effective WOD, adjusted result.
-- Adjusted result: replay under the **original** WOD to get each event's position, then apply the approved target/duration changes **per position**. Reps are **not re-flowed** across segments, and events after an adjusted end are excluded. *Interpretation to validate when designing the adjustment screen.*
+- Adjusted result: replay under the **original** WOD to get each event's position, then accept the approved no-reps **per position**, drop each position's surplus and, on For Time, give the time back; the rewritten log is replayed with the same engine. Reps are **not re-flowed** across segments (change `no-rep-review`).
 
 Conceptual draft (not code):
 - `Session { id, wodId, engineVersion, judgedAthleteId, judgedAlias, judgeId?, verification: 'unverified', startedAt, endT, events: Event[], adjustments: SessionAdjustment[] }`
@@ -274,7 +274,7 @@ app/
   session/setup.tsx     ✅ done (B14) — role (judge / judged) · scan the other person's QR or anonymous · "won't be saved" banner
   session/run.tsx       ready → countdown → judging (today's app/judge/[id].tsx) + ✕ / Finish
   session/result.tsx    score + splits + save banner · Adjust (only if owner = judge and saved)
-  session/adjust.tsx    up to 3 packages (reps/targets, duration)
+  session/adjust.tsx    up to 3 packages of accepted no-reps (change no-rep-review; originally reps/targets, duration)
 ```
 
 Flow: **Hub → wod → setup → run → result (→ adjust)**. B13 already moved `/judge/[type]` to id-keyed `/judge/[id]` (`WOD_KEYS`/`VALID_IDS`, `WodId` in `constants/wods.ts`); B14 then built `session/wod` and `session/setup` for real (route params only, no context yet) while `app/index.tsx` stayed a thin placeholder for the hub. `/judge/[id]` still disappears entirely in favor of `session/run` when B21 builds the hub and `session/_layout.tsx`'s session context. Nothing is persisted while judging (Exercise sessions).

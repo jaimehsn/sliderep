@@ -6,7 +6,7 @@ import { useSQLiteContext } from 'expo-sqlite';
 import { HF } from '@/constants/hf';
 import { WodConfig, formatTime } from '@/constants/wod-engine';
 import { LogEntry } from '@/components/judge/types';
-import { deriveAdjustedResult } from '@/components/result/adjust';
+import { acceptedIds, deriveAdjustedResult, reviewNoReps } from '@/components/result/adjust';
 import { AdjustmentChange, getAdjustments } from '@/db/session-adjustments';
 
 type Props = {
@@ -35,6 +35,8 @@ export function ResultScreen({ config, log, athleteAlias, role = 'judge', saved,
   );
 
   const result = deriveAdjustedResult(config, log, changes);
+  // Change no-rep-review: adjusting is accepting no-reps, so only while one is left to accept.
+  const noRepLeft = canAdjust && reviewNoReps(config, log, acceptedIds(changes)).some((n) => n.status === 'open');
   const judgingLabel = role === 'judged'
     ? (athleteAlias ? `Judged by ${athleteAlias}` : 'Judged by anonymous')
     : (athleteAlias ? `Judging ${athleteAlias}` : 'Judging anonymous');
@@ -53,7 +55,7 @@ export function ResultScreen({ config, log, athleteAlias, role = 'judge', saved,
         <Text style={styles.name}>{config.name}</Text>
         <Text style={styles.judging}>{judgingLabel}</Text>
         <Text style={styles.saved}>{savedLabel}</Text>
-        {canAdjust && sessionId != null && packagesUsed < 3 && (
+        {noRepLeft && sessionId != null && packagesUsed < 3 && (
           <Pressable
             onPress={() => router.push({ pathname: '/session/adjust', params: { sessionId } })}
             style={({ pressed }) => [styles.adjustBtn, pressed && styles.adjustBtnPressed]}

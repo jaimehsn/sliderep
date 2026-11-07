@@ -44,8 +44,8 @@
         "reps": 21,
         "target": 21,
         "completed": true,
-        "cumulativeMs": 205000,
-        "lapMs": 205000,
+        "cumulativeMs": 195000,
+        "lapMs": 195000,
         "roundIdx": 0,
         "exIdx": 0
       },
@@ -54,7 +54,7 @@
         "reps": 21,
         "target": 21,
         "completed": true,
-        "cumulativeMs": 415000,
+        "cumulativeMs": 405000,
         "lapMs": 210000,
         "roundIdx": 0,
         "exIdx": 1

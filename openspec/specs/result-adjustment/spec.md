@@ -2,16 +2,24 @@
 
 ## Purpose
 
-Lets a registered judge correct a just-finished session's result (a split's target or the workout's duration) through a small number of append-only adjustment packages, without ever altering the recorded events.
+Lets a registered judge correct a just-finished session's result by accepting no-reps they gave as valid reps, through a small number of append-only adjustment packages, without ever altering the recorded events.
 
 ## Requirements
 
 ### Requirement: Who can adjust and when
-The ADJUST RESULT action SHALL be offered only on the result shown right after judging, only when the owner was the judge, has a profile and the session was saved, and only while the session has fewer than 3 adjustment packages. It SHALL NOT be offered from History or to the judged athlete.
+The ADJUST RESULT action SHALL be offered only on the result shown right after judging, only when the owner was the judge, has a profile and the session was saved, only while the session has fewer than 3 adjustment packages, and only while at least one no-rep is left to accept (recorded while its block was running, not accepted yet and not surplus). It SHALL NOT be offered from History or to the judged athlete.
 
 #### Scenario: Registered owner judged an identified athlete
-- **WHEN** the owner, with a profile, finishes judging an athlete identified by QR
+- **WHEN** the owner, with a profile, finishes judging an athlete identified by QR, and gave at least one no-rep
 - **THEN** the result shows ADJUST RESULT
+
+#### Scenario: No no-reps to review
+- **WHEN** the owner, with a profile, finishes judging an athlete identified by QR without giving any no-rep
+- **THEN** ADJUST RESULT is not shown
+
+#### Scenario: Every no-rep accepted
+- **WHEN** a saved package accepts the session's only no-rep and the owner returns to the result
+- **THEN** ADJUST RESULT is no longer shown
 
 #### Scenario: Owner was judged
 - **WHEN** the owner finishes a session in which they were judged
@@ -22,138 +30,126 @@ The ADJUST RESULT action SHALL be offered only on the result shown right after j
 - **THEN** ADJUST RESULT is not shown
 
 ### Requirement: Adjustment packages are capped and append-only
-A session SHALL accept at most 3 adjustment packages. Each saved package SHALL record its changes, who approved it (the owner's id) and when. Saved packages SHALL NOT be edited or removed, and the recorded events SHALL never change.
+A session SHALL accept at most 3 adjustment packages. Each saved package SHALL record the no-reps it accepts, who approved it (the owner's id) and when. Saved packages SHALL NOT be edited or removed, a no-rep accepted in a saved package SHALL stay accepted, and the recorded events SHALL never change.
 
 #### Scenario: Third package saved
 - **WHEN** the third package is saved for a session
 - **THEN** the adjust screen reads "3 of 3 packages used", SAVE PACKAGE is disabled, and ADJUST RESULT disappears from the result
 
-### Requirement: Editable values
-On the adjust screen, the owner SHALL be able to tap any split, of any block, to set a new positive target for that position, and, for formats with a duration, set a new positive duration (seconds for AMRAP and for a capped For Time or Chipper; for EMOM, whole minutes with 60-second intervals and a number of intervals otherwise). For Time and Chipper without a cap SHALL NOT offer a duration, and with several blocks only the last block SHALL offer one.
+#### Scenario: Accepted no-rep in a later package
+- **WHEN** the owner opens the adjust screen again after saving a package that accepted the no-rep at 00:38
+- **THEN** that no-rep shows as accepted and cannot be set back to KEEP
 
-#### Scenario: Editing a split target
-- **WHEN** the owner taps "Round 2 — THRUSTERS 15/15" and enters 12
-- **THEN** a pending target change of 12 for that position is added
+### Requirement: Reviewable no-reps
+The adjust screen SHALL list every no-rep recorded while its block was running, under its split, grouped by block, with its time on its block's clock. Each SHALL show KEEP (the default) or REP, and tapping it SHALL switch between them. A no-rep accepted in a saved package SHALL show as accepted and SHALL NOT be tappable. A no-rep that is surplus SHALL show as surplus and SHALL NOT be tappable. The screen SHALL NOT offer target or duration changes.
 
-#### Scenario: Invalid or unchanged value
-- **WHEN** the owner enters 0, a non-number, or the current value
-- **THEN** no change is added
+#### Scenario: Marking a no-rep
+- **WHEN** the owner taps KEEP on the no-rep at 00:38 under "Round 1 — THRUSTERS"
+- **THEN** it shows REP and a pending acceptance of that no-rep is added
 
-#### Scenario: EMOM duration
-- **WHEN** the owner sets EVERY MINUTE's duration to 8
-- **THEN** a pending duration change of 8 minutes is added
+#### Scenario: Unmarking a pending no-rep
+- **WHEN** the owner taps a pending REP before saving
+- **THEN** it shows KEEP again and the pending acceptance is dropped
 
-#### Scenario: Capped For Time duration
-- **WHEN** the owner sets a 10 min capped For Time's duration to 480
-- **THEN** a pending duration change of 480 seconds is added
+#### Scenario: Surplus no-rep
+- **WHEN** a pending acceptance makes a later no-rep of the same position surplus
+- **THEN** that no-rep shows as surplus and cannot be tapped
 
-#### Scenario: Interval EMOM duration
-- **WHEN** the owner sets an EMOM of 10 intervals of 90 seconds to 6 intervals
-- **THEN** a pending duration change of 540 seconds is added
-
-#### Scenario: Duration with several blocks
-- **WHEN** the owner adjusts a workout whose blocks are a 12-min AMRAP and a For Time with a 5 min cap
-- **THEN** only the For Time's cap is offered as a duration
+#### Scenario: Position with only no-reps
+- **WHEN** the last position reached was judged with no-reps only
+- **THEN** those no-reps are listed under that position's label, after the block's last split
 
 ### Requirement: Live preview and saving
-The adjust screen SHALL show the score and splits with the saved packages plus the pending changes applied. SAVE PACKAGE SHALL store the pending changes as one package and SHALL be disabled when there is nothing pending. Leaving with ✕ SHALL discard pending changes.
+The adjust screen SHALL show the score and splits with the saved packages plus the pending acceptances applied, and, when that score differs from the score without any adjustment, the latter as well. SAVE PACKAGE SHALL store the pending acceptances as one package and SHALL be disabled when there is nothing pending. Leaving with ✕ SHALL discard pending acceptances.
+
+#### Scenario: Previewing an acceptance
+- **WHEN** the owner sets a no-rep of FRAN's last position to REP and the time moves from 04:49 to 04:46
+- **THEN** the screen shows TIME 04:46 together with the unadjusted 04:49
 
 #### Scenario: Returning to the result
 - **WHEN** the owner saves a package and returns to the result
 - **THEN** the result shows the adjusted score and splits
 
 #### Scenario: Leaving without saving
-- **WHEN** the owner makes changes and taps ✕ without saving
+- **WHEN** the owner sets no-reps to REP and taps ✕ without saving
 - **THEN** no package is stored and the result is unchanged
 
-### Requirement: Later changes override earlier ones
-When several saved packages change the same position's target, or the duration, the most recent change SHALL apply.
+### Requirement: Accepted no-reps stay in their position
+Every valid rep and no-rep SHALL stay in the position it was applied at during judging. An accepted no-rep SHALL count as a valid rep of its own position. When a position then reaches its target before its last event, the events after its new completing rep in that position SHALL be surplus and SHALL NOT count, except in a position that takes reps beyond its target (an EMOM interval's last exercise). No rep SHALL move to another position.
 
-#### Scenario: Target changed twice
-- **WHEN** package 1 sets a position's target to 12 and package 2 sets it to 14
-- **THEN** the adjusted result uses 14 for that position
+#### Scenario: Accepted no-rep in the last position
+- **WHEN** FRAN's "Round 3 — PULL-UPS" was judged with its 7th valid rep at 04:40, a no-rep at 04:43, the 8th at 04:46 and the 9th at 04:49, and that no-rep is accepted
+- **THEN** the position completes on the 04:46 rep, the 04:49 rep is surplus, and the score reads TIME 04:46
 
-### Requirement: Reps are not re-flowed between positions
-For For Time, Chipper and AMRAP, each valid rep SHALL stay in the position it was counted in during judging. A changed target SHALL only change how many of that position's own reps count and whether it is complete; reps SHALL NOT move to the next or previous position.
+#### Scenario: A later no-rep becomes surplus
+- **WHEN** a position of 21 was judged with a no-rep at 00:30, its 20th valid rep at 00:41, a no-rep at 00:42 and its 21st valid rep at 00:44, and only the 00:30 no-rep is accepted
+- **THEN** the position completes on the 00:41 rep, and both the 00:42 no-rep and the 00:44 rep are surplus, the no-rep shown as surplus on the adjust screen
 
-#### Scenario: Lowered target
-- **WHEN** a position judged at 15/15 is adjusted to a target of 12
-- **THEN** that split shows 12/12 completed, its time is the 12th rep's time, and the following splits keep their own reps
+#### Scenario: EMOM first exercise
+- **WHEN** a minute of 5 PULL-UPS + 10 PUSH-UPS was judged as 4 valid PULL-UPS, a no-rep, a 5th valid PULL-UP and 10 PUSH-UPS, and the no-rep is accepted
+- **THEN** "Minute 1 — PULL-UPS" shows 5/5, the 5th valid PULL-UP is surplus, and PUSH-UPS still shows 10/10
 
-#### Scenario: Raised target
-- **WHEN** a For Time position judged at 15/15 is adjusted to a target of 18
-- **THEN** that split shows 15/18 not completed, and the score shows "DNF — <completed positions>/<total positions> + 15" instead of a time
+### Requirement: Time given back on For Time
+On a For Time or Chipper block, when a position has surplus events, the time between its original completing rep and its new completing rep SHALL be taken off every later event of that block. Its later splits, its rests and its TIME SHALL move earlier by that amount. A position that was not complete before the acceptance SHALL give back no time.
 
-### Requirement: Duration cutoff
-A changed duration SHALL exclude every valid rep recorded after the new duration. For EMOM, the number of intervals scored SHALL become the new duration in intervals.
+#### Scenario: Accepted no-rep in an earlier position
+- **WHEN** FRAN's "Round 1 — THRUSTERS" completes on its 00:42 rep instead of its 00:44 one after an acceptance
+- **THEN** every later split and the TIME are 2 seconds earlier, and every later position keeps its own reps
 
-#### Scenario: Shortened AMRAP
-- **WHEN** CINDY's duration is adjusted to 600 seconds
-- **THEN** reps recorded after 10:00 no longer count toward rounds or reps
+#### Scenario: Rest between rounds
+- **WHEN** a For Time with 60 s of rest between rounds gives back 2 seconds in round 1
+- **THEN** the rest after round 1 starts and ends 2 seconds earlier, and round 2's splits and the TIME are 2 seconds earlier
 
-#### Scenario: Shortened EMOM
-- **WHEN** EVERY MINUTE's duration is adjusted to 8 minutes
-- **THEN** the score is out of 8 minutes and only minutes 1–8 are listed
+### Requirement: Accepted no-reps on EMOM
+On an EMOM, an accepted no-rep SHALL count as a valid rep of its interval's exercise, with no time given back. It SHALL count toward that exercise's completion, its interval's completion and the total of valid reps. An accepted no-rep in an interval's last exercise SHALL add to the total even beyond that exercise's target.
 
-#### Scenario: Raised duration
-- **WHEN** CINDY's duration is adjusted above 720 seconds, or EVERY MINUTE's to 12 minutes
-- **THEN** CINDY's score is unchanged, and EVERY MINUTE is scored out of 12 minutes with minutes 11–12 listed at 0 reps, not completed
+#### Scenario: Missed minute completed
+- **WHEN** an EVERY MINUTE BURPEES minute of 10 was judged at 9 valid reps and 1 no-rep, and that no-rep is accepted
+- **THEN** the minute is completed, and both the completed minutes and the total valid reps go up by 1
 
-#### Scenario: Shortened interval EMOM
-- **WHEN** an EMOM of 10 intervals of 90 seconds is adjusted to 6 intervals
-- **THEN** the score is out of 6 intervals and only intervals 1–6 are listed
+#### Scenario: Beyond the target
+- **WHEN** an EMOM minute of BURPEES 10 was judged at 10 valid reps and 1 no-rep, and that no-rep is accepted
+- **THEN** the minute stays completed, and the total valid reps goes up by 1
 
-### Requirement: EMOM target change affects completion only
-For EMOM, changing the target of an exercise in an interval SHALL only change whether that exercise, and so its interval, counts as completed. It SHALL NOT move any rep to another exercise. The total of valid reps SHALL NOT change with target changes.
+### Requirement: Accepted no-reps on a capped For Time
+On a capped For Time or Chipper that reached its cap unfinished, an accepted no-rep SHALL add a valid rep only to a position that was short of its target. When that completes the block's last position, the block SHALL be complete and scored as TIME of its new completing rep. Otherwise the score SHALL stay "CAP · <N> reps", N being every valid rep each position keeps.
 
-#### Scenario: Raising an EMOM target
-- **WHEN** a BURPEES minute with 11 valid reps has its target raised from 10 to 12
-- **THEN** that minute is no longer completed and the total valid reps is unchanged
+#### Scenario: The missing rep was a no-rep
+- **WHEN** a For Time with a 10 min cap reached it with its last position at 8/9 and a no-rep at 09:47 after its 8th valid rep, and that no-rep is accepted
+- **THEN** the block is complete and the score reads TIME 09:47
 
-#### Scenario: Raising the first exercise's target
-- **WHEN** a minute of 5 PULL-UPS + 10 PUSH-UPS was judged as 5 PULL-UPS and 10 PUSH-UPS, and PULL-UPS' target is raised to 7
-- **THEN** "Minute 1 — PULL-UPS" shows 5/7 not completed, PUSH-UPS still shows 10/10, and the minute is not completed
+#### Scenario: No-rep in a completed position
+- **WHEN** a For Time that reached its cap at CAP · 51 reps has a no-rep of a completed position accepted
+- **THEN** the score still reads CAP · 51 reps
 
-### Requirement: Adjusted time cap
-For a capped For Time or Chipper, a changed duration SHALL be the adjusted cap: valid reps recorded at the adjusted cap or later SHALL NOT count. The adjusted score SHALL be TIME of the last position's completing rep when every position of the workout is complete under the adjustment, and "CAP · <N> reps" otherwise, N being every valid rep each position keeps. Raising the cap SHALL NOT add reps, since none were recorded after the original cap.
+### Requirement: Accepted no-reps on a stopping EMOM
+For an EMOM that stops at its first missed interval, the adjusted result SHALL stop at the first interval not completed with the accepted no-reps counted. Valid reps after that interval SHALL NOT count, and the score SHALL keep the "<completed intervals> + <reps in the missed interval>" form. Each interval SHALL keep the target it asked for.
 
-#### Scenario: Shortened cap
-- **WHEN** a For Time finished at 9:30 under a 10 min cap has its duration adjusted to 480 seconds
-- **THEN** reps recorded at 8:00 or later no longer count and the score reads "CAP · <reps before 8:00> reps"
-
-#### Scenario: Raised cap
-- **WHEN** a For Time that reached its 10 min cap unfinished has its duration adjusted to 900 seconds
-- **THEN** the score still reads "CAP · <N> reps" with the same N
-
-#### Scenario: Raised target on a capped workout
-- **WHEN** a position of a capped For Time judged at 15/15 is adjusted to a target of 18
-- **THEN** that split shows 15/18 not completed, and the score reads "CAP · <N> reps" instead of a time
-
-### Requirement: Adjusting a stopping EMOM
-For an EMOM that stops at its first missed interval, the adjusted result SHALL stop at the first interval not completed under the adjusted targets and duration. Valid reps after that interval SHALL NOT count, and the score SHALL keep the "<completed intervals> + <reps in the missed interval>" form. Each interval SHALL keep the target it asked for unless a target change replaces it.
-
-#### Scenario: Raising an earlier target
-- **WHEN** a stopping Death by that scored 12 + 9 has minute 5's target raised from 5 to 6, with 5 valid reps recorded in it
-- **THEN** the adjusted score reads 4 + 5, and minutes 6–13 are no longer listed
-
-#### Scenario: Lowering the missed interval's target
-- **WHEN** a stopping Death by that scored 12 + 9 has minute 13's target lowered to 9
+#### Scenario: Accepting a no-rep in the missed interval
+- **WHEN** a stopping Death by that scored 12 + 12, with minute 13 judged at 12 valid reps and 1 no-rep, has that no-rep accepted
 - **THEN** minute 13 is completed, and the adjusted score reads 13 + 0 with minute 14 listed at 0 reps
 
-### Requirement: Adjusting several blocks
-A target change SHALL apply to its own block's position only, and SHALL NOT move any block's start or any rep into another block. A saved adjustment without a block SHALL apply to block 1. The adjusted score SHALL be the scoring block's, recomputed with that block's own rules.
+### Requirement: Accepted no-reps on several blocks
+An accepted no-rep SHALL apply to its own block only. It SHALL NOT move any block's start or any rep into another block, and the time it gives back SHALL stay inside its block. The adjusted score SHALL be the scoring block's, recomputed with that block's own rules.
 
-#### Scenario: Target in a block that doesn't score
-- **WHEN** the owner raises the buy-in's BURPEES target from 20 to 25, with 20 counted
-- **THEN** the buy-in's group shows it unfinished, and the scoring AMRAP's score is unchanged
+#### Scenario: No-rep in a block that doesn't score
+- **WHEN** the owner accepts a no-rep in a For Time buy-in, which gives back 2 seconds, ahead of a scoring AMRAP
+- **THEN** the buy-in's group shows its time 2 seconds earlier, and the AMRAP's group and the score are unchanged
 
-### Requirement: Adjusted target limit
-A new target entered on the adjust screen SHALL be at most 999, and its field SHALL NOT accept more than three digits. A saved adjustment with a higher target SHALL keep applying. The duration field SHALL have no such limit.
+### Requirement: Accepted no-reps on AMRAP
+On an AMRAP, an accepted no-rep SHALL add a valid rep only to a position that was short of its target. In a completed position, it SHALL make that position's surplus rep stop counting, leaving the score unchanged. The AMRAP's end SHALL NOT move.
 
-#### Scenario: Target at the limit
-- **WHEN** the owner taps a split and enters 999
-- **THEN** a pending target change of 999 is added
+#### Scenario: No-rep in a completed position
+- **WHEN** CINDY scored 14 + 7 and a no-rep in one of its completed positions is accepted
+- **THEN** the score still reads 14 + 7
 
-#### Scenario: Typing a fourth digit
-- **WHEN** the owner types a fourth digit in a target field
-- **THEN** the field keeps the first three
+#### Scenario: No-rep in the unfinished round's last position
+- **WHEN** CINDY scored 14 + 7, with its position in progress at 2/10 PUSH-UPS and 1 no-rep, and that no-rep is accepted
+- **THEN** the score reads 14 + 8
+
+### Requirement: Packages saved before no-rep review
+Adjustment packages saved before this change SHALL be deleted when the app is updated, and their sessions SHALL show their unadjusted result.
+
+#### Scenario: Updating with an adjusted session
+- **WHEN** the app is updated on a phone with a session whose package changed a target
+- **THEN** that session has no adjustment packages and shows its unadjusted result

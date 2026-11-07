@@ -1,6 +1,6 @@
 import { Fragment, useCallback, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { Text, TextInput } from '@/components/text';
+import { Text } from '@/components/text';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import {
@@ -20,13 +20,15 @@ import { LogEntry } from '@/components/judge/types';
 import { getSession, StoredSession } from '@/db/sessions';
 import { Workout, getWorkout } from '@/db/workouts';
 import { AdjustmentChange, SessionAdjustment, addAdjustment, getAdjustments } from '@/db/session-adjustments';
-import { deriveAdjustedResult } from '@/components/result/adjust';
-import { Split } from '@/components/result/replay';
-import { capSeconds, intervalSeconds, isSequence } from '@/constants/wod-engine';
-import { MAX_REPS } from '@/components/editor/draft';
+import { ReviewNoRep, acceptedIds, deriveAdjustedResult, reviewNoReps } from '@/components/result/adjust';
+import { deriveResult, splitLabel } from '@/components/result/replay';
+import { START_POSITION, WodConfig, formatTime, isSequence } from '@/constants/wod-engine';
 
-/** A new target takes as many digits as the reps limit has (change responsive-review). */
-const TARGET_DIGITS = String(MAX_REPS).length;
+// The no-rep review (change no-rep-review): the judge accepts no-reps they gave, in up
+// to 3 packages. Each no-rep is listed under its split; accepting is final.
+
+const toChanges = (ids: Iterable<number>): AdjustmentChange[] => [...ids].map((eventIdx) => ({ type: 'acceptNoRep', eventIdx }));
+const positionKey = (blockIdx: number, roundIdx: number, exIdx: number) => `${blockIdx}:${roundIdx}:${exIdx}`;
 
 export default function AdjustScreen() {
   const { sessionId } = useLocalSearchParams<{ sessionId: string }>();
@@ -43,10 +45,7 @@ export default function AdjustScreen() {
   const [session, setSession] = useState<StoredSession | null>(null);
   const [workout, setWorkout] = useState<Workout | null>(null);
   const [adjustments, setAdjustments] = useState<SessionAdjustment[]>([]);
-  const [pending, setPending] = useState<AdjustmentChange[]>([]);
-  const [editingKey, setEditingKey] = useState<string | null>(null);
-  const [editingValue, setEditingValue] = useState('');
-  const [durationDraft, setDurationDraft] = useState<string | null>(null);
+  const [pending, setPending] = useState<Set<number>>(new Set());
 
   const load = useCallback(async () => {
     if (!sessionId) return;
@@ -68,69 +67,86 @@ export default function AdjustScreen() {
     () => session?.events.map((e, i) => ({ id: i, ok: e.kind === 'rep', t: e.t })) ?? [],
     [session],
   );
-  const approvedChanges = useMemo(() => adjustments.flatMap((a) => a.changes), [adjustments]);
-  const previewChanges = useMemo(() => [...approvedChanges, ...pending], [approvedChanges, pending]);
-  const result = config ? deriveAdjustedResult(config, log, previewChanges) : null;
-  const sequence = config != null && isSequence(config);
-  // The duration is the last block's on a workout of several blocks (change multi-block-workouts).
-  const durationConfig = config != null && isSequence(config) ? config.parts[config.parts.length - 1] : config;
-  const isEmom = durationConfig?.advanceMode === 'onClock';
-  // The duration field's unit in seconds: an EMOM's interval (minutes at 60 s), else plain seconds.
-  const durationUnit = durationConfig && isEmom ? intervalSeconds(durationConfig) : 1;
-  const durationUnitLabel = !isEmom ? 'SEC' : durationUnit === 60 ? 'MIN' : 'INTERVALS';
-  const hasDuration = (durationConfig?.totalSeconds ?? 0) > 0;
+  const saved = useMemo(() => acceptedIds(adjustments.flatMap((a) => a.changes)), [adjustments]);
+  const accepted = useMemo(() => new Set([...saved, ...pending]), [saved, pending]);
   const remaining = 3 - adjustments.length;
 
-  if (!fontsLoaded || !loaded || !config || !durationConfig || !result) {
+  if (!fontsLoaded || !loaded || !config) {
     return <View style={{ flex: 1, backgroundColor: HF.bg }} />;
   }
 
-  const keyOf = (split: Split) => `${split.blockIdx ?? 0}:${split.roundIdx}:${split.exIdx}`;
-  const sameTarget = (c: AdjustmentChange, split: Split) =>
-    c.type === 'target' && c.roundIdx === split.roundIdx && c.exIdx === split.exIdx && (c.blockIdx ?? 0) === (split.blockIdx ?? 0);
+  const result = deriveAdjustedResult(config, log, toChanges(accepted));
+  const unadjusted = deriveResult(config, log);
+  const noReps = reviewNoReps(config, log, accepted);
+  const partOf = (blockIdx: number): WodConfig => (isSequence(config) ? config.parts[blockIdx] : config);
 
-  const startEdit = (split: Split) => {
-    setEditingKey(keyOf(split));
-    setEditingValue(String(split.target));
-  };
+  // Each no-rep under its split; a position reached with no-reps only has no split,
+  // so its no-reps follow the block's last split under the position's label.
+  const splitKeys = new Set(result.splits.map((s) => positionKey(s.blockIdx ?? 0, s.roundIdx, s.exIdx)));
+  const underSplit = new Map<string, ReviewNoRep[]>();
+  const orphans = new Map<number, ReviewNoRep[]>();
+  for (const n of noReps) {
+    const key = positionKey(n.blockIdx ?? 0, n.roundIdx, n.exIdx);
+    if (splitKeys.has(key)) underSplit.set(key, [...(underSplit.get(key) ?? []), n]);
+    else orphans.set(n.blockIdx ?? 0, [...(orphans.get(n.blockIdx ?? 0) ?? []), n]);
+  }
+  const blocksWithSplits = new Set(result.splits.map((s) => s.blockIdx ?? 0));
+  const groupTitle = (blockIdx: number) =>
+    result.groups != null && <Text style={styles.groupTitle}>{result.groups[blockIdx].title}</Text>;
 
-  const commitEdit = (split: Split) => {
-    const n = parseInt(editingValue, 10);
-    setEditingKey(null);
-    if (!Number.isFinite(n) || n <= 0 || n > MAX_REPS || n === split.target) return;
-    // A workout of several blocks names the block; one block writes the change as before.
-    const block = sequence ? { blockIdx: split.blockIdx ?? 0 } : {};
-    setPending((prev) => [
-      ...prev.filter((c) => !sameTarget(c, split)),
-      { type: 'target', roundIdx: split.roundIdx, exIdx: split.exIdx, newTarget: n, ...block },
-    ]);
-  };
-
-  const currentDurationSeconds = (() => {
-    let value = durationConfig.totalSeconds;
-    for (const c of previewChanges) if (c.type === 'duration') value = c.newDurationSeconds;
-    return value;
-  })();
-  const durationDisplay = String(Math.round(currentDurationSeconds / durationUnit));
-
-  const commitDuration = () => {
-    const raw = durationDraft;
-    setDurationDraft(null);
-    if (raw == null) return;
-    const n = parseInt(raw, 10);
-    if (!Number.isFinite(n) || n <= 0) return;
-    const newDurationSeconds = n * durationUnit;
-    if (newDurationSeconds === currentDurationSeconds) return;
-    setPending((prev) => [...prev.filter((c) => c.type !== 'duration'), { type: 'duration', newDurationSeconds }]);
+  const toggle = (n: ReviewNoRep) => {
+    setPending((prev) => {
+      const next = new Set(prev);
+      if (next.has(n.id)) next.delete(n.id);
+      else next.add(n.id);
+      return next;
+    });
   };
 
   const savePackage = async () => {
-    if (pending.length === 0 || remaining <= 0 || !profile || !sessionId) return;
-    await addAdjustment(db, sessionId, pending, profile.id);
-    setPending([]);
-    setDurationDraft(null);
+    if (pending.size === 0 || remaining <= 0 || !profile || !sessionId) return;
+    await addAdjustment(db, sessionId, toChanges(pending), profile.id);
+    setPending(new Set());
     await load();
   };
+
+  const noRepRow = (n: ReviewNoRep) => {
+    const locked = n.status === 'surplus' || saved.has(n.id) || remaining <= 0;
+    const action =
+      n.status === 'surplus' ? 'SURPLUS' : saved.has(n.id) ? 'ACCEPTED' : n.status === 'accepted' ? 'REP' : 'KEEP';
+    return (
+      <View key={n.id} style={styles.noRepRow}>
+        <Text style={styles.noRepTime}>{formatTime(Math.floor(n.t / 1000))}</Text>
+        <Text style={styles.noRepLabel}>NO-REP</Text>
+        <Pressable onPress={() => toggle(n)} disabled={locked} hitSlop={8}
+          style={[styles.toggle, action === 'REP' && styles.toggleRep, locked && styles.toggleLocked]}>
+          <Text style={[styles.toggleText, action === 'REP' && styles.toggleTextRep]}>{action}</Text>
+        </Pressable>
+      </View>
+    );
+  };
+
+  const orphanRows = (blockIdx: number) => {
+    const rows = orphans.get(blockIdx);
+    if (!rows) return null;
+    const byPosition = new Map<string, ReviewNoRep[]>();
+    for (const n of rows) {
+      const key = `${n.roundIdx}:${n.exIdx}`;
+      byPosition.set(key, [...(byPosition.get(key) ?? []), n]);
+    }
+    return [...byPosition.values()].map((group) => (
+      <Fragment key={`orphan:${blockIdx}:${group[0].roundIdx}:${group[0].exIdx}`}>
+        <View style={styles.splitRow}>
+          <Text style={[styles.splitLabel, styles.splitLabelPartial]}>
+            {splitLabel(partOf(blockIdx), { ...START_POSITION, roundIdx: group[0].roundIdx, exIdx: group[0].exIdx })}
+          </Text>
+        </View>
+        {group.map(noRepRow)}
+      </Fragment>
+    ));
+  };
+
+  const scoreChanged = unadjusted.scoreLabel !== result.scoreLabel || unadjusted.scoreValue !== result.scoreValue;
 
   return (
     <Screen style={styles.root} minBottomPadding={24}>
@@ -144,82 +160,53 @@ export default function AdjustScreen() {
         </Pressable>
       </View>
 
-      {/* Score, duration and splits scroll as one under the fixed title row (change responsive-review);
+      {/* Score and splits scroll as one under the fixed title row (change responsive-review);
           SAVE PACKAGE stays below, outside the scroller. */}
-      <ScrollView style={styles.splits} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+      <ScrollView style={styles.splits} contentContainerStyle={styles.scrollContent}>
         <View style={styles.scoreBlock}>
           <Text style={styles.scoreLabel}>{result.scoreLabel}</Text>
           <Text style={styles.scoreValue} allowFontScaling={false} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.3}>
             {result.scoreValue}
           </Text>
-        </View>
-
-        {hasDuration && (
-          <View style={styles.durationRow}>
-            <Text style={styles.durationLabel}>
-              {sequence ? 'LAST BLOCK ' : ''}
-              {capSeconds(durationConfig) != null ? 'TIME CAP' : 'DURATION'} ({durationUnitLabel})
+          {scoreChanged && (
+            <Text style={styles.unadjusted} numberOfLines={1}>
+              WITHOUT ADJUSTMENTS {unadjusted.scoreValue}
             </Text>
-            {durationDraft != null ? (
-              <TextInput
-                style={styles.durationInput}
-                value={durationDraft}
-                onChangeText={setDurationDraft}
-                keyboardType="number-pad"
-                autoFocus
-                onBlur={commitDuration}
-                onSubmitEditing={commitDuration}
-              />
-            ) : (
-              <Pressable onPress={() => setDurationDraft(durationDisplay)}>
-                <Text style={styles.durationValue}>{durationDisplay}</Text>
-              </Pressable>
-            )}
-          </View>
-        )}
+          )}
+        </View>
 
         <View style={styles.splitsContent}>
           {result.splits.map((split, i) => {
-            const key = keyOf(split);
-            const editing = editingKey === key;
+            const blockIdx = split.blockIdx ?? 0;
+            const lastOfBlock = (result.splits[i + 1]?.blockIdx ?? 0) !== blockIdx || i === result.splits.length - 1;
             return (
               <Fragment key={i}>
-                {result.groups != null && split.blockIdx !== result.splits[i - 1]?.blockIdx && (
-                  <Text style={styles.groupTitle}>{result.groups[split.blockIdx ?? 0].title}</Text>
-                )}
-                <Pressable onPress={() => !editing && startEdit(split)} style={styles.splitRow}>
-                  <View style={styles.splitLeft}>
-                    <Text style={[styles.splitLabel, !split.completed && styles.splitLabelPartial]}>{split.label}</Text>
-                    {editing ? (
-                      <TextInput
-                        style={styles.editInput}
-                        value={editingValue}
-                        onChangeText={setEditingValue}
-                        keyboardType="number-pad"
-                        // Android's maxLength also cuts the prefilled value: a target past the limit
-                        // (an EMOM increment can reach one) is shown whole, and only a new one is limited.
-                        maxLength={split.target <= MAX_REPS ? TARGET_DIGITS : undefined}
-                        autoFocus
-                        onBlur={() => commitEdit(split)}
-                        onSubmitEditing={() => commitEdit(split)}
-                      />
-                    ) : (
-                      <Text style={styles.splitReps}>{split.reps}/{split.target}</Text>
-                    )}
-                  </View>
-                </Pressable>
+                {i === 0 || result.splits[i - 1].blockIdx !== split.blockIdx ? groupTitle(blockIdx) : null}
+                <View style={styles.splitRow}>
+                  <Text style={[styles.splitLabel, !split.completed && styles.splitLabelPartial]}>{split.label}</Text>
+                  <Text style={styles.splitReps}>{split.reps}/{split.target}</Text>
+                </View>
+                {(underSplit.get(positionKey(blockIdx, split.roundIdx, split.exIdx)) ?? []).map(noRepRow)}
+                {lastOfBlock && orphanRows(blockIdx)}
               </Fragment>
             );
           })}
+          {/* A block whose only events were no-reps has no split at all. */}
+          {[...orphans.keys()].filter((b) => !blocksWithSplits.has(b)).map((b) => (
+            <Fragment key={`block:${b}`}>
+              {groupTitle(b)}
+              {orphanRows(b)}
+            </Fragment>
+          ))}
         </View>
       </ScrollView>
 
       <Pressable
         onPress={savePackage}
-        disabled={pending.length === 0 || remaining <= 0}
+        disabled={pending.size === 0 || remaining <= 0}
         style={({ pressed }) => [
           styles.saveBtn,
-          (pending.length === 0 || remaining <= 0) && styles.saveBtnDisabled,
+          (pending.size === 0 || remaining <= 0) && styles.saveBtnDisabled,
           pressed && styles.saveBtnPressed,
         ]}
       >
@@ -281,37 +268,6 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch',
     textAlign: 'center',
   },
-  durationRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: HF.hairline,
-  },
-  durationLabel: {
-    flexShrink: 1,
-    marginRight: 16,
-    fontFamily: 'IBMPlexMono_400Regular',
-    fontSize: 11,
-    color: HF.muted,
-    letterSpacing: 1.5,
-  },
-  durationValue: {
-    fontFamily: 'IBMPlexMono_500Medium',
-    fontSize: 16,
-    color: HF.ink,
-  },
-  durationInput: {
-    fontFamily: 'IBMPlexMono_500Medium',
-    fontSize: 16,
-    color: HF.ink,
-    borderBottomWidth: 1,
-    borderBottomColor: HF.hairlineStrong,
-    minWidth: 60,
-    textAlign: 'right',
-  },
   splits: {
     flex: 1,
   },
@@ -334,9 +290,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: HF.hairline,
   },
-  splitLeft: {
-    flex: 1,
-  },
   splitLabel: {
     fontFamily: 'BarlowCondensed_600SemiBold',
     fontSize: 17,
@@ -346,20 +299,62 @@ const styles = StyleSheet.create({
   splitLabelPartial: {
     color: HF.inkDim,
   },
+  noRepRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingLeft: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: HF.hairline,
+  },
+  noRepTime: {
+    fontFamily: 'IBMPlexMono_400Regular',
+    fontSize: 12,
+    color: HF.inkDim,
+    marginRight: 12,
+  },
+  noRepLabel: {
+    flex: 1,
+    fontFamily: 'IBMPlexMono_400Regular',
+    fontSize: 11,
+    color: HF.noRep,
+    letterSpacing: 1,
+  },
+  toggle: {
+    borderWidth: 1,
+    borderColor: HF.hairlineStrong,
+    paddingVertical: 6,
+    minWidth: 92,
+    alignItems: 'center',
+  },
+  toggleRep: {
+    borderColor: HF.accent,
+  },
+  toggleLocked: {
+    borderColor: HF.hairline,
+    opacity: 0.6,
+  },
+  toggleText: {
+    fontFamily: 'IBMPlexMono_500Medium',
+    fontSize: 11,
+    color: HF.muted,
+    letterSpacing: 1.5,
+  },
+  toggleTextRep: {
+    color: HF.accent,
+  },
+  unadjusted: {
+    fontFamily: 'IBMPlexMono_400Regular',
+    fontSize: 10,
+    color: HF.muted,
+    letterSpacing: 1,
+    marginTop: 4,
+  },
   splitReps: {
     fontFamily: 'IBMPlexMono_400Regular',
     fontSize: 11,
     color: HF.muted,
     marginTop: 2,
-  },
-  editInput: {
-    fontFamily: 'IBMPlexMono_500Medium',
-    fontSize: 14,
-    color: HF.accent,
-    borderBottomWidth: 1,
-    borderBottomColor: HF.accent,
-    marginTop: 2,
-    minWidth: 60,
   },
   saveBtn: {
     borderWidth: 1.5,

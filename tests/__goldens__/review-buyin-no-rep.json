@@ -295,11 +295,11 @@
     "splits": [
       {
         "label": "Station 1 — BURPEES",
-        "reps": 15,
-        "target": 15,
+        "reps": 20,
+        "target": 20,
         "completed": true,
-        "cumulativeMs": 30000,
-        "lapMs": 30000,
+        "cumulativeMs": 38000,
+        "lapMs": 38000,
         "roundIdx": 0,
         "exIdx": 0,
         "blockIdx": 0
@@ -429,15 +429,15 @@
     "groups": [
       {
         "blockIdx": 0,
-        "title": "BLOCK 1 · FOR TIME · 00:30",
+        "title": "BLOCK 1 · FOR TIME · 00:38",
         "splits": [
           {
             "label": "Station 1 — BURPEES",
-            "reps": 15,
-            "target": 15,
+            "reps": 20,
+            "target": 20,
             "completed": true,
-            "cumulativeMs": 30000,
-            "lapMs": 30000,
+            "cumulativeMs": 38000,
+            "lapMs": 38000,
             "roundIdx": 0,
             "exIdx": 0,
             "blockIdx": 0

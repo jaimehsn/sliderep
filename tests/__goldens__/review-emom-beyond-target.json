@@ -4,7 +4,7 @@
     "scoreValue": "10/10 · 125 reps",
     "splits": [
       {
-        "label": "Interval 1 — BURPEES",
+        "label": "Minute 1 — BURPEES",
         "reps": 10,
         "target": 10,
         "completed": true,
@@ -14,7 +14,7 @@
         "exIdx": 0
       },
       {
-        "label": "Interval 2 — KB SWINGS",
+        "label": "Minute 2 — KB SWINGS",
         "reps": 15,
         "target": 15,
         "completed": true,
@@ -24,7 +24,7 @@
         "exIdx": 0
       },
       {
-        "label": "Interval 3 — BURPEES",
+        "label": "Minute 3 — BURPEES",
         "reps": 10,
         "target": 10,
         "completed": true,
@@ -34,7 +34,7 @@
         "exIdx": 0
       },
       {
-        "label": "Interval 4 — KB SWINGS",
+        "label": "Minute 4 — KB SWINGS",
         "reps": 15,
         "target": 15,
         "completed": true,
@@ -44,7 +44,7 @@
         "exIdx": 0
       },
       {
-        "label": "Interval 5 — BURPEES",
+        "label": "Minute 5 — BURPEES",
         "reps": 10,
         "target": 10,
         "completed": true,
@@ -54,7 +54,7 @@
         "exIdx": 0
       },
       {
-        "label": "Interval 6 — KB SWINGS",
+        "label": "Minute 6 — KB SWINGS",
         "reps": 15,
         "target": 15,
         "completed": true,
@@ -64,7 +64,7 @@
         "exIdx": 0
       },
       {
-        "label": "Interval 7 — BURPEES",
+        "label": "Minute 7 — BURPEES",
         "reps": 10,
         "target": 10,
         "completed": true,
@@ -74,7 +74,7 @@
         "exIdx": 0
       },
       {
-        "label": "Interval 8 — KB SWINGS",
+        "label": "Minute 8 — KB SWINGS",
         "reps": 15,
         "target": 15,
         "completed": true,
@@ -84,7 +84,7 @@
         "exIdx": 0
       },
       {
-        "label": "Interval 9 — BURPEES",
+        "label": "Minute 9 — BURPEES",
         "reps": 10,
         "target": 10,
         "completed": true,
@@ -94,7 +94,7 @@
         "exIdx": 0
       },
       {
-        "label": "Interval 10 — KB SWINGS",
+        "label": "Minute 10 — KB SWINGS",
         "reps": 15,
         "target": 15,
         "completed": true,
@@ -107,11 +107,11 @@
   },
   "adjusted": {
     "scoreLabel": "SCORE",
-    "scoreValue": "9/10 · 125 reps",
+    "scoreValue": "10/10 · 126 reps",
     "splits": [
       {
-        "label": "Interval 1 — BURPEES",
-        "reps": 10,
+        "label": "Minute 1 — BURPEES",
+        "reps": 11,
         "target": 10,
         "completed": true,
         "cumulativeMs": null,
@@ -120,17 +120,17 @@
         "exIdx": 0
       },
       {
-        "label": "Interval 2 — KB SWINGS",
+        "label": "Minute 2 — KB SWINGS",
         "reps": 15,
-        "target": 18,
-        "completed": false,
+        "target": 15,
+        "completed": true,
         "cumulativeMs": null,
         "lapMs": null,
         "roundIdx": 1,
         "exIdx": 0
       },
       {
-        "label": "Interval 3 — BURPEES",
+        "label": "Minute 3 — BURPEES",
         "reps": 10,
         "target": 10,
         "completed": true,
@@ -140,7 +140,7 @@
         "exIdx": 0
       },
       {
-        "label": "Interval 4 — KB SWINGS",
+        "label": "Minute 4 — KB SWINGS",
         "reps": 15,
         "target": 15,
         "completed": true,
@@ -150,7 +150,7 @@
         "exIdx": 0
       },
       {
-        "label": "Interval 5 — BURPEES",
+        "label": "Minute 5 — BURPEES",
         "reps": 10,
         "target": 10,
         "completed": true,
@@ -160,7 +160,7 @@
         "exIdx": 0
       },
       {
-        "label": "Interval 6 — KB SWINGS",
+        "label": "Minute 6 — KB SWINGS",
         "reps": 15,
         "target": 15,
         "completed": true,
@@ -170,7 +170,7 @@
         "exIdx": 0
       },
       {
-        "label": "Interval 7 — BURPEES",
+        "label": "Minute 7 — BURPEES",
         "reps": 10,
         "target": 10,
         "completed": true,
@@ -180,7 +180,7 @@
         "exIdx": 0
       },
       {
-        "label": "Interval 8 — KB SWINGS",
+        "label": "Minute 8 — KB SWINGS",
         "reps": 15,
         "target": 15,
         "completed": true,
@@ -190,7 +190,7 @@
         "exIdx": 0
       },
       {
-        "label": "Interval 9 — BURPEES",
+        "label": "Minute 9 — BURPEES",
         "reps": 10,
         "target": 10,
         "completed": true,
@@ -200,7 +200,7 @@
         "exIdx": 0
       },
       {
-        "label": "Interval 10 — KB SWINGS",
+        "label": "Minute 10 — KB SWINGS",
         "reps": 15,
         "target": 15,
         "completed": true,

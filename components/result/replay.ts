@@ -21,10 +21,9 @@ import type { LogEntry } from '@/components/judge/types';
 /**
  * One row of the result screen's split list. Times are ms on the session
  * clock; null where not applicable. `roundIdx`/`exIdx` identify the position
- * (for onClock WODs, `roundIdx` is the interval index and `exIdx` is always 0 —
- * see `db/session-adjustments.ts`) — only consumed by `session/adjust.tsx` to
- * know which position a tapped row corresponds to; the plain result screen
- * ignores them.
+ * (for onClock WODs, `roundIdx` is the interval index and `exIdx` its line) — only
+ * consumed by `session/adjust.tsx` to list each no-rep under its split; the plain
+ * result screen ignores them.
  */
 export type Split = {
   label: string;
@@ -195,7 +194,8 @@ function deriveOnTarget(config: WodConfig, log: LogEntry[]): WodResult {
 
 /**
  * Each block's own log on its block-local clock: the events the sequence fold
- * applied in that block, shifted by the block's start. Block boundaries come
+ * applied in that block, shifted by the block's start, each keeping its original
+ * `id` (change no-rep-review: an accepted no-rep is named by it). Block boundaries come
  * from this one fold over the original config, so an adjustment never moves a
  * block's start or a rep from one block to another.
  */
@@ -206,7 +206,7 @@ export function blockLogs(config: SequenceConfig, log: LogEntry[]): LogEntry[][]
   return config.parts.map((_, i) =>
     state.tagged
       .filter((e) => e.block === i)
-      .map((e, k) => ({ id: k, ok: e.ok, t: e.t - starts[i] })),
+      .map((e, k) => ({ id: e.id ?? k, ok: e.ok, t: e.t - starts[i] })),
   );
 }
 

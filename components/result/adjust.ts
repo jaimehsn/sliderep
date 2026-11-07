@@ -1,222 +1,125 @@
-import { START_POSITION, WodConfig, WodSession, capSeconds, isSequence, fold, formatTime, intervalLineAt, intervalLines, intervalSeconds, targetAt } from '@/constants/wod-engine';
+import { TaggedEvent, WodConfig, fold, intervalLines, isSequence } from '@/constants/wod-engine';
 import type { LogEntry } from '@/components/judge/types';
-import { WodResult, Split, blockLogs, combineBlockResults, intervalSplitLabel, splitLabel, deriveResult, stopAtFirstMiss } from '@/components/result/replay';
+import { WodResult, blockLogs, combineBlockResults, deriveResult } from '@/components/result/replay';
 import type { AdjustmentChange } from '@/db/session-adjustments';
 
-type Tagged = { t: number; roundIdx: number; exIdx: number; originalTarget: number };
+// The post-judging review (change no-rep-review): the judge accepts no-reps they
+// gave, and the result is the plain `deriveResult` of a rewritten ("reviewed") log
+// — no second scoring path. See design.md of that change, decision 1.
+
+/** One in-play no-rep of the review list. `roundIdx` is the interval index on an EMOM, as on a `Split`. */
+export type ReviewNoRep = {
+  id: number;
+  /** Workouts of several blocks: its block. */
+  blockIdx?: number;
+  roundIdx: number;
+  exIdx: number;
+  /** On its block's clock. */
+  t: number;
+  status: 'open' | 'accepted' | 'surplus';
+};
+
+type Review = { log: LogEntry[]; noReps: Omit<ReviewNoRep, 'blockIdx'>[]; changed: boolean };
+
+/** Whether a position takes reps beyond its target: an EMOM interval's last line. */
+function takesExtraReps(config: WodConfig, e: TaggedEvent): boolean {
+  return config.advanceMode === 'onClock' && e.pos.exIdx === intervalLines(config, e.pos.minuteIdx).length - 1;
+}
+
+/** Index of the `target`-th event of `events` that `isValid` accepts, or -1. */
+function nthValid(events: TaggedEvent[], target: number, isValid: (e: TaggedEvent) => boolean): number {
+  let n = 0;
+  for (let i = 0; i < events.length; i++) {
+    if (isValid(events[i]) && ++n === target) return i;
+  }
+  return -1;
+}
 
 /**
- * Each counted event's position from the engine fold over the *unmodified*
- * config/log. This is what "no re-flow" (docs/ROADMAP.md) rests on: positions
- * are fixed by this pass and never recomputed under adjusted targets — only each
- * position's own completion threshold changes.
+ * One block's review. Its in-play events (those the engine would count had they
+ * been reps) keep the position the original fold gave them; an accepted no-rep is a
+ * valid rep there; a position that reaches its target before its last event loses
+ * every later event of its own (surplus), unless it takes extra reps; and on
+ * `rounds` (For Time / Chipper) the time between its original and new completing
+ * rep is taken off every later event. Events not in play are left out.
  */
-function tagOnTargetPositions(config: WodConfig, log: LogEntry[]): Tagged[] {
-  return fold(config, log, Infinity).tagged
-    .filter((e) => e.counted)
-    .map((e) => ({ t: e.t, roundIdx: e.pos.roundIdx, exIdx: e.pos.exIdx, originalTarget: e.target }));
-}
+function review(config: WodConfig, log: LogEntry[], accepted: Set<number>): Review {
+  const inPlay = fold(config, log, Infinity).tagged.filter((e) => e.inPlay);
+  const isAccepted = (e: TaggedEvent) => !e.ok && e.id != null && accepted.has(e.id);
+  const isValid = (e: TaggedEvent) => e.ok || isAccepted(e);
+  const onClock = config.advanceMode === 'onClock';
 
-function latestTargetOverride(changes: AdjustmentChange[], roundIdx: number, exIdx: number): number | null {
-  let value: number | null = null;
-  for (const c of changes) {
-    if (c.type === 'target' && c.roundIdx === roundIdx && c.exIdx === exIdx) value = c.newTarget;
-  }
-  return value;
-}
-
-function latestDurationOverride(changes: AdjustmentChange[]): number | null {
-  let value: number | null = null;
-  for (const c of changes) {
-    if (c.type === 'duration') value = c.newDurationSeconds;
-  }
-  return value;
-}
-
-function groupInOrder(tagged: Tagged[]): { roundIdx: number; exIdx: number; events: Tagged[] }[] {
-  const order: { roundIdx: number; exIdx: number; events: Tagged[] }[] = [];
-  const index = new Map<string, number>();
-  for (const t of tagged) {
-    const key = `${t.roundIdx}:${t.exIdx}`;
-    const i = index.get(key);
-    if (i == null) {
-      index.set(key, order.length);
-      order.push({ roundIdx: t.roundIdx, exIdx: t.exIdx, events: [t] });
-    } else {
-      order[i].events.push(t);
-    }
-  }
-  return order;
-}
-
-function deriveAdjustedOnTarget(config: WodConfig, log: LogEntry[], changes: AdjustmentChange[]): WodResult {
-  const tagged = tagOnTargetPositions(config, log);
-  const groups = groupInOrder(tagged);
-  const cutoffSeconds = latestDurationOverride(changes);
-  const cutoff = cutoffSeconds != null ? cutoffSeconds * 1000 : null;
-  // A capped For Time's duration is its cap (change for-time-cap): a rep at the
-  // (adjusted) cap or later doesn't count, as live. Uncapped formats keep `<=`.
-  const cap = capSeconds(config);
-  const capMs = cap != null ? (cutoffSeconds ?? cap) * 1000 : null;
-  const inTime = (e: Tagged) => (capMs != null ? e.t < capMs : cutoff == null || e.t <= cutoff);
-
-  type Resolved = { roundIdx: number; exIdx: number; target: number; kept: Tagged[]; completed: boolean };
-  const resolved: Resolved[] = groups.map(({ roundIdx, exIdx, events }) => {
-    const target = latestTargetOverride(changes, roundIdx, exIdx) ?? events[0].originalTarget;
-    const timeFiltered = events.filter(inTime);
-    const kept = timeFiltered.slice(0, target);
-    return { roundIdx, exIdx, target, kept, completed: kept.length >= target };
-  });
-
-  const splits: Split[] = [];
-  let lastSplitT = 0;
-  for (const r of resolved) {
-    const session: WodSession = { ...START_POSITION, roundIdx: r.roundIdx, exIdx: r.exIdx };
-    const cumulativeMs = r.completed ? r.kept[r.kept.length - 1].t : null;
-    const lapMs = cumulativeMs != null ? cumulativeMs - lastSplitT : null;
-    if (cumulativeMs != null) lastSplitT = cumulativeMs;
-    splits.push({
-      label: splitLabel(config, session),
-      reps: r.kept.length,
-      target: r.target,
-      completed: r.completed,
-      cumulativeMs,
-      lapMs,
-      roundIdx: r.roundIdx,
-      exIdx: r.exIdx,
-    });
+  const groups = new Map<string, TaggedEvent[]>();
+  for (const e of inPlay) {
+    const key = `${onClock ? e.pos.minuteIdx : e.pos.roundIdx}:${e.pos.exIdx}`;
+    const group = groups.get(key);
+    if (group) group.push(e);
+    else groups.set(key, [e]);
   }
 
-  if (config.timerMode === 'elapsed' && cap != null) {
-    // Every position of the block must be complete, including those never
-    // reached (they have no group); otherwise it's the reps kept before the cap.
-    const positions = config.block.lines.reduce((n, round) => n + round.length, 0);
-    const complete = resolved.length === positions && resolved.every((r) => r.completed);
-    if (complete) {
-      const lastMs = splits.at(-1)?.cumulativeMs ?? 0;
-      return { scoreLabel: 'TIME', scoreValue: formatTime(Math.round(lastMs / 1000)), splits };
-    }
-    const kept = resolved.reduce((n, r) => n + r.kept.length, 0);
-    return { scoreLabel: 'SCORE', scoreValue: `CAP · ${kept} reps`, splits };
+  const surplus = new Set<TaggedEvent>();
+  const shifts: { after: number; by: number }[] = [];
+  for (const events of groups.values()) {
+    if (takesExtraReps(config, events[0])) continue;
+    const target = events[0].target;
+    const completes = nthValid(events, target, isValid);
+    if (completes === -1 || completes === events.length - 1) continue;
+    for (const e of events.slice(completes + 1)) surplus.add(e);
+    if (config.format.repeat !== 'rounds') continue;
+    // Only a position that was complete gives time back.
+    const original = nthValid(events, target, (e) => e.ok);
+    if (original !== -1) shifts.push({ after: events[original].t, by: events[original].t - events[completes].t });
   }
 
-  if (config.timerMode === 'elapsed') {
-    const firstIncomplete = resolved.findIndex((r) => !r.completed);
-    if (firstIncomplete === -1) {
-      const lastMs = splits.at(-1)?.cumulativeMs ?? 0;
-      return { scoreLabel: 'TIME', scoreValue: formatTime(Math.round(lastMs / 1000)), splits };
-    }
-    // Edge case (a raised target, or a shortened cap, now leaves the WOD
-    // incomplete under the adjustment) — a minimal fallback, not a polished
-    // partial-ForTime format: this isn't the common path.
-    const partialReps = resolved[firstIncomplete].kept.length;
-    return {
-      scoreLabel: 'SCORE',
-      scoreValue: `DNF — ${firstIncomplete}/${resolved.length} + ${partialReps}`,
-      splits,
-    };
-  }
-
-  // AMRAP: completed-rounds + partial reps, grouped by roundIdx — stops counting
-  // full rounds at the first round containing any incomplete position, and the
-  // partial reps are every rep that round's positions keep, not only the first
-  // incomplete one's.
-  let completedRounds = 0;
-  let partialReps = 0;
-  let i = 0;
-  while (i < resolved.length) {
-    const roundIdx = resolved[i].roundIdx;
-    let j = i;
-    let roundComplete = true;
-    let roundKept = 0;
-    while (j < resolved.length && resolved[j].roundIdx === roundIdx) {
-      if (!resolved[j].completed) roundComplete = false;
-      roundKept += resolved[j].kept.length;
-      j++;
-    }
-    if (roundComplete) {
-      completedRounds += 1;
-      i = j;
-      continue;
-    }
-    partialReps = roundKept;
-    break;
-  }
-
-  return { scoreLabel: 'SCORE', scoreValue: `${completedRounds} + ${partialReps}`, splits };
-}
-
-function deriveAdjustedOnClock(config: WodConfig, log: LogEntry[], changes: AdjustmentChange[]): WodResult {
-  const cutoffSeconds = latestDurationOverride(changes);
-  const cutoffMs = cutoffSeconds != null ? cutoffSeconds * 1000 : null;
-  const interval = intervalSeconds(config);
-  const intervalMs = interval * 1000;
-  const totalIntervals = Math.ceil((cutoffSeconds ?? config.totalSeconds) / interval);
-  // A rep in an interval's rest never counts (change rest-steps); live never records one.
-  const workMs = config.block.workSeconds != null ? config.block.workSeconds * 1000 : null;
-  const okLog = log.filter((e) => e.ok && (workMs == null || e.t % intervalMs < workMs)).sort((a, b) => a.t - b.t);
-
-  const splits: Split[] = [];
-  let intervalsCompleted = 0;
-  let totalValidReps = 0;
-
-  for (let m = 0; m < totalIntervals; m++) {
-    // The interval's reps in time order, each placed on a line by the *original*
-    // targets (intervalLineAt, as live): a target change never moves a rep to
-    // another line (change emom-multi-exercise-intervals).
-    const bucket = okLog.filter((e) => Math.floor(e.t / intervalMs) === m && (cutoffMs == null || e.t <= cutoffMs));
-    const perLine = intervalLines(config, m).map(() => 0);
-    bucket.forEach((_, k) => {
-      perLine[intervalLineAt(config, m, k)] += 1;
-    });
-    let intervalCompleted = true;
-    perLine.forEach((reps, i) => {
-      const session: WodSession = { ...START_POSITION, minuteIdx: m, exIdx: i };
-      const target = latestTargetOverride(changes, m, i) ?? targetAt(config, session);
-      const completed = reps >= target;
-      if (!completed) intervalCompleted = false;
-      // "Total valid reps" stays unclamped by target changes (matching today's
-      // unadjusted scoring, which never clamped per interval either) — a target
-      // change affects completion, not the raw rep total. A duration cutoff is
-      // the only thing that actually removes reps from this tally.
-      totalValidReps += reps;
-      splits.push({
-        label: intervalSplitLabel(config, m, i),
-        reps,
-        target,
-        completed,
-        cumulativeMs: null,
-        lapMs: null,
-        roundIdx: m,
-        exIdx: i,
-      });
-    });
-    if (intervalCompleted) intervalsCompleted += 1;
-  }
-
-  // A stopping EMOM stops at its first interval not completed under the adjusted targets.
-  if (config.block.stopOnMiss) return stopAtFirstMiss(splits, totalIntervals);
+  const shiftOf = (t: number) => shifts.reduce((sum, s) => (t > s.after ? sum + s.by : sum), 0);
+  const kept = inPlay.filter((e) => !surplus.has(e));
   return {
-    scoreLabel: 'SCORE',
-    scoreValue: `${intervalsCompleted}/${totalIntervals} · ${totalValidReps} reps`,
-    splits,
+    log: kept.map((e, k) => ({ id: e.id ?? k, ok: isValid(e), t: e.t - shiftOf(e.t) })),
+    noReps: inPlay
+      .filter((e) => !e.ok && e.id != null)
+      .map((e) => ({
+        id: e.id!,
+        roundIdx: onClock ? e.pos.minuteIdx : e.pos.roundIdx,
+        exIdx: e.pos.exIdx,
+        t: e.t,
+        status: surplus.has(e) ? 'surplus' : isAccepted(e) ? 'accepted' : 'open',
+      })),
+    changed: inPlay.some(isAccepted),
   };
 }
 
-export function deriveAdjustedResult(config: WodConfig, log: LogEntry[], changes: AdjustmentChange[]): WodResult {
-  if (changes.length === 0) return deriveResult(config, log);
+/** The ids every saved package accepts. */
+export function acceptedIds(changes: AdjustmentChange[]): Set<number> {
+  return new Set(changes.filter((c) => c.type === 'acceptNoRep').map((c) => c.eventIdx));
+}
+
+/**
+ * Every no-rep the judge can review, in time order, with its status under the
+ * `accepted` ids: surplus wins over accepted, which wins over open.
+ */
+export function reviewNoReps(config: WodConfig, log: LogEntry[], accepted: Set<number>): ReviewNoRep[] {
   if (isSequence(config)) {
-    // Each block on its own local log (boundaries from the original fold); targets
-    // by block (none means block 0), the duration only for the last block.
     const logs = blockLogs(config, log);
-    const last = config.parts.length - 1;
-    const results = config.parts.map((part, i) => {
-      const own = changes.filter((c) => (c.type === 'target' ? (c.blockIdx ?? 0) === i : i === last));
-      return deriveAdjustedResult(part, logs[i], own);
-    });
-    return combineBlockResults(config, results);
+    return config.parts.flatMap((part, blockIdx) => review(part, logs[blockIdx], accepted).noReps.map((n) => ({ ...n, blockIdx })));
   }
-  return config.advanceMode === 'onClock'
-    ? deriveAdjustedOnClock(config, log, changes)
-    : deriveAdjustedOnTarget(config, log, changes);
+  return review(config, log, accepted).noReps;
+}
+
+/**
+ * The result with the saved packages' accepted no-reps. Without any, exactly
+ * `deriveResult`; a block where no acceptance applies is derived from its own log.
+ */
+export function deriveAdjustedResult(config: WodConfig, log: LogEntry[], changes: AdjustmentChange[]): WodResult {
+  const accepted = acceptedIds(changes);
+  if (accepted.size === 0) return deriveResult(config, log);
+  const derive = (part: WodConfig, own: LogEntry[]) => {
+    const r = review(part, own, accepted);
+    return deriveResult(part, r.changed ? r.log : own);
+  };
+  if (isSequence(config)) {
+    // Each block on its own local log (boundaries from the original fold), so nothing moves between blocks.
+    const logs = blockLogs(config, log);
+    return combineBlockResults(config, config.parts.map((part, i) => derive(part, logs[i])));
+  }
+  return derive(config, log);
 }

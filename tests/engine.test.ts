@@ -2,8 +2,9 @@
 // live judging (clock ticks interleaved with gestures) must end in exactly the
 // state the result fold derives from the same events.
 import { describe, expect, it } from 'vitest';
-import { EngineEvent, EngineState, START_POSITION, WodConfig, advanceTo, apply, blockIndexOf, capSeconds, durationLine, fold, initial, intervalLineAt, intervalSeconds, isComplete, isResting, restLeftSeconds, targetAt, view } from '@/constants/wod-engine';
+import { EngineEvent, EngineState, START_POSITION, WodConfig, advanceTo, apply, blockIndexOf, capSeconds, durationLine, fold, initial, intervalLineAt, intervalSeconds, isComplete, isResting, isSequence, restLeftSeconds, targetAt, view } from '@/constants/wod-engine';
 import { CASES, builtin, workout } from './fixtures';
+import { blockLogs } from '@/components/result/replay';
 
 const TICK_MS = 250;
 
@@ -462,5 +463,48 @@ describe('several blocks (change multi-block-workouts)', () => {
     expect(initial(fran).seq).toBeUndefined();
     expect(view(fran, initial(fran)).blockLabel).toBe(null);
     expect(blockIndexOf(initial(fran))).toBe(0);
+  });
+});
+
+describe('event ids and in-play (change no-rep-review)', () => {
+  const fran = builtin('fran');
+  const rested = workout('rested');
+  const buyIn = workout('buyInAmrap');
+
+  it('keeps each event id through an unsorted log', () => {
+    const log = [{ id: 0, t: 3000, ok: true }, { id: 1, t: 1000, ok: false }, { id: 2, t: 2000, ok: true }];
+    expect(fold(fran, log, Infinity).tagged.map((e) => e.id)).toEqual([1, 2, 0]);
+  });
+
+  it('gives no id to a tag whose event had none', () => {
+    expect('id' in fold(fran, [{ t: 1000, ok: true }], Infinity).tagged[0]).toBe(false);
+  });
+
+  it('is in play for a no-rep while running, and not after a For Time end', () => {
+    const reps = Array.from({ length: 90 }, (_, i) => ({ t: 1000 + i * 1000, ok: true }));
+    const state = fold(fran, [{ t: 500, ok: false }, ...reps, { t: 95000, ok: false }], Infinity);
+    expect(state.tagged[0]).toMatchObject({ counted: false, inPlay: true });
+    expect(state.tagged.at(-1)).toMatchObject({ counted: false, inPlay: false });
+    expect(state.tagged.filter((e) => e.ok).every((e) => e.counted === e.inPlay)).toBe(true);
+  });
+
+  it('is not in play during a rest', () => {
+    const round1 = Array.from({ length: 5 }, (_, i) => ({ t: 1000 + i * 1000, ok: true }));
+    const state = fold(rested, [...round1, { t: 30000, ok: false }], Infinity);
+    expect(state.tagged.at(-1)).toMatchObject({ inPlay: false });
+  });
+
+  it('keeps ids on a sequence, in its tags and in the block logs, and is not in play between blocks', () => {
+    const block1 = Array.from({ length: 20 }, (_, i) => ({ id: i, t: 1000 + i * 1000, ok: true }));
+    const amrap = [{ id: 20, t: 25000, ok: false }];
+    const state = fold(buyIn, [...block1, ...amrap], Infinity);
+    expect(state.tagged.map((e) => e.id)).toEqual([...block1.map((e) => e.id), 20]);
+    expect(state.tagged.at(-1)).toMatchObject({ block: 1, inPlay: true });
+    if (!isSequence(buyIn)) throw new Error('BUY-IN AMRAP is a sequence');
+    const logs = blockLogs(buyIn, [...block1, ...amrap]);
+    expect(logs[1]).toEqual([{ id: 20, ok: false, t: 5000 }]);
+    const twoAmraps = workout('twoAmraps');
+    const between = fold(twoAmraps, [{ t: 250000, ok: false }], Infinity);
+    expect(between.tagged[0]).toMatchObject({ inPlay: false });
   });
 });

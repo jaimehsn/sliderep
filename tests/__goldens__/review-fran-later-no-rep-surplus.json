@@ -1,15 +1,15 @@
 {
   "result": {
     "scoreLabel": "TIME",
-    "scoreValue": "03:00",
+    "scoreValue": "03:02",
     "splits": [
       {
         "label": "Round 1 — THRUSTERS",
         "reps": 21,
         "target": 21,
         "completed": true,
-        "cumulativeMs": 42000,
-        "lapMs": 42000,
+        "cumulativeMs": 44000,
+        "lapMs": 44000,
         "roundIdx": 0,
         "exIdx": 0
       },
@@ -18,7 +18,7 @@
         "reps": 21,
         "target": 21,
         "completed": true,
-        "cumulativeMs": 84000,
+        "cumulativeMs": 86000,
         "lapMs": 42000,
         "roundIdx": 0,
         "exIdx": 1
@@ -28,7 +28,7 @@
         "reps": 15,
         "target": 15,
         "completed": true,
-        "cumulativeMs": 114000,
+        "cumulativeMs": 116000,
         "lapMs": 30000,
         "roundIdx": 1,
         "exIdx": 0
@@ -38,7 +38,7 @@
         "reps": 15,
         "target": 15,
         "completed": true,
-        "cumulativeMs": 144000,
+        "cumulativeMs": 146000,
         "lapMs": 30000,
         "roundIdx": 1,
         "exIdx": 1
@@ -48,7 +48,7 @@
         "reps": 9,
         "target": 9,
         "completed": true,
-        "cumulativeMs": 162000,
+        "cumulativeMs": 164000,
         "lapMs": 18000,
         "roundIdx": 2,
         "exIdx": 0
@@ -58,7 +58,7 @@
         "reps": 9,
         "target": 9,
         "completed": true,
-        "cumulativeMs": 180000,
+        "cumulativeMs": 182000,
         "lapMs": 18000,
         "roundIdx": 2,
         "exIdx": 1
@@ -66,16 +66,16 @@
     ]
   },
   "adjusted": {
-    "scoreLabel": "SCORE",
-    "scoreValue": "DNF — 5/6 + 9",
+    "scoreLabel": "TIME",
+    "scoreValue": "02:59",
     "splits": [
       {
         "label": "Round 1 — THRUSTERS",
         "reps": 21,
         "target": 21,
         "completed": true,
-        "cumulativeMs": 42000,
-        "lapMs": 42000,
+        "cumulativeMs": 41000,
+        "lapMs": 41000,
         "roundIdx": 0,
         "exIdx": 0
       },
@@ -84,7 +84,7 @@
         "reps": 21,
         "target": 21,
         "completed": true,
-        "cumulativeMs": 84000,
+        "cumulativeMs": 83000,
         "lapMs": 42000,
         "roundIdx": 0,
         "exIdx": 1
@@ -94,7 +94,7 @@
         "reps": 15,
         "target": 15,
         "completed": true,
-        "cumulativeMs": 114000,
+        "cumulativeMs": 113000,
         "lapMs": 30000,
         "roundIdx": 1,
         "exIdx": 0
@@ -104,7 +104,7 @@
         "reps": 15,
         "target": 15,
         "completed": true,
-        "cumulativeMs": 144000,
+        "cumulativeMs": 143000,
         "lapMs": 30000,
         "roundIdx": 1,
         "exIdx": 1
@@ -114,7 +114,7 @@
         "reps": 9,
         "target": 9,
         "completed": true,
-        "cumulativeMs": 162000,
+        "cumulativeMs": 161000,
         "lapMs": 18000,
         "roundIdx": 2,
         "exIdx": 0
@@ -122,10 +122,10 @@
       {
         "label": "Round 3 — PULL-UPS",
         "reps": 9,
-        "target": 12,
-        "completed": false,
-        "cumulativeMs": null,
-        "lapMs": null,
+        "target": 9,
+        "completed": true,
+        "cumulativeMs": 179000,
+        "lapMs": 18000,
         "roundIdx": 2,
         "exIdx": 1
       }
