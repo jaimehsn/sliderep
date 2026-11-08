@@ -3,6 +3,7 @@ import { Alert, BackHandler, StyleSheet, View, useWindowDimensions } from 'react
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text } from '@/components/text';
 import { router } from 'expo-router';
+import { useKeepAwake } from 'expo-keep-awake';
 import {
   useFonts,
   BarlowCondensed_600SemiBold,
@@ -51,6 +52,9 @@ export default function RunScreen() {
 }
 
 function RunSession({ config, setup }: { config: WodConfig; setup: SessionSetup }) {
+  // Held while mounted, so both phases: the summary and countdown too, and long
+  // stretches without a gesture while judging (rests, a 1-rep "500 m" line).
+  useKeepAwake();
   const { setOutcome } = useSession();
   const judge = useJudge(config);
   const [phase, setPhase] = useState<'ready' | 'judging'>('ready');
