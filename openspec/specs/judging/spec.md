@@ -177,3 +177,26 @@ While judging a workout of several blocks, the screen SHALL show "BLOCK n/N" for
 #### Scenario: Rest after a block
 - **WHEN** an 8-min AMRAP with 120 s of rest after it reaches 0, and the clock reaches 8:30
 - **THEN** the exercise name reads REST 01:30, and a swipe does nothing
+
+### Requirement: Screen stays on during the run
+From the moment the pre-start summary appears until the run is left, the system SHALL keep the screen from turning off by the system's screen timeout, with or without touches. Once the run is left, the screen SHALL follow the system timeout again. The user SHALL still be able to turn the screen off with the power button.
+
+#### Scenario: Long stretch without touches while judging
+- **WHEN** the judge touches nothing during a 600-second rest, on a phone with a 30-second screen timeout
+- **THEN** the screen stays on for the whole rest
+
+#### Scenario: Waiting on the pre-start summary
+- **WHEN** the pre-start summary stays open without touches for longer than the screen timeout
+- **THEN** the screen stays on
+
+#### Scenario: Result screen after finishing
+- **WHEN** judging finishes and the result screen is left open without touches for longer than the screen timeout
+- **THEN** the screen turns off by the system timeout
+
+#### Scenario: Leaving before starting
+- **WHEN** the owner taps ✕ on the pre-start summary and the next screen is left open without touches for longer than the screen timeout
+- **THEN** the screen turns off by the system timeout
+
+#### Scenario: Aborting
+- **WHEN** the judge confirms "Abort session?" and the next screen is left open without touches for longer than the screen timeout
+- **THEN** the screen turns off by the system timeout

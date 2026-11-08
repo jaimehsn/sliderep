@@ -185,7 +185,7 @@ Conceptual draft (not code):
 
 Consequences:
 - **The engine must be deterministic** given `(WOD, engineVersion, events)`, and its semantics can never change silently. This is now load-bearing: golden logs exist since change `unified-engine` (`tests/goldens.test.ts`, synthetic logs, snapshots in `tests/__goldens__/`).
-- **Risk to watch:** with no recovery, and keep-awake out of scope, a screen timeout or Android killing the app mid-WOD loses the session, and JS timers may not run reliably with the screen off. Revisit keep-awake (or recovery) if this bites.
+- **Risk to watch:** with no recovery, Android killing the app mid-WOD loses the session, and JS timers may not run reliably if the screen is turned off with the power button (the screen timeout can't do it during a run since change `keep-awake`). Revisit recovery if this bites.
 - Session setup needs a role/QR screen (B14); persistence happens only at finish (B15).
 
 Assumptions (not confirmed):
@@ -351,7 +351,7 @@ Goal: the owner can write any reps-scored metcon, with movements and several blo
 
 ### Out of scope for now
 
-Undo last rep, keep-awake, tests, iOS / store release, volume buttons as rep / no-rep (B5, dropped).
+Undo last rep, tests, iOS / store release, volume buttons as rep / no-rep (B5, dropped).
 
 ## Known issues (code)
 
