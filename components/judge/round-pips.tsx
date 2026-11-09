@@ -1,5 +1,5 @@
 import { StyleSheet, View } from 'react-native';
-import { HF } from '@/constants/hf';
+import { colors } from '@/constants/theme';
 
 /** The most squares that fit beside the timer (12 × 6 px + 11 × 4 px gaps); past it the header shows only "N/total". */
 export const MAX_PIPS = 12;
@@ -23,9 +23,9 @@ export function RoundPips({ current, total }: Props) {
           style={{
             width: size,
             height: size,
-            backgroundColor: i < current - 1 ? HF.ink : 'transparent',
+            backgroundColor: i < current - 1 ? colors.ink : 'transparent',
             borderWidth: many ? 1 : 1.5,
-            borderColor: i <= current - 1 ? HF.ink : HF.hairlineStrong,
+            borderColor: i <= current - 1 ? colors.ink : colors.hairlineStrong,
           }}
         />
       ))}

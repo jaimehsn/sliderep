@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Text } from '@/components/text';
 import { router } from 'expo-router';
-import { HF } from '@/constants/hf';
+import { colors, fonts } from '@/constants/theme';
 import { WorkoutBreakdown } from '@/components/workout-breakdown';
 import { WodConfig, durationLine } from '@/constants/wod-engine';
 import { useSoundCue } from '@/hooks/use-sound-cue';
@@ -117,7 +117,7 @@ export function StartOverlay({ config, athleteAlias, role = 'judge', onDone }: P
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: HF.bg,
+    backgroundColor: colors.bg,
   },
 
   // ── Ready: header ──────────────────────────────────────────────────────────
@@ -142,46 +142,46 @@ const styles = StyleSheet.create({
     opacity: 0.4,
   },
   backBtnText: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 18,
-    color: HF.muted,
+    color: colors.muted,
     lineHeight: 22,
   },
   mode: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 10,
-    color: HF.accent,
+    color: colors.accent,
     letterSpacing: 2,
     textTransform: 'uppercase',
     marginBottom: 6,
   },
   name: {
-    fontFamily: 'BarlowCondensed_700Bold',
+    fontFamily: fonts.display,
     fontSize: 42,
-    color: HF.ink,
+    color: colors.ink,
     letterSpacing: 3,
     textTransform: 'uppercase',
     lineHeight: 42,
   },
   duration: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 11,
-    color: HF.muted,
+    color: colors.muted,
     letterSpacing: 1.5,
     textTransform: 'uppercase',
     marginTop: 8,
   },
   judging: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 11,
-    color: HF.muted,
+    color: colors.muted,
     letterSpacing: 1,
     marginTop: 8,
   },
 
   divider: {
     height: 1,
-    backgroundColor: HF.hairline,
+    backgroundColor: colors.hairline,
     marginHorizontal: 24,
   },
 
@@ -202,7 +202,7 @@ const styles = StyleSheet.create({
   },
   btn: {
     borderWidth: 1.5,
-    borderColor: HF.accent,
+    borderColor: colors.accent,
     paddingHorizontal: 52,
     paddingVertical: 16,
   },
@@ -210,9 +210,9 @@ const styles = StyleSheet.create({
     opacity: 0.55,
   },
   btnText: {
-    fontFamily: 'BarlowCondensed_700Bold',
+    fontFamily: fonts.display,
     fontSize: 20,
-    color: HF.accent,
+    color: colors.accent,
     letterSpacing: 5,
     textTransform: 'uppercase',
   },
@@ -229,9 +229,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   countdownNumber: {
-    fontFamily: 'BarlowCondensed_700Bold',
+    fontFamily: fonts.display,
     fontSize: 140,
-    color: HF.ink,
+    color: colors.ink,
     letterSpacing: -4,
     lineHeight: 140,
   },

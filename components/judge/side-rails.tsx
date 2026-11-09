@@ -7,7 +7,7 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
-import { HF } from '@/constants/hf';
+import { colors } from '@/constants/theme';
 
 type Kind = 'rep' | 'noRep';
 
@@ -52,7 +52,7 @@ function Sweep({ kind }: { kind: Kind }) {
       style={[
         styles.sweep,
         kind === 'rep' ? styles.right : styles.left,
-        { backgroundColor: `${kind === 'rep' ? HF.rep : HF.noRep}55` },
+        { backgroundColor: `${kind === 'rep' ? colors.rep : colors.noRep}55` },
         animStyle,
       ]}
     />

@@ -3,21 +3,12 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Text } from '@/components/text';
 import { router, useFocusEffect } from 'expo-router';
 import Constants from 'expo-constants';
-import {
-  useFonts,
-  BarlowCondensed_600SemiBold,
-} from '@expo-google-fonts/barlow-condensed';
-import { IBMPlexMono_400Regular } from '@expo-google-fonts/ibm-plex-mono';
 
 import { Screen } from '@/components/screen';
-import { HF } from '@/constants/hf';
+import { colors, fonts } from '@/constants/theme';
 import { useProfile } from '@/hooks/use-profile';
 
 export default function SettingsScreen() {
-  const [fontsLoaded] = useFonts({
-    BarlowCondensed_600SemiBold,
-    IBMPlexMono_400Regular,
-  });
   const { profile, loaded: profileLoaded, refresh: refreshProfile } = useProfile();
 
   // Reflect alias edits / create / delete made on /profile.
@@ -27,8 +18,8 @@ export default function SettingsScreen() {
     }, [refreshProfile]),
   );
 
-  if (!fontsLoaded || !profileLoaded) {
-    return <View style={{ flex: 1, backgroundColor: HF.bg }} />;
+  if (!profileLoaded) {
+    return <View style={{ flex: 1, backgroundColor: colors.bg }} />;
   }
 
   return (
@@ -73,7 +64,7 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: HF.bg,
+    backgroundColor: colors.bg,
   },
 
   // ── Header ─────────────────────────────────────────────────────────────────
@@ -88,9 +79,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   title: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 11,
-    color: HF.muted,
+    color: colors.muted,
     letterSpacing: 2,
     textTransform: 'uppercase',
   },
@@ -101,16 +92,16 @@ const styles = StyleSheet.create({
     opacity: 0.4,
   },
   closeBtnText: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 18,
-    color: HF.muted,
+    color: colors.muted,
     lineHeight: 22,
   },
 
   // ── Dividers ───────────────────────────────────────────────────────────────
   divider: {
     height: 1,
-    backgroundColor: HF.hairline,
+    backgroundColor: colors.hairline,
     marginHorizontal: 24,
   },
 
@@ -126,16 +117,16 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   sectionLabel: {
-    fontFamily: 'BarlowCondensed_600SemiBold',
+    fontFamily: fonts.display,
     fontSize: 14,
-    color: HF.ink,
+    color: colors.ink,
     letterSpacing: 2,
     textTransform: 'uppercase',
   },
   sectionSub: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 9,
-    color: HF.muted,
+    color: colors.muted,
     letterSpacing: 1.5,
     textTransform: 'uppercase',
     marginTop: 2,

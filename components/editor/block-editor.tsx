@@ -24,7 +24,7 @@ import {
   switchFormat,
   updateLineFields,
 } from '@/components/editor/draft';
-import { HF } from '@/constants/hf';
+import { colors, fonts } from '@/constants/theme';
 import type { Exercise } from '@/db/exercises';
 
 /** A reps field takes as many digits as the limit has (change responsive-review). */
@@ -99,7 +99,7 @@ export function BlockEditor({
               value={draft.cap}
               onChangeText={(cap) => onChange({ ...draft, cap })}
               placeholder="NONE"
-              placeholderTextColor={HF.mutedDim}
+              placeholderTextColor={colors.mutedDim}
               keyboardType="number-pad"
               style={styles.numberInput}
             />
@@ -110,7 +110,7 @@ export function BlockEditor({
                 value={draft.rest}
                 onChangeText={(rest) => onChange({ ...draft, rest })}
                 placeholder="NONE"
-                placeholderTextColor={HF.mutedDim}
+                placeholderTextColor={colors.mutedDim}
                 keyboardType="number-pad"
                 style={styles.numberInput}
               />
@@ -164,7 +164,7 @@ export function BlockEditor({
                 value={draft.work}
                 onChangeText={(work) => onChange({ ...draft, work })}
                 placeholder="ALL"
-                placeholderTextColor={HF.mutedDim}
+                placeholderTextColor={colors.mutedDim}
                 keyboardType="number-pad"
                 style={styles.numberInput}
               />
@@ -244,7 +244,7 @@ export function BlockEditor({
                       value={draft.slots.flat()[i].increment}
                       onChangeText={(value) => onChange(setLineIncrement(draft, i, value))}
                       placeholder="0"
-                      placeholderTextColor={HF.mutedDim}
+                      placeholderTextColor={colors.mutedDim}
                       keyboardType="number-pad"
                       style={styles.numberInput}
                     />
@@ -287,7 +287,7 @@ export function BlockEditor({
               value={line.load}
               onChangeText={(load) => update(i, { load })}
               placeholder="LOAD (OPTIONAL), E.G. 95/65 LB"
-              placeholderTextColor={HF.mutedDim}
+              placeholderTextColor={colors.mutedDim}
               autoCorrect={false}
               style={styles.loadInput}
             />
@@ -339,15 +339,15 @@ const styles = StyleSheet.create({
     opacity: 0.4,
   },
   label: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 10,
-    color: HF.muted,
+    color: colors.muted,
     letterSpacing: 2,
   },
   smallLabel: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 9,
-    color: HF.muted,
+    color: colors.muted,
     letterSpacing: 1.5,
     marginRight: 8,
   },
@@ -355,9 +355,9 @@ const styles = StyleSheet.create({
     marginTop: 24,
   },
   problem: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 10,
-    color: HF.accent,
+    color: colors.accent,
     letterSpacing: 1,
     marginTop: 6,
   },
@@ -367,23 +367,23 @@ const styles = StyleSheet.create({
   },
   segment: {
     borderWidth: 1,
-    borderColor: HF.hairlineStrong,
+    borderColor: colors.hairlineStrong,
     paddingHorizontal: 12,
     paddingVertical: 8,
     marginRight: 8,
   },
   segmentOn: {
-    borderColor: HF.ink,
-    backgroundColor: HF.ink,
+    borderColor: colors.ink,
+    backgroundColor: colors.ink,
   },
   segmentText: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 11,
-    color: HF.inkDim,
+    color: colors.inkDim,
     letterSpacing: 1.5,
   },
   segmentTextOn: {
-    color: HF.bg,
+    color: colors.bg,
   },
   paramRow: {
     flexDirection: 'row',
@@ -404,11 +404,11 @@ const styles = StyleSheet.create({
   },
   numberInput: {
     minWidth: 56,
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 16,
-    color: HF.ink,
+    color: colors.ink,
     borderBottomWidth: 1,
-    borderBottomColor: HF.hairlineStrong,
+    borderBottomColor: colors.hairlineStrong,
     paddingVertical: 4,
     paddingHorizontal: 6,
     marginLeft: 8,
@@ -421,20 +421,20 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   check: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 12,
-    color: HF.ink,
+    color: colors.ink,
     marginRight: 8,
   },
   checkLabel: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 10,
-    color: HF.inkDim,
+    color: colors.inkDim,
     letterSpacing: 1.5,
   },
   line: {
     borderBottomWidth: 1,
-    borderBottomColor: HF.hairline,
+    borderBottomColor: colors.hairline,
     paddingVertical: 12,
   },
   lineHeader: {
@@ -442,9 +442,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   lineIndex: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 10,
-    color: HF.accent,
+    color: colors.accent,
     letterSpacing: 1.5,
     minWidth: 44,
   },
@@ -452,18 +452,18 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   exerciseName: {
-    fontFamily: 'BarlowCondensed_600SemiBold',
+    fontFamily: fonts.display,
     fontSize: 20,
-    color: HF.ink,
+    color: colors.ink,
     letterSpacing: 1.5,
   },
   exerciseEmpty: {
-    color: HF.muted,
+    color: colors.muted,
   },
   remove: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 14,
-    color: HF.muted,
+    color: colors.muted,
     marginLeft: 12,
   },
   roundsRow: {
@@ -477,40 +477,40 @@ const styles = StyleSheet.create({
   },
   unit: {
     borderWidth: 1,
-    borderColor: HF.hairlineStrong,
+    borderColor: colors.hairlineStrong,
     paddingHorizontal: 8,
     paddingVertical: 4,
     marginRight: 6,
   },
   addSmall: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 9,
-    color: HF.muted,
+    color: colors.muted,
     letterSpacing: 1.5,
     marginTop: 10,
   },
   loadInput: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 12,
-    color: HF.inkDim,
+    color: colors.inkDim,
     letterSpacing: 1,
     borderBottomWidth: 1,
-    borderBottomColor: HF.hairline,
+    borderBottomColor: colors.hairline,
     paddingVertical: 4,
     marginTop: 8,
   },
   addBtn: {
     borderWidth: 1,
-    borderColor: HF.hairlineStrong,
+    borderColor: colors.hairlineStrong,
     borderStyle: 'dashed',
     paddingVertical: 14,
     alignItems: 'center',
     marginTop: 16,
   },
   addBtnText: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 11,
-    color: HF.inkDim,
+    color: colors.inkDim,
     letterSpacing: 1.5,
   },
 });

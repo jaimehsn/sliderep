@@ -4,17 +4,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text } from '@/components/text';
 import { router } from 'expo-router';
 import { useKeepAwake } from 'expo-keep-awake';
-import {
-  useFonts,
-  BarlowCondensed_600SemiBold,
-  BarlowCondensed_700Bold,
-} from '@expo-google-fonts/barlow-condensed';
-import {
-  IBMPlexMono_400Regular,
-  IBMPlexMono_500Medium,
-} from '@expo-google-fonts/ibm-plex-mono';
 
-import { HF } from '@/constants/hf';
+import { colors, fonts } from '@/constants/theme';
 import { WodConfig } from '@/constants/wod-engine';
 import { useJudge } from '@/hooks/use-judge';
 import { SessionSetup, useSession } from '@/hooks/use-session';
@@ -31,21 +22,14 @@ import { SideRails } from '@/components/judge/side-rails';
 export default function RunScreen() {
   const { workout, setup } = useSession();
 
-  const [fontsLoaded] = useFonts({
-    BarlowCondensed_600SemiBold,
-    BarlowCondensed_700Bold,
-    IBMPlexMono_400Regular,
-    IBMPlexMono_500Medium,
-  });
-
   useEffect(() => {
     if (!workout || !setup) {
       router.replace('/session/wod');
     }
   }, [workout, setup]);
 
-  if (!fontsLoaded || !workout || !setup) {
-    return <View style={{ flex: 1, backgroundColor: HF.bg }} />;
+  if (!workout || !setup) {
+    return <View style={{ flex: 1, backgroundColor: colors.bg }} />;
   }
 
   return <RunSession config={workout.config} setup={setup} />;
@@ -164,16 +148,16 @@ function useBandHeight(): number {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: HF.bg,
+    backgroundColor: colors.bg,
   },
   exerciseZone: {
     flex: 92,
     minHeight: EXERCISE_MIN,
   },
   blockLabel: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 10,
-    color: HF.muted,
+    color: colors.muted,
     letterSpacing: 2,
     textAlign: 'center',
   },

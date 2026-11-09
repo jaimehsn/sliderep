@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { LayoutChangeEvent, StyleSheet, TextStyle, View } from 'react-native';
 import { Text } from '@/components/text';
 import Animated, { AnimatedStyle } from 'react-native-reanimated';
-import { HF } from '@/constants/hf';
+import { colors, fonts } from '@/constants/theme';
 import { countFontSize, countMetrics } from './count-size';
 
 type Props = {
@@ -52,33 +52,33 @@ const styles = StyleSheet.create({
   },
   // Sizes (font, line height, tracking, divider height) come from countMetrics, scaled from the design's 190.
   count: {
-    fontFamily: 'BarlowCondensed_700Bold',
-    color: HF.ink,
+    fontFamily: fonts.display,
+    color: colors.ink,
     fontVariant: ['tabular-nums'],
   },
   divider: {
     width: 1,
-    backgroundColor: HF.hairlineStrong,
+    backgroundColor: colors.hairlineStrong,
   },
   side: {
     gap: 6,
   },
   tag: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 10,
-    color: HF.muted,
+    color: colors.muted,
     letterSpacing: 2,
     textTransform: 'uppercase',
   },
   left: {
-    fontFamily: 'BarlowCondensed_700Bold',
-    color: HF.inkDim,
+    fontFamily: fonts.display,
+    color: colors.inkDim,
     fontVariant: ['tabular-nums'],
   },
   of: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 11,
-    color: HF.muted,
+    color: colors.muted,
     letterSpacing: 1.5,
   },
 });

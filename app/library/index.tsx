@@ -2,17 +2,10 @@ import { useCallback } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Text } from '@/components/text';
 import { router, useFocusEffect } from 'expo-router';
-import {
-  useFonts,
-  BarlowCondensed_400Regular,
-  BarlowCondensed_600SemiBold,
-  BarlowCondensed_700Bold,
-} from '@expo-google-fonts/barlow-condensed';
-import { IBMPlexMono_400Regular } from '@expo-google-fonts/ibm-plex-mono';
 
 import { withProfile } from '@/components/editor/profile-gate';
 import { Screen } from '@/components/screen';
-import { HF } from '@/constants/hf';
+import { colors, fonts } from '@/constants/theme';
 import { EXERCISE_CATEGORIES } from '@/db/exercises';
 import { isOwn } from '@/db/workouts';
 import { useExercises } from '@/hooks/use-exercises';
@@ -20,12 +13,6 @@ import { useProfile } from '@/hooks/use-profile';
 import { useWorkouts } from '@/hooks/use-workouts';
 
 export default function LibraryIndexScreen() {
-  const [fontsLoaded] = useFonts({
-    BarlowCondensed_400Regular,
-    BarlowCondensed_600SemiBold,
-    BarlowCondensed_700Bold,
-    IBMPlexMono_400Regular,
-  });
   const { workouts, loaded: workoutsLoaded, refresh: refreshWorkouts } = useWorkouts();
   const { profile, refresh: refreshProfile } = useProfile();
   useFocusEffect(
@@ -36,8 +23,8 @@ export default function LibraryIndexScreen() {
   );
   const { exercises, loaded: exercisesLoaded } = useExercises();
 
-  if (!fontsLoaded || !workoutsLoaded) {
-    return <View style={{ flex: 1, backgroundColor: HF.bg }} />;
+  if (!workoutsLoaded) {
+    return <View style={{ flex: 1, backgroundColor: colors.bg }} />;
   }
 
   return (
@@ -129,7 +116,7 @@ export default function LibraryIndexScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: HF.bg,
+    backgroundColor: colors.bg,
   },
 
   // ── Header ─────────────────────────────────────────────────────────────────
@@ -144,9 +131,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   title: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 11,
-    color: HF.muted,
+    color: colors.muted,
     letterSpacing: 2,
     textTransform: 'uppercase',
   },
@@ -157,16 +144,16 @@ const styles = StyleSheet.create({
     opacity: 0.4,
   },
   closeBtnText: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 18,
-    color: HF.muted,
+    color: colors.muted,
     lineHeight: 22,
   },
 
   // ── Dividers ───────────────────────────────────────────────────────────────
   divider: {
     height: 1,
-    backgroundColor: HF.hairline,
+    backgroundColor: colors.hairline,
     marginHorizontal: 24,
   },
 
@@ -179,9 +166,9 @@ const styles = StyleSheet.create({
     paddingTop: 20,
   },
   sectionLabel: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 10,
-    color: HF.muted,
+    color: colors.muted,
     letterSpacing: 2,
     textTransform: 'uppercase',
     marginBottom: 4,
@@ -193,14 +180,14 @@ const styles = StyleSheet.create({
   },
   newBtn: {
     borderWidth: 1,
-    borderColor: HF.hairlineStrong,
+    borderColor: colors.hairlineStrong,
     paddingHorizontal: 10,
     paddingVertical: 4,
   },
   newBtnText: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 10,
-    color: HF.inkDim,
+    color: colors.inkDim,
     letterSpacing: 1.5,
   },
   cardTags: {
@@ -209,12 +196,12 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   mineTag: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 9,
-    color: HF.inkDim,
+    color: colors.inkDim,
     letterSpacing: 2,
     borderWidth: 1,
-    borderColor: HF.hairlineStrong,
+    borderColor: colors.hairlineStrong,
     paddingHorizontal: 4,
     marginLeft: 8,
   },
@@ -234,37 +221,37 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   cardMode: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 9,
-    color: HF.accent,
+    color: colors.accent,
     letterSpacing: 2,
     textTransform: 'uppercase',
   },
   cardName: {
-    fontFamily: 'BarlowCondensed_700Bold',
+    fontFamily: fonts.display,
     fontSize: 28,
-    color: HF.ink,
+    color: colors.ink,
     letterSpacing: 2,
     textTransform: 'uppercase',
     lineHeight: 28,
   },
   cardDesc: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 10,
-    color: HF.muted,
+    color: colors.muted,
     letterSpacing: 1,
     marginTop: 4,
   },
   cardArrow: {
-    fontFamily: 'BarlowCondensed_400Regular',
+    fontFamily: fonts.display,
     fontSize: 28,
-    color: HF.mutedDim,
+    color: colors.mutedDim,
     marginLeft: 16,
   },
   categoryLabel: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 9,
-    color: HF.accent,
+    color: colors.accent,
     letterSpacing: 2,
     textTransform: 'uppercase',
     marginTop: 16,
@@ -274,14 +261,14 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
   },
   exerciseName: {
-    fontFamily: 'BarlowCondensed_600SemiBold',
+    fontFamily: fonts.display,
     fontSize: 18,
-    color: HF.ink,
+    color: colors.ink,
     letterSpacing: 1.5,
     textTransform: 'uppercase',
   },
   separator: {
     height: 1,
-    backgroundColor: HF.hairline,
+    backgroundColor: colors.hairline,
   },
 });

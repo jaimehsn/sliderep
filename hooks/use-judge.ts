@@ -1,5 +1,5 @@
 import type { LogEntry } from '@/components/judge/types';
-import { HF } from '@/constants/hf';
+import { colors } from '@/constants/theme';
 import { EngineState, WodConfig, advanceTo, apply, blockIndexOf, initial, isComplete, isResting, view } from '@/constants/wod-engine';
 import { useSoundCue } from '@/hooks/use-sound-cue';
 import * as Haptics from 'expo-haptics';
@@ -154,19 +154,19 @@ export function useJudge(config: WodConfig) {
 
   const counterStyle = useAnimatedStyle(() => ({
     transform: [{ scale: counterScale.value }],
-    color: interpolateColor(invalidProgress.value, [0, 1], [HF.ink, HF.accent]),
+    color: interpolateColor(invalidProgress.value, [0, 1], [colors.ink, colors.accent]),
   }));
 
   const exerciseNameStyle = useAnimatedStyle(() => ({
-    color: interpolateColor(invalidProgress.value, [0, 1], [HF.ink, HF.accent]),
+    color: interpolateColor(invalidProgress.value, [0, 1], [colors.ink, colors.accent]),
   }));
 
   const railStyle = useAnimatedStyle(() => ({
-    backgroundColor: interpolateColor(invalidProgress.value, [0, 1], [HF.hairlineStrong, HF.accent]),
+    backgroundColor: interpolateColor(invalidProgress.value, [0, 1], [colors.hairlineStrong, colors.accent]),
   }));
 
   const dotStyle = useAnimatedStyle(() => ({
-    backgroundColor: interpolateColor(invalidProgress.value, [0, 1], [HF.muted, HF.accent]),
+    backgroundColor: interpolateColor(invalidProgress.value, [0, 1], [colors.muted, colors.accent]),
   }));
 
   return {

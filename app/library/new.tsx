@@ -2,12 +2,6 @@ import { Fragment, useEffect, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Text, TextInput } from '@/components/text';
 import { router, useLocalSearchParams } from 'expo-router';
-import {
-  useFonts,
-  BarlowCondensed_600SemiBold,
-  BarlowCondensed_700Bold,
-} from '@expo-google-fonts/barlow-condensed';
-import { IBMPlexMono_400Regular } from '@expo-google-fonts/ibm-plex-mono';
 import { useSQLiteContext } from 'expo-sqlite';
 
 import { BlockEditor } from '@/components/editor/block-editor';
@@ -27,7 +21,7 @@ import {
   workoutToStoredBlocks,
 } from '@/components/editor/draft';
 import { Screen } from '@/components/screen';
-import { HF } from '@/constants/hf';
+import { colors, fonts } from '@/constants/theme';
 import { createWorkout, getWorkout } from '@/db/workouts';
 import { useExercises } from '@/hooks/use-exercises';
 import { useProfile } from '@/hooks/use-profile';
@@ -43,8 +37,6 @@ export default function NewWorkoutScreen() {
   const db = useSQLiteContext();
   const { profile, loaded: profileLoaded } = useProfile();
   const { exercises } = useExercises();
-  const [fontsLoaded] = useFonts({ BarlowCondensed_600SemiBold, BarlowCondensed_700Bold, IBMPlexMono_400Regular });
-
   const [workout, setWorkout] = useState<WorkoutDraft | null>(from ? null : emptyWorkoutDraft());
   const [submitted, setSubmitted] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -66,8 +58,8 @@ export default function NewWorkoutScreen() {
     });
   }, [db, from]);
 
-  if (!fontsLoaded || !profileLoaded || !profile || !workout) {
-    return <View style={{ flex: 1, backgroundColor: HF.bg }} />;
+  if (!profileLoaded || !profile || !workout) {
+    return <View style={{ flex: 1, backgroundColor: colors.bg }} />;
   }
 
   const problems: DraftProblems = submitted ? validateWorkoutDraft(workout) : {};
@@ -117,7 +109,7 @@ export default function NewWorkoutScreen() {
           value={workout.name}
           onChangeText={(name) => setWorkout({ ...workout, name })}
           placeholder="WORKOUT NAME"
-          placeholderTextColor={HF.mutedDim}
+          placeholderTextColor={colors.mutedDim}
           autoCapitalize="characters"
           autoCorrect={false}
           maxLength={MAX_NAME_LENGTH}
@@ -158,7 +150,7 @@ export default function NewWorkoutScreen() {
                     value={block.restAfter}
                     onChangeText={(restAfter) => setWorkout(updateBlock(workout, i, { restAfter }))}
                     placeholder="NONE"
-                    placeholderTextColor={HF.mutedDim}
+                    placeholderTextColor={colors.mutedDim}
                     keyboardType="number-pad"
                     style={styles.numberInput}
                   />
@@ -195,7 +187,7 @@ export default function NewWorkoutScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: HF.bg,
+    backgroundColor: colors.bg,
   },
   header: {
     flexDirection: 'row',
@@ -206,18 +198,18 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   title: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 11,
-    color: HF.muted,
+    color: colors.muted,
     letterSpacing: 2,
   },
   closeBtn: {
     marginLeft: 16,
   },
   closeBtnText: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 18,
-    color: HF.muted,
+    color: colors.muted,
     lineHeight: 22,
   },
   pressed: {
@@ -225,7 +217,7 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: 1,
-    backgroundColor: HF.hairline,
+    backgroundColor: colors.hairline,
     marginHorizontal: 24,
   },
   body: {
@@ -237,23 +229,23 @@ const styles = StyleSheet.create({
     paddingBottom: 32,
   },
   label: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 10,
-    color: HF.muted,
+    color: colors.muted,
     letterSpacing: 2,
   },
   blockHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     borderTopWidth: 1,
-    borderTopColor: HF.hairlineStrong,
+    borderTopColor: colors.hairlineStrong,
     paddingTop: 16,
   },
   blockTitle: {
     flex: 1,
-    fontFamily: 'BarlowCondensed_700Bold',
+    fontFamily: fonts.display,
     fontSize: 18,
-    color: HF.ink,
+    color: colors.ink,
     letterSpacing: 2,
   },
   scoresToggle: {
@@ -265,18 +257,18 @@ const styles = StyleSheet.create({
     marginTop: 24,
   },
   nameInput: {
-    fontFamily: 'BarlowCondensed_700Bold',
+    fontFamily: fonts.display,
     fontSize: 28,
-    color: HF.ink,
+    color: colors.ink,
     letterSpacing: 2,
     borderBottomWidth: 1,
-    borderBottomColor: HF.hairlineStrong,
+    borderBottomColor: colors.hairlineStrong,
     paddingVertical: 6,
   },
   problem: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 10,
-    color: HF.accent,
+    color: colors.accent,
     letterSpacing: 1,
     marginTop: 6,
   },
@@ -289,11 +281,11 @@ const styles = StyleSheet.create({
   },
   numberInput: {
     minWidth: 56,
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 16,
-    color: HF.ink,
+    color: colors.ink,
     borderBottomWidth: 1,
-    borderBottomColor: HF.hairlineStrong,
+    borderBottomColor: colors.hairlineStrong,
     paddingVertical: 4,
     paddingHorizontal: 6,
     marginLeft: 8,
@@ -301,35 +293,35 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   check: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 12,
-    color: HF.ink,
+    color: colors.ink,
     marginRight: 8,
   },
   checkLabel: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 10,
-    color: HF.inkDim,
+    color: colors.inkDim,
     letterSpacing: 1.5,
   },
   remove: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 14,
-    color: HF.muted,
+    color: colors.muted,
     marginLeft: 12,
   },
   addBtn: {
     borderWidth: 1,
-    borderColor: HF.hairlineStrong,
+    borderColor: colors.hairlineStrong,
     borderStyle: 'dashed',
     paddingVertical: 14,
     alignItems: 'center',
     marginTop: 16,
   },
   addBtnText: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 11,
-    color: HF.inkDim,
+    color: colors.inkDim,
     letterSpacing: 1.5,
   },
   footer: {
@@ -337,14 +329,14 @@ const styles = StyleSheet.create({
     paddingTop: 12,
   },
   saveBtn: {
-    backgroundColor: HF.ink,
+    backgroundColor: colors.ink,
     paddingVertical: 16,
     alignItems: 'center',
   },
   saveBtnText: {
-    fontFamily: 'BarlowCondensed_700Bold',
+    fontFamily: fonts.display,
     fontSize: 20,
-    color: HF.bg,
+    color: colors.bg,
     letterSpacing: 3,
   },
 });

@@ -2,17 +2,11 @@ import { useCallback, useEffect, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Text } from '@/components/text';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import {
-  useFonts,
-  BarlowCondensed_600SemiBold,
-  BarlowCondensed_700Bold,
-} from '@expo-google-fonts/barlow-condensed';
-import { IBMPlexMono_400Regular } from '@expo-google-fonts/ibm-plex-mono';
 import { useSQLiteContext } from 'expo-sqlite';
 
 import { withProfile } from '@/components/editor/profile-gate';
 import { Screen } from '@/components/screen';
-import { HF } from '@/constants/hf';
+import { colors, fonts } from '@/constants/theme';
 import { WorkoutBreakdown } from '@/components/workout-breakdown';
 import { durationLine } from '@/constants/wod-engine';
 import { Workout, archiveWorkout, getWorkout, isOwn } from '@/db/workouts';
@@ -31,12 +25,6 @@ export default function LibraryDetailScreen() {
     }, [refreshProfile]),
   );
 
-  const [fontsLoaded] = useFonts({
-    BarlowCondensed_600SemiBold,
-    BarlowCondensed_700Bold,
-    IBMPlexMono_400Regular,
-  });
-
   useEffect(() => {
     getWorkout(db, id).then((w) => {
       setWorkout(w);
@@ -44,8 +32,8 @@ export default function LibraryDetailScreen() {
     });
   }, [db, id]);
 
-  if (!fontsLoaded || !workout) {
-    return <View style={{ flex: 1, backgroundColor: HF.bg }} />;
+  if (!workout) {
+    return <View style={{ flex: 1, backgroundColor: colors.bg }} />;
   }
 
   const { config } = workout;
@@ -128,7 +116,7 @@ export default function LibraryDetailScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: HF.bg,
+    backgroundColor: colors.bg,
   },
 
   // ── Header ─────────────────────────────────────────────────────────────────
@@ -153,15 +141,15 @@ const styles = StyleSheet.create({
     opacity: 0.4,
   },
   closeBtnText: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 18,
-    color: HF.muted,
+    color: colors.muted,
     lineHeight: 22,
   },
   mode: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 10,
-    color: HF.accent,
+    color: colors.accent,
     letterSpacing: 2,
     textTransform: 'uppercase',
   },
@@ -171,12 +159,12 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   mineTag: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 9,
-    color: HF.inkDim,
+    color: colors.inkDim,
     letterSpacing: 2,
     borderWidth: 1,
-    borderColor: HF.hairlineStrong,
+    borderColor: colors.hairlineStrong,
     paddingHorizontal: 4,
     marginLeft: 8,
   },
@@ -188,7 +176,7 @@ const styles = StyleSheet.create({
   actionBtn: {
     flex: 1,
     borderWidth: 1,
-    borderColor: HF.hairlineStrong,
+    borderColor: colors.hairlineStrong,
     paddingVertical: 14,
     alignItems: 'center',
   },
@@ -196,26 +184,26 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
   actionText: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 11,
-    color: HF.inkDim,
+    color: colors.inkDim,
     letterSpacing: 2,
   },
   archiveText: {
-    color: HF.accent,
+    color: colors.accent,
   },
   name: {
-    fontFamily: 'BarlowCondensed_700Bold',
+    fontFamily: fonts.display,
     fontSize: 42,
-    color: HF.ink,
+    color: colors.ink,
     letterSpacing: 3,
     textTransform: 'uppercase',
     lineHeight: 42,
   },
   duration: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 11,
-    color: HF.muted,
+    color: colors.muted,
     letterSpacing: 1.5,
     textTransform: 'uppercase',
     marginTop: 8,
@@ -223,7 +211,7 @@ const styles = StyleSheet.create({
 
   divider: {
     height: 1,
-    backgroundColor: HF.hairline,
+    backgroundColor: colors.hairline,
     marginHorizontal: 24,
   },
 

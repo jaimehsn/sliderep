@@ -2,7 +2,7 @@ import { Fragment } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Text } from '@/components/text';
 
-import { HF } from '@/constants/hf';
+import { colors, fonts } from '@/constants/theme';
 import { WodConfig, WodExercise, durationLine, isSequence } from '@/constants/wod-engine';
 
 /**
@@ -58,33 +58,33 @@ const styles = StyleSheet.create({
   },
   blockTitle: {
     flexShrink: 1,
-    fontFamily: 'IBMPlexMono_500Medium',
+    fontFamily: fonts.ui,
     fontSize: 11,
-    color: HF.ink,
+    color: colors.ink,
     letterSpacing: 1.5,
   },
   scores: {
-    fontFamily: 'IBMPlexMono_500Medium',
+    fontFamily: fonts.ui,
     fontSize: 9,
-    color: HF.accent,
+    color: colors.accent,
     letterSpacing: 1.5,
     borderWidth: 1,
-    borderColor: HF.accent,
+    borderColor: colors.accent,
     paddingHorizontal: 5,
     paddingVertical: 1,
   },
   blockDuration: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 11,
-    color: HF.muted,
+    color: colors.muted,
     letterSpacing: 1.5,
     textTransform: 'uppercase',
     marginTop: 4,
   },
   rest: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 11,
-    color: HF.muted,
+    color: colors.muted,
     letterSpacing: 1.5,
     textAlign: 'center',
     paddingTop: 14,
@@ -95,30 +95,30 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: HF.hairline,
+    borderBottomColor: colors.hairline,
   },
   exerciseText: {
     flex: 1,
     marginRight: 12,
   },
   exerciseName: {
-    fontFamily: 'BarlowCondensed_600SemiBold',
+    fontFamily: fonts.display,
     fontSize: 20,
-    color: HF.ink,
+    color: colors.ink,
     letterSpacing: 1.5,
     textTransform: 'uppercase',
   },
   exerciseNote: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 11,
-    color: HF.muted,
+    color: colors.muted,
     letterSpacing: 1,
     marginTop: 2,
   },
   exerciseDetail: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 12,
-    color: HF.muted,
+    color: colors.muted,
     letterSpacing: 1,
   },
 });

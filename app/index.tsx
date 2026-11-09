@@ -2,24 +2,13 @@ import { useCallback, useEffect, useRef } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Text } from '@/components/text';
 import { router, useFocusEffect } from 'expo-router';
-import {
-  useFonts,
-  BarlowCondensed_600SemiBold,
-  BarlowCondensed_700Bold,
-} from '@expo-google-fonts/barlow-condensed';
-import { IBMPlexMono_400Regular } from '@expo-google-fonts/ibm-plex-mono';
 
 import { Screen } from '@/components/screen';
-import { HF } from '@/constants/hf';
+import { colors, fonts } from '@/constants/theme';
 import { useProfile } from '@/hooks/use-profile';
 import { useFirstRun } from '@/hooks/use-first-run';
 
 export default function HubScreen() {
-  const [fontsLoaded] = useFonts({
-    BarlowCondensed_600SemiBold,
-    BarlowCondensed_700Bold,
-    IBMPlexMono_400Regular,
-  });
   const { profile, loaded: profileLoaded, refresh: refreshProfile } = useProfile();
   const { done: firstRunDone, loaded: firstRunLoaded, markDone } = useFirstRun();
   // Pushed at most once per launch: this screen's first-run state goes stale
@@ -49,8 +38,8 @@ export default function HubScreen() {
     router.push('/first-run');
   }, [firstRunLoaded, profileLoaded, firstRunDone, profile, markDone]);
 
-  if (!fontsLoaded || !profileLoaded || !firstRunLoaded) {
-    return <View style={{ flex: 1, backgroundColor: HF.bg }} />;
+  if (!profileLoaded || !firstRunLoaded) {
+    return <View style={{ flex: 1, backgroundColor: colors.bg }} />;
   }
 
   return (
@@ -60,7 +49,7 @@ export default function HubScreen() {
       <View style={styles.header}>
         <View style={styles.headerRow}>
           <View>
-            <Text style={styles.appName}>SLIDEREP</Text>
+            <Text style={styles.appName}>sliderep</Text>
             <Text style={styles.subtitle}>judge a workout</Text>
           </View>
           <Pressable
@@ -118,7 +107,7 @@ export default function HubScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: HF.bg,
+    backgroundColor: colors.bg,
   },
 
   // ── Header ─────────────────────────────────────────────────────────────────
@@ -134,7 +123,7 @@ const styles = StyleSheet.create({
   },
   qrBtn: {
     borderWidth: 1,
-    borderColor: HF.hairlineStrong,
+    borderColor: colors.hairlineStrong,
     paddingHorizontal: 12,
     paddingVertical: 8,
     marginTop: 2,
@@ -143,22 +132,22 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   qrBtnText: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 10,
-    color: HF.inkDim,
+    color: colors.inkDim,
     letterSpacing: 1.5,
   },
+  // The wordmark: always lowercase, Outfit Light, 0.04 em of tracking.
   appName: {
-    fontFamily: 'BarlowCondensed_700Bold',
+    fontFamily: fonts.wordmark,
     fontSize: 32,
-    color: HF.ink,
-    letterSpacing: 6,
-    textTransform: 'uppercase',
+    color: colors.ink,
+    letterSpacing: 32 * 0.04,
   },
   subtitle: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 10,
-    color: HF.muted,
+    color: colors.muted,
     letterSpacing: 1.5,
     textTransform: 'uppercase',
     marginTop: 4,
@@ -167,7 +156,7 @@ const styles = StyleSheet.create({
   // ── Dividers ───────────────────────────────────────────────────────────────
   divider: {
     height: 1,
-    backgroundColor: HF.hairline,
+    backgroundColor: colors.hairline,
     marginHorizontal: 24,
   },
 
@@ -178,7 +167,7 @@ const styles = StyleSheet.create({
   },
   selectBtn: {
     borderWidth: 1.5,
-    borderColor: HF.accent,
+    borderColor: colors.accent,
     paddingHorizontal: 52,
     paddingVertical: 16,
   },
@@ -186,9 +175,9 @@ const styles = StyleSheet.create({
     opacity: 0.55,
   },
   selectBtnText: {
-    fontFamily: 'BarlowCondensed_700Bold',
+    fontFamily: fonts.display,
     fontSize: 18,
-    color: HF.accent,
+    color: colors.accent,
     letterSpacing: 4,
     textTransform: 'uppercase',
   },
@@ -205,16 +194,16 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   sectionLabel: {
-    fontFamily: 'BarlowCondensed_600SemiBold',
+    fontFamily: fonts.display,
     fontSize: 14,
-    color: HF.ink,
+    color: colors.ink,
     letterSpacing: 2,
     textTransform: 'uppercase',
   },
   sectionSub: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 9,
-    color: HF.muted,
+    color: colors.muted,
     letterSpacing: 1.5,
     textTransform: 'uppercase',
     marginTop: 2,

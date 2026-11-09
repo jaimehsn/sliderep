@@ -3,15 +3,9 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Text } from '@/components/text';
 import { router, useFocusEffect } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
-import {
-  useFonts,
-  BarlowCondensed_400Regular,
-  BarlowCondensed_700Bold,
-} from '@expo-google-fonts/barlow-condensed';
-import { IBMPlexMono_400Regular } from '@expo-google-fonts/ibm-plex-mono';
 
 import { Screen } from '@/components/screen';
-import { HF } from '@/constants/hf';
+import { colors, fonts } from '@/constants/theme';
 import { useProfile } from '@/hooks/use-profile';
 import { WodConfig } from '@/constants/wod-engine';
 import { getWorkout } from '@/db/workouts';
@@ -28,11 +22,6 @@ function formatDate(ms: number): string {
 }
 
 export default function HistoryIndexScreen() {
-  const [fontsLoaded] = useFonts({
-    BarlowCondensed_400Regular,
-    BarlowCondensed_700Bold,
-    IBMPlexMono_400Regular,
-  });
   const db = useSQLiteContext();
   const { profile, loaded: profileLoaded } = useProfile();
   const [sessions, setSessions] = useState<StoredSession[] | null>(null);
@@ -55,8 +44,8 @@ export default function HistoryIndexScreen() {
     }, [db, profile, profileLoaded]),
   );
 
-  if (!fontsLoaded || !profileLoaded || sessions == null) {
-    return <View style={{ flex: 1, backgroundColor: HF.bg }} />;
+  if (!profileLoaded || sessions == null) {
+    return <View style={{ flex: 1, backgroundColor: colors.bg }} />;
   }
 
   return (
@@ -116,7 +105,7 @@ export default function HistoryIndexScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: HF.bg,
+    backgroundColor: colors.bg,
   },
   header: {
     paddingHorizontal: 24,
@@ -129,9 +118,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   title: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 11,
-    color: HF.muted,
+    color: colors.muted,
     letterSpacing: 2,
     textTransform: 'uppercase',
   },
@@ -142,14 +131,14 @@ const styles = StyleSheet.create({
     opacity: 0.4,
   },
   closeBtnText: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 18,
-    color: HF.muted,
+    color: colors.muted,
     lineHeight: 22,
   },
   divider: {
     height: 1,
-    backgroundColor: HF.hairline,
+    backgroundColor: colors.hairline,
     marginHorizontal: 24,
   },
   empty: {
@@ -158,9 +147,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   emptyText: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 11,
-    color: HF.muted,
+    color: colors.muted,
     letterSpacing: 1,
     textTransform: 'uppercase',
   },
@@ -184,25 +173,25 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   cardMode: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 9,
-    color: HF.accent,
+    color: colors.accent,
     letterSpacing: 2,
     textTransform: 'uppercase',
     marginBottom: 4,
   },
   cardName: {
-    fontFamily: 'BarlowCondensed_700Bold',
+    fontFamily: fonts.display,
     fontSize: 28,
-    color: HF.ink,
+    color: colors.ink,
     letterSpacing: 2,
     textTransform: 'uppercase',
     lineHeight: 28,
   },
   cardDesc: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 10,
-    color: HF.muted,
+    color: colors.muted,
     letterSpacing: 1,
     marginTop: 4,
   },
@@ -210,20 +199,20 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   cardScore: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 13,
-    color: HF.inkDim,
+    color: colors.inkDim,
     fontVariant: ['tabular-nums'],
   },
   cardArrow: {
-    fontFamily: 'BarlowCondensed_400Regular',
+    fontFamily: fonts.display,
     fontSize: 28,
-    color: HF.mutedDim,
+    color: colors.mutedDim,
     marginLeft: 16,
     marginTop: 2,
   },
   separator: {
     height: 1,
-    backgroundColor: HF.hairline,
+    backgroundColor: colors.hairline,
   },
 });

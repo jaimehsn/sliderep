@@ -2,16 +2,9 @@ import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Text } from '@/components/text';
 import { router } from 'expo-router';
-import {
-  useFonts,
-  BarlowCondensed_400Regular,
-  BarlowCondensed_600SemiBold,
-  BarlowCondensed_700Bold,
-} from '@expo-google-fonts/barlow-condensed';
-import { IBMPlexMono_400Regular } from '@expo-google-fonts/ibm-plex-mono';
 
 import { Screen } from '@/components/screen';
-import { HF } from '@/constants/hf';
+import { colors, fonts } from '@/constants/theme';
 import { ScanPerson, ScannedPerson } from '@/components/session/scan-person';
 import { useProfile } from '@/hooks/use-profile';
 import { useSession } from '@/hooks/use-session';
@@ -20,13 +13,6 @@ type Role = 'judge' | 'judged';
 type Phase = 'role' | 'scan' | 'skipBanner' | 'noProfileBanner';
 
 export default function SessionSetupScreen() {
-  const [fontsLoaded] = useFonts({
-    BarlowCondensed_400Regular,
-    BarlowCondensed_600SemiBold,
-    BarlowCondensed_700Bold,
-    IBMPlexMono_400Regular,
-  });
-
   const [phase, setPhase] = useState<Phase>('role');
   const [role, setRole] = useState<Role | null>(null);
   const { profile, loaded: profileLoaded } = useProfile();
@@ -42,8 +28,8 @@ export default function SessionSetupScreen() {
 
   // Wait for the profile too: the no-profile warning must not fire on a fast
   // tap before the query resolves.
-  if (!fontsLoaded || !profileLoaded || !workout) {
-    return <View style={{ flex: 1, backgroundColor: HF.bg }} />;
+  if (!profileLoaded || !workout) {
+    return <View style={{ flex: 1, backgroundColor: colors.bg }} />;
   }
 
   const { config } = workout;
@@ -151,7 +137,7 @@ export default function SessionSetupScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: HF.bg,
+    backgroundColor: colors.bg,
   },
 
   header: {
@@ -169,17 +155,17 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   mode: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 10,
-    color: HF.accent,
+    color: colors.accent,
     letterSpacing: 2,
     textTransform: 'uppercase',
     marginBottom: 6,
   },
   name: {
-    fontFamily: 'BarlowCondensed_700Bold',
+    fontFamily: fonts.display,
     fontSize: 32,
-    color: HF.ink,
+    color: colors.ink,
     letterSpacing: 2,
     textTransform: 'uppercase',
     lineHeight: 32,
@@ -189,9 +175,9 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   closeBtnText: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 18,
-    color: HF.muted,
+    color: colors.muted,
     lineHeight: 22,
   },
   backLink: {
@@ -200,9 +186,9 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   backLinkText: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 11,
-    color: HF.muted,
+    color: colors.muted,
     letterSpacing: 1,
   },
   btnPressed: {
@@ -222,29 +208,29 @@ const styles = StyleSheet.create({
     gap: 20,
   },
   title: {
-    fontFamily: 'BarlowCondensed_700Bold',
+    fontFamily: fonts.display,
     fontSize: 24,
-    color: HF.ink,
+    color: colors.ink,
     letterSpacing: 2,
     textAlign: 'center',
   },
   subtext: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 11,
-    color: HF.muted,
+    color: colors.muted,
     letterSpacing: 0.5,
     textAlign: 'center',
   },
   roleBtn: {
     borderWidth: 1.5,
-    borderColor: HF.accent,
+    borderColor: colors.accent,
     paddingHorizontal: 52,
     paddingVertical: 16,
   },
   roleBtnText: {
-    fontFamily: 'BarlowCondensed_700Bold',
+    fontFamily: fonts.display,
     fontSize: 18,
-    color: HF.accent,
+    color: colors.accent,
     letterSpacing: 4,
     textTransform: 'uppercase',
   },
@@ -253,9 +239,9 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   skipBtnText: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 12,
-    color: HF.muted,
+    color: colors.muted,
     letterSpacing: 1.5,
   },
 });

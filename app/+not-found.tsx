@@ -2,7 +2,7 @@ import { Link, Stack } from 'expo-router';
 import { StyleSheet } from 'react-native';
 import { Text } from '@/components/text';
 import { Screen } from '@/components/screen';
-import { HF } from '@/constants/hf';
+import { colors, fonts } from '@/constants/theme';
 
 export default function NotFoundScreen() {
   return (
@@ -19,8 +19,8 @@ export default function NotFoundScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: HF.bg },
-  title: { fontFamily: 'IBMPlexMono_400Regular', fontSize: 16, color: HF.muted, marginBottom: 20 },
+  container: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
+  title: { fontFamily: fonts.ui, fontSize: 16, color: colors.muted, marginBottom: 20 },
   link: { paddingVertical: 12 },
-  linkText: { fontFamily: 'BarlowCondensed_600SemiBold', fontSize: 14, color: HF.accent, letterSpacing: 2 },
+  linkText: { fontFamily: fonts.display, fontSize: 14, color: colors.accent, letterSpacing: 2 },
 });

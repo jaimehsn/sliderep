@@ -8,7 +8,7 @@ Working agreement: work is split in two tracks. **Track A** (foundations) is def
 - Text follows the system font size up to 1.3×; the judging timer, rep count, reps left and result scores keep their size (`components/text.tsx`).
 - **One judge counts one athlete's reps at a time**, minimizing visual attention.
 - UI language: **English**.
-- Visual style: current tokens in `constants/hf.ts` (dark + mono) are the reference. The judging screen follows the **"Ghost · base"** design from Claude Design (see *Design: screens and routes*); its handoff bundle is kept locally in `design/`, which is git-ignored.
+- Visual style: the identity's tokens in `constants/theme.ts` (dark, Outfit, Ámbar as the only accent) are the reference. The judging screen follows the **"Ghost · base"** design from Claude Design (see *Design: screens and routes*); its handoff bundle is kept locally in `design/`, which is git-ignored.
 - Package manager: **pnpm**.
 - No tests for now (verify with `pnpm exec tsc --noEmit`, `pnpm lint`, `pnpm exec expo export`, and manual device checks).
 
@@ -284,7 +284,7 @@ Consequences:
 - **History** lists only sessions where the owner is the judged athlete; they are read-only and deletable, **with no adjustments** (the owner was not the judge).
 - **Result banners:** "saved in your history" (owner = judged), "saved on this phone; will be delivered to <alias> once sync exists" (foreign session) and "not saved" (anonymous judged athlete).
 - **Camera and QR:** scanning asks for camera permission when "Scan QR" is tapped; QR generation/reading libraries are to be chosen when implementing B10/B11.
-- **Style:** every new screen follows the `constants/hf.ts` tokens; only the judging screen aims to minimize looking at the phone.
+- **Style:** every new screen follows the `constants/theme.ts` tokens; only the judging screen aims to minimize looking at the phone.
 
 Assumptions (not confirmed):
 - **Flow order:** the WOD is chosen first and the roles second (today's WOD list becomes the first step of "New session").

@@ -11,7 +11,7 @@ import Animated, {
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
-import { HF } from '@/constants/hf';
+import { colors } from '@/constants/theme';
 
 type Kind = 'rep' | 'noRep';
 
@@ -90,7 +90,7 @@ function TravelLine({ kind }: { kind: Kind }) {
       pointerEvents="none"
       style={[
         styles.travel,
-        { backgroundColor: kind === 'rep' ? HF.rep : HF.noRep },
+        { backgroundColor: kind === 'rep' ? colors.rep : colors.noRep },
         animStyle,
       ]}
     />
@@ -105,7 +105,7 @@ const styles = StyleSheet.create({
     marginLeft: -22,
     width: 44,
     height: 1,
-    backgroundColor: HF.hairlineStrong,
+    backgroundColor: colors.hairlineStrong,
   },
   markTop: { top: 0 },
   markBottom: { bottom: 0 },
@@ -116,8 +116,8 @@ const styles = StyleSheet.create({
     height: 1,
     opacity: 0.65,
   },
-  edgeLeft: { left: 0, backgroundColor: HF.noRep },
-  edgeRight: { right: 0, backgroundColor: HF.rep },
+  edgeLeft: { left: 0, backgroundColor: colors.noRep },
+  edgeRight: { right: 0, backgroundColor: colors.rep },
   dot: {
     position: 'absolute',
     top: '50%',

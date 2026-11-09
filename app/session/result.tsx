@@ -3,17 +3,8 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { Text } from '@/components/text';
 import { router } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
-import {
-  useFonts,
-  BarlowCondensed_600SemiBold,
-  BarlowCondensed_700Bold,
-} from '@expo-google-fonts/barlow-condensed';
-import {
-  IBMPlexMono_400Regular,
-  IBMPlexMono_500Medium,
-} from '@expo-google-fonts/ibm-plex-mono';
 
-import { HF } from '@/constants/hf';
+import { colors, fonts } from '@/constants/theme';
 import { useSession } from '@/hooks/use-session';
 import { useProfile } from '@/hooks/use-profile';
 import { Screen } from '@/components/screen';
@@ -26,13 +17,6 @@ export default function ResultRouteScreen() {
   const db = useSQLiteContext();
   const savedRef = useRef(false);
   const [saveStatus, setSaveStatus] = useState<'pending' | 'saved' | 'failed'>('pending');
-
-  const [fontsLoaded] = useFonts({
-    BarlowCondensed_600SemiBold,
-    BarlowCondensed_700Bold,
-    IBMPlexMono_400Regular,
-    IBMPlexMono_500Medium,
-  });
 
   useEffect(() => {
     if (!workout || !setup || !outcome) {
@@ -77,8 +61,8 @@ export default function ResultRouteScreen() {
       });
   }, [workout, setup, outcome, profileLoaded, judgedAthleteId, judgedAlias, judgeId, judgeAlias, db, setSessionId]);
 
-  if (!fontsLoaded || !profileLoaded || !workout || !setup || !outcome) {
-    return <View style={{ flex: 1, backgroundColor: HF.bg }} />;
+  if (!profileLoaded || !workout || !setup || !outcome) {
+    return <View style={{ flex: 1, backgroundColor: colors.bg }} />;
   }
 
   return (
@@ -108,7 +92,7 @@ export default function ResultRouteScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: HF.bg,
+    backgroundColor: colors.bg,
   },
   header: {
     flexDirection: 'row',
@@ -123,9 +107,9 @@ const styles = StyleSheet.create({
     opacity: 0.4,
   },
   closeBtnText: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 18,
-    color: HF.muted,
+    color: colors.muted,
     lineHeight: 22,
   },
 });

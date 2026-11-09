@@ -1,6 +1,7 @@
 import { StyleSheet, TextStyle, View } from 'react-native';
 import { MAX_FONT_SCALE } from '@/components/text';
 import Animated, { AnimatedStyle } from 'react-native-reanimated';
+import { fonts } from '@/constants/theme';
 
 type Props = {
   name: string;
@@ -32,7 +33,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   name: {
-    fontFamily: 'BarlowCondensed_700Bold',
+    fontFamily: fonts.display,
     fontSize: 40,
     lineHeight: 44,
     letterSpacing: 6,

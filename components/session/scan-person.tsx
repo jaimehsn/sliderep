@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Text } from '@/components/text';
 import { CameraView, useCameraPermissions } from 'expo-camera';
-import { HF } from '@/constants/hf';
+import { colors, fonts } from '@/constants/theme';
 import { parseQrPayload } from '@/constants/profile';
 
 export type ScannedPerson = { id: string; alias: string };
@@ -92,7 +92,7 @@ export function ScanPerson({ title, onDone, selfId }: Props) {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: HF.bg,
+    backgroundColor: colors.bg,
   },
   // The choice view scrolls only when it doesn't fit (change responsive-review); the camera view doesn't.
   center: {
@@ -103,29 +103,29 @@ const styles = StyleSheet.create({
     gap: 20,
   },
   title: {
-    fontFamily: 'BarlowCondensed_700Bold',
+    fontFamily: fonts.display,
     fontSize: 24,
-    color: HF.ink,
+    color: colors.ink,
     letterSpacing: 2,
     textAlign: 'center',
   },
   hint: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 11,
-    color: HF.muted,
+    color: colors.muted,
     letterSpacing: 0.5,
     textAlign: 'center',
   },
   scanBtn: {
     borderWidth: 1.5,
-    borderColor: HF.accent,
+    borderColor: colors.accent,
     paddingHorizontal: 52,
     paddingVertical: 16,
   },
   scanBtnText: {
-    fontFamily: 'BarlowCondensed_700Bold',
+    fontFamily: fonts.display,
     fontSize: 18,
-    color: HF.accent,
+    color: colors.accent,
     letterSpacing: 4,
     textTransform: 'uppercase',
   },
@@ -134,9 +134,9 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   skipBtnText: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 12,
-    color: HF.muted,
+    color: colors.muted,
     letterSpacing: 1.5,
   },
   btnPressed: {
@@ -150,14 +150,14 @@ const styles = StyleSheet.create({
     bottom: 100,
     left: 24,
     right: 24,
-    backgroundColor: `${HF.accent}dd`,
+    backgroundColor: `${colors.accent}dd`,
     paddingVertical: 12,
     paddingHorizontal: 16,
   },
   errorText: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 12,
-    color: HF.ink,
+    color: colors.ink,
     textAlign: 'center',
   },
   cancelBtn: {
@@ -168,9 +168,9 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   cancelText: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 12,
-    color: HF.ink,
+    color: colors.ink,
     letterSpacing: 2,
   },
 });

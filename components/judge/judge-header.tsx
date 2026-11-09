@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Text } from '@/components/text';
-import { HF } from '@/constants/hf';
+import { colors, fonts } from '@/constants/theme';
 import { WodKpi } from '@/constants/wod-engine';
 import { MAX_PIPS, RoundPips } from './round-pips';
 
@@ -52,9 +52,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   tag: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 9,
-    color: HF.muted,
+    color: colors.muted,
     letterSpacing: 2,
     textTransform: 'uppercase',
   },
@@ -71,11 +71,11 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   time: {
-    fontFamily: 'IBMPlexMono_500Medium',
+    fontFamily: fonts.ui,
     fontSize: 52,
     lineHeight: 52,
     letterSpacing: -2,
-    color: HF.ink,
+    color: colors.ink,
     fontVariant: ['tabular-nums'],
   },
   right: {
@@ -84,15 +84,16 @@ const styles = StyleSheet.create({
     marginLeft: 16,
   },
   value: {
-    fontFamily: 'BarlowCondensed_700Bold',
+    fontFamily: fonts.display,
     fontSize: 34,
     lineHeight: 36,
-    color: HF.ink,
+    color: colors.ink,
     textTransform: 'uppercase',
+    fontVariant: ['tabular-nums'],
   },
   total: {
     fontSize: 20,
-    color: HF.muted,
+    color: colors.muted,
   },
   pips: {
     marginTop: 8,

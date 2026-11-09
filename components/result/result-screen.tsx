@@ -3,7 +3,7 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Text } from '@/components/text';
 import { router, useFocusEffect } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
-import { HF } from '@/constants/hf';
+import { colors, fonts } from '@/constants/theme';
 import { WodConfig, formatTime } from '@/constants/wod-engine';
 import { LogEntry } from '@/components/judge/types';
 import { acceptedIds, deriveAdjustedResult, reviewNoReps } from '@/components/result/adjust';
@@ -116,37 +116,37 @@ const styles = StyleSheet.create({
     paddingTop: 8,
   },
   mode: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 11,
-    color: HF.muted,
+    color: colors.muted,
     letterSpacing: 2,
     textTransform: 'uppercase',
   },
   name: {
-    fontFamily: 'BarlowCondensed_700Bold',
+    fontFamily: fonts.display,
     fontSize: 28,
-    color: HF.ink,
+    color: colors.ink,
     letterSpacing: 1,
     textTransform: 'uppercase',
   },
   judging: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 11,
-    color: HF.muted,
+    color: colors.muted,
     letterSpacing: 1,
     marginTop: 6,
   },
   saved: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 11,
-    color: HF.accent,
+    color: colors.accent,
     letterSpacing: 1,
     marginTop: 4,
   },
   adjustBtn: {
     alignSelf: 'flex-start',
     borderWidth: 1,
-    borderColor: HF.hairlineStrong,
+    borderColor: colors.hairlineStrong,
     paddingHorizontal: 12,
     paddingVertical: 8,
     marginTop: 12,
@@ -155,9 +155,9 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   adjustBtnText: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 10,
-    color: HF.inkDim,
+    color: colors.inkDim,
     letterSpacing: 1.5,
   },
   scoreBlock: {
@@ -166,19 +166,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   scoreLabel: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 11,
-    color: HF.muted,
+    color: colors.muted,
     letterSpacing: 2,
     textTransform: 'uppercase',
     marginBottom: 6,
   },
   scoreValue: {
-    fontFamily: 'BarlowCondensed_700Bold',
+    fontFamily: fonts.display,
     fontSize: 76,
     lineHeight: 72,
     letterSpacing: -2,
-    color: HF.ink,
+    color: colors.ink,
     fontVariant: ['tabular-nums'],
     // Full width, so a long score shrinks to the screen instead of wrapping.
     alignSelf: 'stretch',
@@ -188,9 +188,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   groupTitle: {
-    fontFamily: 'IBMPlexMono_500Medium',
+    fontFamily: fonts.ui,
     fontSize: 11,
-    color: HF.muted,
+    color: colors.muted,
     letterSpacing: 1.5,
     paddingTop: 20,
     paddingBottom: 4,
@@ -201,39 +201,40 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: HF.hairline,
+    borderBottomColor: colors.hairline,
   },
   splitLeft: {
     flex: 1,
   },
   splitLabel: {
-    fontFamily: 'BarlowCondensed_600SemiBold',
+    fontFamily: fonts.display,
     fontSize: 17,
-    color: HF.ink,
+    color: colors.ink,
     textTransform: 'uppercase',
   },
   splitLabelPartial: {
-    color: HF.inkDim,
+    color: colors.inkDim,
   },
   splitReps: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 11,
-    color: HF.muted,
+    color: colors.muted,
     marginTop: 2,
+    fontVariant: ['tabular-nums'],
   },
   splitRight: {
     alignItems: 'flex-end',
   },
   splitCumulative: {
-    fontFamily: 'IBMPlexMono_500Medium',
+    fontFamily: fonts.ui,
     fontSize: 16,
-    color: HF.ink,
+    color: colors.ink,
     fontVariant: ['tabular-nums'],
   },
   splitLap: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 11,
-    color: HF.muted,
+    color: colors.muted,
     fontVariant: ['tabular-nums'],
     marginTop: 2,
   },

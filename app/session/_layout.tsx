@@ -1,5 +1,5 @@
 import { Stack } from 'expo-router';
-import { HF } from '@/constants/hf';
+import { colors } from '@/constants/theme';
 import { SessionProvider } from '@/hooks/use-session';
 
 // A nested Stack doesn't inherit the root Stack's screenOptions, so
@@ -13,7 +13,7 @@ export default function SessionLayout() {
       <Stack
         screenOptions={{
           headerShown: false,
-          contentStyle: { backgroundColor: HF.bg },
+          contentStyle: { backgroundColor: colors.bg },
           gestureEnabled: false,
         }}
       />

@@ -3,7 +3,7 @@ import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Text, TextInput } from '@/components/text';
 
 import { Screen } from '@/components/screen';
-import { HF } from '@/constants/hf';
+import { colors, fonts } from '@/constants/theme';
 import { EXERCISE_CATEGORIES, Exercise } from '@/db/exercises';
 
 type Props = {
@@ -37,7 +37,7 @@ export function ExercisePicker({ visible, exercises, onPick, onClose }: Props) {
             value={query}
             onChangeText={setQuery}
             placeholder="SEARCH EXERCISE"
-            placeholderTextColor={HF.mutedDim}
+            placeholderTextColor={colors.mutedDim}
             autoCapitalize="characters"
             autoCorrect={false}
             style={styles.search}
@@ -91,7 +91,7 @@ export function ExercisePicker({ visible, exercises, onPick, onClose }: Props) {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: HF.bg,
+    backgroundColor: colors.bg,
   },
   header: {
     flexDirection: 'row',
@@ -102,9 +102,9 @@ const styles = StyleSheet.create({
   },
   search: {
     flex: 1,
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 14,
-    color: HF.ink,
+    color: colors.ink,
     letterSpacing: 1,
     paddingVertical: 8,
   },
@@ -112,9 +112,9 @@ const styles = StyleSheet.create({
     marginLeft: 16,
   },
   closeBtnText: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 18,
-    color: HF.muted,
+    color: colors.muted,
     lineHeight: 22,
   },
   pressed: {
@@ -122,7 +122,7 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: 1,
-    backgroundColor: HF.hairline,
+    backgroundColor: colors.hairline,
     marginHorizontal: 24,
   },
   list: {
@@ -133,16 +133,16 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
   },
   empty: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 11,
-    color: HF.muted,
+    color: colors.muted,
     letterSpacing: 1,
     marginTop: 20,
   },
   categoryLabel: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 9,
-    color: HF.accent,
+    color: colors.accent,
     letterSpacing: 2,
     textTransform: 'uppercase',
     marginTop: 16,
@@ -152,14 +152,14 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
   },
   rowName: {
-    fontFamily: 'BarlowCondensed_600SemiBold',
+    fontFamily: fonts.display,
     fontSize: 18,
-    color: HF.ink,
+    color: colors.ink,
     letterSpacing: 1.5,
     textTransform: 'uppercase',
   },
   separator: {
     height: 1,
-    backgroundColor: HF.hairline,
+    backgroundColor: colors.hairline,
   },
 });

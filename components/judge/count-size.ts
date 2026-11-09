@@ -13,10 +13,10 @@ export const COUNT_MAX_SIZE = 190;
 /** Never smaller than this, even in an unreasonably small zone. */
 export const COUNT_MIN_SIZE = 40;
 
-/** Barlow Condensed Bold's widest digit ("4"), in em, measured from the font file. */
-const DIGIT_EM = 0.484;
-/** IBM Plex Mono's advance, in em (every glyph). */
-const MONO_EM = 0.6;
+/** Outfit Regular's tabular digit, in em, measured from the font file (the count uses `tabular-nums`). */
+const DIGIT_EM = 0.59;
+/** Upper bound for a glyph of the small labels (lowercase letters and tabular digits), in em. */
+const LABEL_EM = 0.6;
 /** The small labels ("left", "of N") follow the system font size up to this (`components/text.tsx`). */
 const LABEL_SCALE = 1.3;
 
@@ -34,9 +34,9 @@ const SIDE_MARGIN = 24;
 /** The column's label lines: "left" (10) and "of N" (11), each about 1.3 × its size high, plus 2 × 6 of gap. */
 const LABEL_LINES_HEIGHT = (10 + 11) * 1.3 * LABEL_SCALE + 2 * 6;
 
-/** Width of `chars` monospace characters at `size` with `tracking`, as the labels are drawn. */
+/** Width, at most, of `chars` characters at `size` with `tracking`, as the labels are drawn. */
 function labelWidth(chars: number, size: number, tracking: number): number {
-  return chars * (MONO_EM * size + tracking) * LABEL_SCALE;
+  return chars * (LABEL_EM * size + tracking) * LABEL_SCALE;
 }
 
 /** The count's size for a target of `targetDigits` digits in a zone of the given size, in dp. */

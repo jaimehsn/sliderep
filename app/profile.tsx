@@ -3,30 +3,20 @@ import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Text, TextInput } from '@/components/text';
 import { router } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
-import {
-  useFonts,
-  BarlowCondensed_700Bold,
-} from '@expo-google-fonts/barlow-condensed';
-import { IBMPlexMono_400Regular } from '@expo-google-fonts/ibm-plex-mono';
 
-import { HF } from '@/constants/hf';
+import { colors, fonts } from '@/constants/theme';
 import { Screen } from '@/components/screen';
 import { useProfile } from '@/hooks/use-profile';
 import { MAX_ALIAS_LENGTH, createProfile, deleteProfile, isValidAlias, updateAlias } from '@/db/profile';
 
 export default function ProfileScreen() {
-  const [fontsLoaded] = useFonts({
-    BarlowCondensed_700Bold,
-    IBMPlexMono_400Regular,
-  });
-
   const db = useSQLiteContext();
   const { profile, loaded, refresh } = useProfile();
   const [aliasInput, setAliasInput] = useState('');
   const [editedAlias, setEditedAlias] = useState<string | null>(null);
 
-  if (!fontsLoaded || !loaded) {
-    return <View style={{ flex: 1, backgroundColor: HF.bg }} />;
+  if (!loaded) {
+    return <View style={{ flex: 1, backgroundColor: colors.bg }} />;
   }
 
   const handleCreate = async () => {
@@ -93,7 +83,7 @@ export default function ProfileScreen() {
               value={aliasInput}
               onChangeText={setAliasInput}
               placeholder="Your name"
-              placeholderTextColor={HF.muted}
+              placeholderTextColor={colors.muted}
               autoCapitalize="words"
               maxLength={MAX_ALIAS_LENGTH}
             />
@@ -116,7 +106,7 @@ export default function ProfileScreen() {
               style={styles.input}
               value={aliasValue}
               onChangeText={setEditedAlias}
-              placeholderTextColor={HF.muted}
+              placeholderTextColor={colors.muted}
               autoCapitalize="words"
               maxLength={editMaxLength}
             />
@@ -153,7 +143,7 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: HF.bg,
+    backgroundColor: colors.bg,
   },
   header: {
     flexDirection: 'row',
@@ -165,9 +155,9 @@ const styles = StyleSheet.create({
     opacity: 0.4,
   },
   backBtnText: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 20,
-    color: HF.muted,
+    color: colors.muted,
   },
   // Scrolls only when its content doesn't fit, e.g. with the keyboard open (change responsive-review);
   // otherwise centered as before.
@@ -182,19 +172,19 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   title: {
-    fontFamily: 'BarlowCondensed_700Bold',
+    fontFamily: fonts.display,
     fontSize: 24,
-    color: HF.ink,
+    color: colors.ink,
     letterSpacing: 2,
     textAlign: 'center',
     marginBottom: 8,
   },
   input: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 16,
-    color: HF.ink,
+    color: colors.ink,
     borderBottomWidth: 1,
-    borderBottomColor: HF.hairlineStrong,
+    borderBottomColor: colors.hairlineStrong,
     paddingVertical: 8,
     paddingHorizontal: 4,
     minWidth: 220,
@@ -202,15 +192,15 @@ const styles = StyleSheet.create({
   },
   primaryBtn: {
     borderWidth: 1.5,
-    borderColor: HF.accent,
+    borderColor: colors.accent,
     paddingHorizontal: 52,
     paddingVertical: 16,
     marginTop: 8,
   },
   primaryBtnText: {
-    fontFamily: 'BarlowCondensed_700Bold',
+    fontFamily: fonts.display,
     fontSize: 18,
-    color: HF.accent,
+    color: colors.accent,
     letterSpacing: 4,
     textTransform: 'uppercase',
   },
@@ -219,9 +209,9 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   secondaryBtnText: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 12,
-    color: HF.inkDim,
+    color: colors.inkDim,
     letterSpacing: 1.5,
   },
   deleteBtn: {
@@ -229,9 +219,9 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   deleteBtnText: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 12,
-    color: HF.accent,
+    color: colors.accent,
     letterSpacing: 1.5,
   },
   btnDisabled: {

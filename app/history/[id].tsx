@@ -3,17 +3,8 @@ import { Alert, Pressable, StyleSheet, View } from 'react-native';
 import { Text } from '@/components/text';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
-import {
-  useFonts,
-  BarlowCondensed_600SemiBold,
-  BarlowCondensed_700Bold,
-} from '@expo-google-fonts/barlow-condensed';
-import {
-  IBMPlexMono_400Regular,
-  IBMPlexMono_500Medium,
-} from '@expo-google-fonts/ibm-plex-mono';
 
-import { HF } from '@/constants/hf';
+import { colors, fonts } from '@/constants/theme';
 import { Screen } from '@/components/screen';
 import { ResultScreen } from '@/components/result/result-screen';
 import { getSession, deleteSession, StoredSession } from '@/db/sessions';
@@ -24,13 +15,6 @@ export default function HistoryDetailScreen() {
   const db = useSQLiteContext();
   const [session, setSession] = useState<StoredSession | null | undefined>(undefined);
   const [workout, setWorkout] = useState<Workout | null>(null);
-
-  const [fontsLoaded] = useFonts({
-    BarlowCondensed_600SemiBold,
-    BarlowCondensed_700Bold,
-    IBMPlexMono_400Regular,
-    IBMPlexMono_500Medium,
-  });
 
   useFocusEffect(
     useCallback(() => {
@@ -50,8 +34,8 @@ export default function HistoryDetailScreen() {
     }
   }, [session]);
 
-  if (!fontsLoaded || !session || !workout) {
-    return <View style={{ flex: 1, backgroundColor: HF.bg }} />;
+  if (!session || !workout) {
+    return <View style={{ flex: 1, backgroundColor: colors.bg }} />;
   }
 
   const handleDelete = () => {
@@ -109,7 +93,7 @@ export default function HistoryDetailScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: HF.bg,
+    backgroundColor: colors.bg,
   },
   header: {
     flexDirection: 'row',
@@ -124,9 +108,9 @@ const styles = StyleSheet.create({
     opacity: 0.4,
   },
   closeBtnText: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 18,
-    color: HF.muted,
+    color: colors.muted,
     lineHeight: 22,
   },
   deleteBtn: {
@@ -138,9 +122,9 @@ const styles = StyleSheet.create({
     opacity: 0.55,
   },
   deleteBtnText: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 12,
-    color: HF.accent,
+    color: colors.accent,
     letterSpacing: 1.5,
   },
 });

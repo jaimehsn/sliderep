@@ -3,17 +3,8 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Text } from '@/components/text';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
-import {
-  useFonts,
-  BarlowCondensed_600SemiBold,
-  BarlowCondensed_700Bold,
-} from '@expo-google-fonts/barlow-condensed';
-import {
-  IBMPlexMono_400Regular,
-  IBMPlexMono_500Medium,
-} from '@expo-google-fonts/ibm-plex-mono';
 
-import { HF } from '@/constants/hf';
+import { colors, fonts } from '@/constants/theme';
 import { Screen } from '@/components/screen';
 import { useProfile } from '@/hooks/use-profile';
 import { LogEntry } from '@/components/judge/types';
@@ -35,12 +26,6 @@ export default function AdjustScreen() {
   const db = useSQLiteContext();
   const { profile } = useProfile();
 
-  const [fontsLoaded] = useFonts({
-    BarlowCondensed_600SemiBold,
-    BarlowCondensed_700Bold,
-    IBMPlexMono_400Regular,
-    IBMPlexMono_500Medium,
-  });
   const [loaded, setLoaded] = useState(false);
   const [session, setSession] = useState<StoredSession | null>(null);
   const [workout, setWorkout] = useState<Workout | null>(null);
@@ -71,8 +56,8 @@ export default function AdjustScreen() {
   const accepted = useMemo(() => new Set([...saved, ...pending]), [saved, pending]);
   const remaining = 3 - adjustments.length;
 
-  if (!fontsLoaded || !loaded || !config) {
-    return <View style={{ flex: 1, backgroundColor: HF.bg }} />;
+  if (!loaded || !config) {
+    return <View style={{ flex: 1, backgroundColor: colors.bg }} />;
   }
 
   const result = deriveAdjustedResult(config, log, toChanges(accepted));
@@ -219,7 +204,7 @@ export default function AdjustScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: HF.bg,
+    backgroundColor: colors.bg,
   },
   header: {
     flexDirection: 'row',
@@ -229,22 +214,22 @@ const styles = StyleSheet.create({
     paddingTop: 20,
   },
   title: {
-    fontFamily: 'BarlowCondensed_700Bold',
+    fontFamily: fonts.display,
     fontSize: 22,
-    color: HF.ink,
+    color: colors.ink,
     letterSpacing: 2,
   },
   subtitle: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 10,
-    color: HF.muted,
+    color: colors.muted,
     letterSpacing: 1,
     marginTop: 4,
   },
   closeBtnText: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 20,
-    color: HF.muted,
+    color: colors.muted,
   },
   scoreBlock: {
     alignItems: 'center',
@@ -252,17 +237,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   scoreLabel: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 11,
-    color: HF.muted,
+    color: colors.muted,
     letterSpacing: 2,
     textTransform: 'uppercase',
     marginBottom: 4,
   },
   scoreValue: {
-    fontFamily: 'BarlowCondensed_700Bold',
+    fontFamily: fonts.display,
     fontSize: 48,
-    color: HF.ink,
+    color: colors.ink,
     fontVariant: ['tabular-nums'],
     // Full width, so a long score shrinks to the screen instead of wrapping.
     alignSelf: 'stretch',
@@ -278,9 +263,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   groupTitle: {
-    fontFamily: 'IBMPlexMono_500Medium',
+    fontFamily: fonts.ui,
     fontSize: 11,
-    color: HF.muted,
+    color: colors.muted,
     letterSpacing: 1.5,
     paddingTop: 20,
     paddingBottom: 4,
@@ -288,16 +273,16 @@ const styles = StyleSheet.create({
   splitRow: {
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: HF.hairline,
+    borderBottomColor: colors.hairline,
   },
   splitLabel: {
-    fontFamily: 'BarlowCondensed_600SemiBold',
+    fontFamily: fonts.display,
     fontSize: 17,
-    color: HF.ink,
+    color: colors.ink,
     textTransform: 'uppercase',
   },
   splitLabelPartial: {
-    color: HF.inkDim,
+    color: colors.inkDim,
   },
   noRepRow: {
     flexDirection: 'row',
@@ -305,60 +290,62 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingLeft: 12,
     borderBottomWidth: 1,
-    borderBottomColor: HF.hairline,
+    borderBottomColor: colors.hairline,
   },
   noRepTime: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 12,
-    color: HF.inkDim,
+    color: colors.inkDim,
     marginRight: 12,
+    fontVariant: ['tabular-nums'],
   },
   noRepLabel: {
     flex: 1,
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 11,
-    color: HF.noRep,
+    color: colors.noRep,
     letterSpacing: 1,
   },
   toggle: {
     borderWidth: 1,
-    borderColor: HF.hairlineStrong,
+    borderColor: colors.hairlineStrong,
     paddingVertical: 6,
     minWidth: 92,
     alignItems: 'center',
   },
   toggleRep: {
-    borderColor: HF.accent,
+    borderColor: colors.accent,
   },
   toggleLocked: {
-    borderColor: HF.hairline,
+    borderColor: colors.hairline,
     opacity: 0.6,
   },
   toggleText: {
-    fontFamily: 'IBMPlexMono_500Medium',
+    fontFamily: fonts.ui,
     fontSize: 11,
-    color: HF.muted,
+    color: colors.muted,
     letterSpacing: 1.5,
   },
   toggleTextRep: {
-    color: HF.accent,
+    color: colors.accent,
   },
   unadjusted: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 10,
-    color: HF.muted,
+    color: colors.muted,
     letterSpacing: 1,
     marginTop: 4,
   },
   splitReps: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 11,
-    color: HF.muted,
+    color: colors.muted,
     marginTop: 2,
+    fontVariant: ['tabular-nums'],
   },
   saveBtn: {
     borderWidth: 1.5,
-    borderColor: HF.accent,
+    borderColor: colors.accent,
     marginHorizontal: 24,
     paddingVertical: 14,
     alignItems: 'center',
@@ -370,9 +357,9 @@ const styles = StyleSheet.create({
     opacity: 0.55,
   },
   saveBtnText: {
-    fontFamily: 'BarlowCondensed_700Bold',
+    fontFamily: fonts.display,
     fontSize: 16,
-    color: HF.accent,
+    color: colors.accent,
     letterSpacing: 3,
   },
 });

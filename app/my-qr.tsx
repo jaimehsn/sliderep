@@ -4,25 +4,14 @@ import { Text } from '@/components/text';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import QRCode from 'react-native-qrcode-svg';
-import {
-  useFonts,
-  BarlowCondensed_700Bold,
-} from '@expo-google-fonts/barlow-condensed';
-import { IBMPlexMono_400Regular } from '@expo-google-fonts/ibm-plex-mono';
 import { Screen } from '@/components/screen';
 import { useProfile } from '@/hooks/use-profile';
+import { colors, fonts } from '@/constants/theme';
 
 // High-contrast by design, unlike the rest of the app: camera QR readers are
 // far more reliable with dark modules on a light background.
-const QR_BG = '#ffffff';
-const QR_INK = '#0a0a0a';
-const QR_MUTED = '#6a6a62';
 
 export default function MyQrScreen() {
-  const [fontsLoaded] = useFonts({
-    BarlowCondensed_700Bold,
-    IBMPlexMono_400Regular,
-  });
   const { profile, loaded } = useProfile();
 
   useEffect(() => {
@@ -31,8 +20,8 @@ export default function MyQrScreen() {
     }
   }, [loaded, profile]);
 
-  if (!fontsLoaded || !loaded || !profile) {
-    return <View style={{ flex: 1, backgroundColor: QR_BG }} />;
+  if (!loaded || !profile) {
+    return <View style={{ flex: 1, backgroundColor: colors.qrPaper }} />;
   }
 
   const payload = { v: 1 as const, athleteId: profile.id, alias: profile.alias };
@@ -53,7 +42,7 @@ export default function MyQrScreen() {
 
       <View style={styles.center}>
         <View style={styles.qrFrame}>
-          <QRCode value={JSON.stringify(payload)} size={240} color={QR_INK} backgroundColor={QR_BG} />
+          <QRCode value={JSON.stringify(payload)} size={240} color={colors.qrInk} backgroundColor={colors.qrPaper} />
         </View>
         <Text style={styles.alias}>{profile.alias}</Text>
         <Text style={styles.id}>id: {profile.id}</Text>
@@ -64,7 +53,7 @@ export default function MyQrScreen() {
 
 const styles = StyleSheet.create({
   root: {
-    backgroundColor: QR_BG,
+    backgroundColor: colors.qrPaper,
   },
   header: {
     flexDirection: 'row',
@@ -76,9 +65,9 @@ const styles = StyleSheet.create({
     opacity: 0.4,
   },
   backBtnText: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 20,
-    color: QR_MUTED,
+    color: colors.qrMuted,
   },
   center: {
     flex: 1,
@@ -88,19 +77,19 @@ const styles = StyleSheet.create({
   },
   qrFrame: {
     padding: 16,
-    backgroundColor: QR_BG,
+    backgroundColor: colors.qrPaper,
   },
   alias: {
-    fontFamily: 'BarlowCondensed_700Bold',
+    fontFamily: fonts.display,
     fontSize: 32,
-    color: QR_INK,
+    color: colors.qrInk,
     letterSpacing: 2,
     textTransform: 'uppercase',
   },
   id: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 11,
-    color: QR_MUTED,
+    color: colors.qrMuted,
     letterSpacing: 1,
   },
 });

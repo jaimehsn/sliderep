@@ -1,28 +1,15 @@
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet } from 'react-native';
 import { Text } from '@/components/text';
 import { router } from 'expo-router';
-import {
-  useFonts,
-  BarlowCondensed_700Bold,
-} from '@expo-google-fonts/barlow-condensed';
-import { IBMPlexMono_400Regular } from '@expo-google-fonts/ibm-plex-mono';
 
-import { HF } from '@/constants/hf';
+import { colors, fonts } from '@/constants/theme';
 import { Screen } from '@/components/screen';
 import { useFirstRun } from '@/hooks/use-first-run';
 
 export default function FirstRunScreen() {
-  const [fontsLoaded] = useFonts({
-    BarlowCondensed_700Bold,
-    IBMPlexMono_400Regular,
-  });
   const { markDone } = useFirstRun();
   const [busy, setBusy] = useState(false);
-
-  if (!fontsLoaded) {
-    return <View style={{ flex: 1, backgroundColor: HF.bg }} />;
-  }
 
   const createProfile = async () => {
     setBusy(true);
@@ -65,7 +52,7 @@ export default function FirstRunScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: HF.bg,
+    backgroundColor: colors.bg,
   },
   // Scrolls only when its content doesn't fit, e.g. with the keyboard open (change responsive-review);
   // otherwise centered as before.
@@ -80,31 +67,31 @@ const styles = StyleSheet.create({
     gap: 20,
   },
   title: {
-    fontFamily: 'BarlowCondensed_700Bold',
+    fontFamily: fonts.display,
     fontSize: 26,
-    color: HF.ink,
+    color: colors.ink,
     letterSpacing: 2,
     textAlign: 'center',
   },
   subtext: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 11,
-    color: HF.muted,
+    color: colors.muted,
     letterSpacing: 0.5,
     textAlign: 'center',
     lineHeight: 18,
   },
   primaryBtn: {
     borderWidth: 1.5,
-    borderColor: HF.accent,
+    borderColor: colors.accent,
     paddingHorizontal: 52,
     paddingVertical: 16,
     marginTop: 8,
   },
   primaryBtnText: {
-    fontFamily: 'BarlowCondensed_700Bold',
+    fontFamily: fonts.display,
     fontSize: 18,
-    color: HF.accent,
+    color: colors.accent,
     letterSpacing: 4,
     textTransform: 'uppercase',
   },
@@ -113,9 +100,9 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   skipBtnText: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: fonts.ui,
     fontSize: 12,
-    color: HF.muted,
+    color: colors.muted,
     letterSpacing: 1.5,
   },
   btnPressed: {
