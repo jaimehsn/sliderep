@@ -8,7 +8,8 @@
     "scheme": "sliderep",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.jaimehsn.sliderep"
     },
     "android": {
       "adaptiveIcon": {
@@ -18,7 +19,13 @@
       },
       "predictiveBackGestureEnabled": false,
       "package": "com.jaimehsn.sliderep",
-      "allowBackup": false
+      "allowBackup": false,
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"
+      ]
     },
     "web": {
       "output": "static",
