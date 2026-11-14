@@ -1,0 +1,32 @@
+{
+  "mode": "EVERY 1:30 · 10",
+  "description": "10 × 1:30 · burpees + kb swings",
+  "exercises": [
+    {
+      "name": "BURPEES",
+      "detail": "10 / interval"
+    },
+    {
+      "name": "KB SWINGS",
+      "detail": "15 / interval"
+    }
+  ],
+  "durationLine": "15 min",
+  "timerMode": "minLeft",
+  "totalSeconds": 900,
+  "advanceMode": "onClock",
+  "engineVersion": 1,
+  "view": {
+    "exerciseName": "BURPEES",
+    "target": 10,
+    "done": 0,
+    "kpi": {
+      "label": "interval",
+      "current": 1,
+      "total": 10
+    },
+    "timerStr": "01:30",
+    "timerLabel": "interval left",
+    "blockLabel": null
+  }
+}

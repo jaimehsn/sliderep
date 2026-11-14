@@ -1,0 +1,64 @@
+{
+  "mode": "FOR TIME",
+  "description": "10 stations · 50 reps each",
+  "exercises": [
+    {
+      "name": "BOX JUMPS",
+      "detail": "50 reps"
+    },
+    {
+      "name": "JUMPING PULL-UPS",
+      "detail": "50 reps"
+    },
+    {
+      "name": "KB SWINGS",
+      "detail": "50 reps"
+    },
+    {
+      "name": "WALKING LUNGES",
+      "detail": "50 reps"
+    },
+    {
+      "name": "KNEES-TO-ELBOWS",
+      "detail": "50 reps"
+    },
+    {
+      "name": "PUSH PRESS",
+      "detail": "50 reps"
+    },
+    {
+      "name": "BACK EXT.",
+      "detail": "50 reps"
+    },
+    {
+      "name": "WALL BALL",
+      "detail": "50 reps"
+    },
+    {
+      "name": "BURPEES",
+      "detail": "50 reps"
+    },
+    {
+      "name": "DOUBLE UNDERS",
+      "detail": "50 reps"
+    }
+  ],
+  "durationLine": null,
+  "timerMode": "elapsed",
+  "totalSeconds": 0,
+  "advanceMode": "onTarget",
+  "engineVersion": 1,
+  "view": {
+    "exerciseName": "BOX JUMPS",
+    "target": 50,
+    "done": 0,
+    "kpi": {
+      "label": "station",
+      "current": 1,
+      "total": 10
+    },
+    "timerStr": "00:00",
+    "timerLabel": "elapsed",
+    "blockLabel": null
+  }
+}

@@ -1,0 +1,90 @@
+{
+  "mode": "2 ROUNDS FOR TIME · 2 BLOCKS",
+  "description": "3 min · burpees → 2 rounds · air squats · 5 min cap",
+  "exercises": [
+    {
+      "name": "BURPEES",
+      "detail": "10 reps"
+    },
+    {
+      "name": "AIR SQUATS",
+      "detail": "10 reps"
+    }
+  ],
+  "durationLine": null,
+  "timerMode": "elapsed",
+  "totalSeconds": 300,
+  "advanceMode": "onTarget",
+  "engineVersion": 1,
+  "view": {
+    "exerciseName": "BURPEES",
+    "target": 10,
+    "done": 0,
+    "kpi": {
+      "label": "rounds",
+      "current": 0,
+      "total": null
+    },
+    "timerStr": "03:00",
+    "timerLabel": "remaining",
+    "blockLabel": "BLOCK 1/2"
+  },
+  "parts": [
+    {
+      "mode": "3-MIN AMRAP",
+      "description": "3 min · burpees",
+      "exercises": [
+        {
+          "name": "BURPEES",
+          "detail": "10 reps"
+        }
+      ],
+      "durationLine": "3 min",
+      "timerMode": "remaining",
+      "totalSeconds": 180,
+      "advanceMode": "onTarget",
+      "engineVersion": 1,
+      "view": {
+        "exerciseName": "BURPEES",
+        "target": 10,
+        "done": 0,
+        "kpi": {
+          "label": "rounds",
+          "current": 0,
+          "total": null
+        },
+        "timerStr": "03:00",
+        "timerLabel": "remaining",
+        "blockLabel": null
+      }
+    },
+    {
+      "mode": "2 ROUNDS FOR TIME",
+      "description": "2 rounds · air squats · 5 min cap",
+      "exercises": [
+        {
+          "name": "AIR SQUATS",
+          "detail": "10 reps"
+        }
+      ],
+      "durationLine": "5 min cap",
+      "timerMode": "elapsed",
+      "totalSeconds": 300,
+      "advanceMode": "onTarget",
+      "engineVersion": 1,
+      "view": {
+        "exerciseName": "AIR SQUATS",
+        "target": 10,
+        "done": 0,
+        "kpi": {
+          "label": "round",
+          "current": 1,
+          "total": 2
+        },
+        "timerStr": "00:00",
+        "timerLabel": "elapsed · cap 05:00",
+        "blockLabel": null
+      }
+    }
+  ]
+}

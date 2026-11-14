@@ -1,0 +1,90 @@
+{
+  "mode": "4-MIN AMRAP · 2 BLOCKS",
+  "description": "4 min · burpees → 4 min · air squats",
+  "exercises": [
+    {
+      "name": "BURPEES",
+      "detail": "10 reps"
+    },
+    {
+      "name": "AIR SQUATS",
+      "detail": "15 reps"
+    }
+  ],
+  "durationLine": null,
+  "timerMode": "remaining",
+  "totalSeconds": 240,
+  "advanceMode": "onTarget",
+  "engineVersion": 1,
+  "view": {
+    "exerciseName": "BURPEES",
+    "target": 10,
+    "done": 0,
+    "kpi": {
+      "label": "rounds",
+      "current": 0,
+      "total": null
+    },
+    "timerStr": "04:00",
+    "timerLabel": "remaining",
+    "blockLabel": "BLOCK 1/2"
+  },
+  "parts": [
+    {
+      "mode": "4-MIN AMRAP",
+      "description": "4 min · burpees",
+      "exercises": [
+        {
+          "name": "BURPEES",
+          "detail": "10 reps"
+        }
+      ],
+      "durationLine": "4 min",
+      "timerMode": "remaining",
+      "totalSeconds": 240,
+      "advanceMode": "onTarget",
+      "engineVersion": 1,
+      "view": {
+        "exerciseName": "BURPEES",
+        "target": 10,
+        "done": 0,
+        "kpi": {
+          "label": "rounds",
+          "current": 0,
+          "total": null
+        },
+        "timerStr": "04:00",
+        "timerLabel": "remaining",
+        "blockLabel": null
+      }
+    },
+    {
+      "mode": "4-MIN AMRAP",
+      "description": "4 min · air squats",
+      "exercises": [
+        {
+          "name": "AIR SQUATS",
+          "detail": "15 reps"
+        }
+      ],
+      "durationLine": "4 min",
+      "timerMode": "remaining",
+      "totalSeconds": 240,
+      "advanceMode": "onTarget",
+      "engineVersion": 1,
+      "view": {
+        "exerciseName": "AIR SQUATS",
+        "target": 15,
+        "done": 0,
+        "kpi": {
+          "label": "rounds",
+          "current": 0,
+          "total": null
+        },
+        "timerStr": "04:00",
+        "timerLabel": "remaining",
+        "blockLabel": null
+      }
+    }
+  ]
+}

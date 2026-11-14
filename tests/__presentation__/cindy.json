@@ -1,0 +1,36 @@
+{
+  "mode": "12-MIN AMRAP",
+  "description": "12 min · pull-ups, push-ups, air squats",
+  "exercises": [
+    {
+      "name": "PULL-UPS",
+      "detail": "5 reps"
+    },
+    {
+      "name": "PUSH-UPS",
+      "detail": "10 reps"
+    },
+    {
+      "name": "AIR SQUATS",
+      "detail": "15 reps"
+    }
+  ],
+  "durationLine": "12 min",
+  "timerMode": "remaining",
+  "totalSeconds": 720,
+  "advanceMode": "onTarget",
+  "engineVersion": 1,
+  "view": {
+    "exerciseName": "PULL-UPS",
+    "target": 5,
+    "done": 0,
+    "kpi": {
+      "label": "rounds",
+      "current": 0,
+      "total": null
+    },
+    "timerStr": "12:00",
+    "timerLabel": "remaining",
+    "blockLabel": null
+  }
+}

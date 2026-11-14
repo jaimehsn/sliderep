@@ -1,0 +1,28 @@
+{
+  "mode": "3 ROUNDS FOR TIME",
+  "description": "3 rounds · burpees · 60 s rest · 2 min cap",
+  "exercises": [
+    {
+      "name": "BURPEES",
+      "detail": "5 reps"
+    }
+  ],
+  "durationLine": "2 min cap · 60 s rest between rounds",
+  "timerMode": "elapsed",
+  "totalSeconds": 120,
+  "advanceMode": "onTarget",
+  "engineVersion": 1,
+  "view": {
+    "exerciseName": "BURPEES",
+    "target": 5,
+    "done": 0,
+    "kpi": {
+      "label": "round",
+      "current": 1,
+      "total": 3
+    },
+    "timerStr": "00:00",
+    "timerLabel": "elapsed · cap 02:00",
+    "blockLabel": null
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "mode": "FOR TIME",
+  "description": "3 stations · 20 reps each · 5 min cap",
+  "exercises": [
+    {
+      "name": "BURPEES",
+      "detail": "20 reps"
+    },
+    {
+      "name": "AIR SQUATS",
+      "detail": "20 reps"
+    },
+    {
+      "name": "KB SWINGS",
+      "detail": "20 reps"
+    }
+  ],
+  "durationLine": "5 min cap",
+  "timerMode": "elapsed",
+  "totalSeconds": 300,
+  "advanceMode": "onTarget",
+  "engineVersion": 1,
+  "view": {
+    "exerciseName": "BURPEES",
+    "target": 20,
+    "done": 0,
+    "kpi": {
+      "label": "station",
+      "current": 1,
+      "total": 3
+    },
+    "timerStr": "00:00",
+    "timerLabel": "elapsed · cap 05:00",
+    "blockLabel": null
+  }
+}

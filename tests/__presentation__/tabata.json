@@ -1,0 +1,28 @@
+{
+  "mode": "EVERY 0:30 · 8",
+  "description": "8 × 0:30 · air squats · 20 s work",
+  "exercises": [
+    {
+      "name": "AIR SQUATS",
+      "detail": "8 / interval"
+    }
+  ],
+  "durationLine": "4 min · 20 s work / 10 s rest",
+  "timerMode": "minLeft",
+  "totalSeconds": 240,
+  "advanceMode": "onClock",
+  "engineVersion": 1,
+  "view": {
+    "exerciseName": "AIR SQUATS",
+    "target": 8,
+    "done": 0,
+    "kpi": {
+      "label": "interval",
+      "current": 1,
+      "total": 8
+    },
+    "timerStr": "00:20",
+    "timerLabel": "work left",
+    "blockLabel": null
+  }
+}

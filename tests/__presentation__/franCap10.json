@@ -1,0 +1,32 @@
+{
+  "mode": "FOR TIME",
+  "description": "21-15-9 · thrusters + pull-ups · 10 min cap",
+  "exercises": [
+    {
+      "name": "THRUSTERS",
+      "detail": "21 · 15 · 9"
+    },
+    {
+      "name": "PULL-UPS",
+      "detail": "21 · 15 · 9"
+    }
+  ],
+  "durationLine": "10 min cap",
+  "timerMode": "elapsed",
+  "totalSeconds": 600,
+  "advanceMode": "onTarget",
+  "engineVersion": 1,
+  "view": {
+    "exerciseName": "THRUSTERS",
+    "target": 21,
+    "done": 0,
+    "kpi": {
+      "label": "round",
+      "current": 1,
+      "total": 3
+    },
+    "timerStr": "00:00",
+    "timerLabel": "elapsed · cap 10:00",
+    "blockLabel": null
+  }
+}

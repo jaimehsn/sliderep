@@ -1,0 +1,32 @@
+{
+  "mode": "EMOM · 6",
+  "description": "6 min · pull-ups, push-ups, air squats",
+  "exercises": [
+    {
+      "name": "PULL-UPS + PUSH-UPS",
+      "detail": "5 + 10 / min"
+    },
+    {
+      "name": "AIR SQUATS",
+      "detail": "15 / min"
+    }
+  ],
+  "durationLine": "6 min",
+  "timerMode": "minLeft",
+  "totalSeconds": 360,
+  "advanceMode": "onClock",
+  "engineVersion": 1,
+  "view": {
+    "exerciseName": "PULL-UPS",
+    "target": 5,
+    "done": 0,
+    "kpi": {
+      "label": "minute",
+      "current": 1,
+      "total": 6
+    },
+    "timerStr": "01:00",
+    "timerLabel": "min left",
+    "blockLabel": null
+  }
+}

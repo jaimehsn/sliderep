@@ -1,0 +1,32 @@
+{
+  "mode": "EMOM · 10",
+  "description": "10 min · burpees + kb swings",
+  "exercises": [
+    {
+      "name": "BURPEES",
+      "detail": "10 / min"
+    },
+    {
+      "name": "KB SWINGS",
+      "detail": "15 / min"
+    }
+  ],
+  "durationLine": "10 min",
+  "timerMode": "minLeft",
+  "totalSeconds": 600,
+  "advanceMode": "onClock",
+  "engineVersion": 1,
+  "view": {
+    "exerciseName": "BURPEES",
+    "target": 10,
+    "done": 0,
+    "kpi": {
+      "label": "minute",
+      "current": 1,
+      "total": 10
+    },
+    "timerStr": "01:00",
+    "timerLabel": "min left",
+    "blockLabel": null
+  }
+}

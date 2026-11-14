@@ -1,0 +1,32 @@
+{
+  "mode": "E2MOM · 8",
+  "description": "8 × 2:00 · burpees + kb swings",
+  "exercises": [
+    {
+      "name": "BURPEES",
+      "detail": "10 / interval"
+    },
+    {
+      "name": "KB SWINGS",
+      "detail": "15 / interval"
+    }
+  ],
+  "durationLine": "16 min",
+  "timerMode": "minLeft",
+  "totalSeconds": 960,
+  "advanceMode": "onClock",
+  "engineVersion": 1,
+  "view": {
+    "exerciseName": "BURPEES",
+    "target": 10,
+    "done": 0,
+    "kpi": {
+      "label": "interval",
+      "current": 1,
+      "total": 8
+    },
+    "timerStr": "02:00",
+    "timerLabel": "interval left",
+    "blockLabel": null
+  }
+}

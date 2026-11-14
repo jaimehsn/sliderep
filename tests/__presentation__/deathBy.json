@@ -1,0 +1,28 @@
+{
+  "mode": "EMOM · 20",
+  "description": "20 min · burpees · until failure",
+  "exercises": [
+    {
+      "name": "BURPEES",
+      "detail": "1 (+1) / min"
+    }
+  ],
+  "durationLine": "20 min max · until failure",
+  "timerMode": "minLeft",
+  "totalSeconds": 1200,
+  "advanceMode": "onClock",
+  "engineVersion": 1,
+  "view": {
+    "exerciseName": "BURPEES",
+    "target": 1,
+    "done": 0,
+    "kpi": {
+      "label": "minute",
+      "current": 1,
+      "total": 20
+    },
+    "timerStr": "01:00",
+    "timerLabel": "min left",
+    "blockLabel": null
+  }
+}
