@@ -161,6 +161,23 @@ Consequences:
 - **Post-judging modifications:** an accepted no-rep addresses the event itself (its index in the log); its `(block, round/interval, line)` position comes from the replay (see Exercise sessions).
 - **B3 (robust EMOM)** is absorbed by the `onClock` rule derived from `elapsed`; **B6 (end of WOD)** is expressed with `stop`; **B8's EMOM score question** is resolved.
 
+**Windows and structures (decided 2026-11-12, replaces "format per block").** Real box workouts didn't fit "a list of blocks, one format and one clock each". They need several structures under one clock (buy-in → 5 rounds → cash-out inside a 12-min cap) and structures inside each interval (every 3:00: run + burpees, then max power snatches). The model is now:
+- A workout is a sequence of **windows**, with optional rest between them. The UI keeps calling them blocks.
+- A window is a **continuous** clock (optional time limit) or an **intervals** clock (every X s × N, optional work time, rotating sequence).
+- A window holds a sequence of **structures** under that same clock: `once` | `rounds` | `cycle` | `MAX`. `cycle` and `MAX` only go last, at most one of them, and only in a window that has an end.
+- Behavior is **derived from the content**: continuous + once/rounds = For Time (+cap); + cycle = classic AMRAP; + MAX = max effort; intervals + once = classic EMOM; intervals + once… then MAX = what the box calls "AMRAP" (a buy-in, then max reps of one element, every interval).
+- **MAX line**: it has no target and uses the time left. Its unit is reps, or a segment size set on the line (e.g. 5 m, one swipe per segment), so "everything is reps" holds.
+- **Score is global**: the sum of the MAX lines when there are any (one total per MAX line if their units differ); otherwise the window's own score.
+- The editor will be guided by **templates** of the typical structures.
+
+Plan:
+- **E1 `window-model`**: the model and the engine on it. Stored workouts are translated on read, with no migration and no visible change.
+- **E2 `shared-clock`**: several structures in one window, plus the editor templates.
+- **E3 `max-lines`**: MAX reps and the global score.
+- **E4 `max-distance`**: MAX by segments.
+
+General nesting (a scored For Time inside each interval) waits until a real workout needs it.
+
 ### Exercise sessions (decided)
 
 A **session** is one run of one WOD, judged for one athlete. It builds on Users (registered/anonymous, `judgeId`, unverified) and on the immutable WOD + built-in versioned format.

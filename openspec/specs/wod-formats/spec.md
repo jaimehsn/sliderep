@@ -88,11 +88,19 @@ The system SHALL show progress as round N of total for For Time, station N of to
 - **THEN** progress reads interval 3 of 10
 
 ### Requirement: Format semantics are versioned
-Each built-in format SHALL carry a version, and a saved session SHALL record the format version it was judged with, so its result can always be derived with the same rules.
+The judging and scoring rules SHALL carry one version for every kind of workout, and a saved session SHALL record the version it was judged with, so its result can always be derived with the same rules. Workouts that exist when the rules are reorganized or extended SHALL keep deriving the same score and splits from the same events.
 
 #### Scenario: Saving records the version
 - **WHEN** a session is saved
-- **THEN** the stored session includes the format version used during judging
+- **THEN** the stored session includes the rules version used during judging
+
+#### Scenario: Earlier sessions keep their result
+- **WHEN** a session saved before the workout model was reorganized is opened in History
+- **THEN** it shows the same score and splits as before, including any accepted no-reps
+
+#### Scenario: Earlier workouts look the same
+- **WHEN** a workout stored before the workout model was reorganized is listed, opened in the Library or summarized before judging
+- **THEN** its mode label, description, exercise rows and duration line are the same as before
 
 ### Requirement: Mode label derived from content
 A workout's mode label SHALL be derived from its format and content: "FOR TIME" for For Time (including a single-round Chipper), "<rounds> ROUNDS FOR TIME" for a For Time of more than one round where every round has the same reps, "<minutes>-MIN AMRAP" for an AMRAP, and for an EMOM "EMOM · <intervals>" with 60-second intervals, "E<n>MOM · <intervals>" when its interval is a whole number n of minutes, and "EVERY <m:ss> · <intervals>" otherwise.

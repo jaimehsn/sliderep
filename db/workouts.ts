@@ -1,5 +1,5 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
-import { Block, FORMATS, Format, WodConfig, WodLine, buildSequenceConfig, buildWodConfig } from '@/constants/wod-engine';
+import { Structure, Window, WodConfig, WodLine, buildSequenceConfig, buildWodConfig } from '@/constants/wod-engine';
 import { makeId } from '@/db/sessions';
 
 /**
@@ -37,15 +37,15 @@ export type StoredBlock = {
   restAfterSeconds?: number;
 };
 
-// Strict on purpose: an unknown format or exercise, or a scoring block out of
-// range, can't be stored by the app, so a throw is a bug.
+// Strict on purpose: an unknown format or exercise, a block breaking the
+// invariants below, or a scoring block out of range can't be stored by the app,
+// so a throw is a bug.
 // Exported for tests, which build the built-ins from the frozen v2 seed rows.
 export function parseWorkoutRow(row: WorkoutRow, exerciseNames: Map<string, string>): Workout {
   const blocks: StoredBlock[] = JSON.parse(row.blocks);
   if (blocks.length === 0) throw new Error(`Workout ${row.id}: no blocks`);
-  const parsed = blocks.map((stored) => parseBlock(row.id, stored, exerciseNames));
-  // One block: exactly today's config. Several: one config per block, wrapped (change multi-block-workouts).
-  const configs = parsed.map(({ block, format }) => buildWodConfig({ id: row.id, name: row.name, block }, format));
+  // One block: one window's config. Several: one config per block, wrapped (change multi-block-workouts).
+  const configs = blocks.map((stored) => buildWodConfig(row.name, windowFromStored(row.id, stored, exerciseNames)));
   let config = configs[0];
   if (configs.length > 1) {
     const scoringBlock = row.scoringBlock ?? 0;
@@ -60,33 +60,59 @@ export function parseWorkoutRow(row: WorkoutRow, exerciseNames: Map<string, stri
   };
 }
 
-function parseBlock(id: string, stored: StoredBlock, exerciseNames: Map<string, string>): { block: Block; format: Format } {
-  const format = FORMATS[stored.formatId];
-  if (!format) throw new Error(`Workout ${id}: unknown format ${stored.formatId}`);
-
-  const block: Block = {
-    rounds: stored.rounds,
-    durationSeconds: stored.durationSeconds,
-    intervalSeconds: stored.intervalSeconds,
-    stopOnMiss: stored.stopOnMiss,
-    restSeconds: stored.restSeconds,
-    workSeconds: stored.workSeconds,
-    lines: stored.lines.map((round) =>
-      round.map((line) => {
-        const exercise = exerciseNames.get(line.exerciseId);
-        if (exercise == null) throw new Error(`Workout ${id}: unknown exercise ${line.exerciseId}`);
-        return {
-          exerciseId: line.exerciseId,
-          exercise,
-          target: line.target,
-          repDescription: line.repDescription,
-          load: line.load,
-          increment: line.increment,
-        };
-      }),
-    ),
+/**
+ * A stored block as a window (change window-model): the stored layout stays the
+ * editor's and the seed's, translated on read.
+ *   forTime → continuous (cap = `durationSeconds`) holding `rounds` (one `lines` entry per round, `rounds` of them)
+ *   amrap   → continuous (limit = `durationSeconds`) holding `cycle` (exactly one `lines` entry)
+ *   emom    → intervals of `intervalSeconds ?? 60`, `rounds` of them (`durationSeconds` = their total),
+ *             each `lines` entry one `once` of the rotating sequence
+ */
+function windowFromStored(id: string, stored: StoredBlock, exerciseNames: Map<string, string>): Window {
+  const fail = (why: string): never => {
+    throw new Error(`Workout ${id}: ${why}`);
   };
-  return { block, format };
+  const lines = stored.lines.map((round) => round.map((line) => parseLine(id, line, exerciseNames)));
+  if (stored.formatId === 'forTime') {
+    if (lines.length === 0 || stored.rounds !== lines.length) fail(`For Time with ${stored.rounds} rounds and ${lines.length} round entries`);
+    const rounds: Structure = { kind: 'rounds', rounds: lines, ...(stored.restSeconds != null ? { restSeconds: stored.restSeconds } : {}) };
+    return { clock: { kind: 'continuous', ...(stored.durationSeconds ? { limitSeconds: stored.durationSeconds } : {}) }, structures: [rounds] };
+  }
+  if (stored.formatId === 'amrap') {
+    if (lines.length !== 1) fail(`AMRAP with ${lines.length} line entries`);
+    if (!stored.durationSeconds) fail('AMRAP without a duration');
+    return { clock: { kind: 'continuous', limitSeconds: stored.durationSeconds }, structures: [{ kind: 'cycle', lines: lines[0] }] };
+  }
+  if (stored.formatId === 'emom') {
+    const every = stored.intervalSeconds ?? 60;
+    const count = stored.rounds ?? 0;
+    if (lines.length === 0 || count < 1) fail('EMOM without intervals');
+    if (stored.durationSeconds !== count * every) fail(`EMOM of ${count} × ${every} s lasting ${stored.durationSeconds} s`);
+    return {
+      clock: {
+        kind: 'intervals',
+        everySeconds: every,
+        count,
+        ...(stored.workSeconds != null ? { workSeconds: stored.workSeconds } : {}),
+        ...(stored.stopOnMiss ? { stopOnMiss: true } : {}),
+      },
+      intervals: lines.map((entry) => [{ kind: 'once', lines: entry }]),
+    };
+  }
+  return fail(`unknown format ${stored.formatId}`);
+}
+
+function parseLine(id: string, line: StoredLine, exerciseNames: Map<string, string>): WodLine {
+  const exercise = exerciseNames.get(line.exerciseId);
+  if (exercise == null) throw new Error(`Workout ${id}: unknown exercise ${line.exerciseId}`);
+  return {
+    exerciseId: line.exerciseId,
+    exercise,
+    target: line.target,
+    repDescription: line.repDescription,
+    load: line.load,
+    increment: line.increment,
+  };
 }
 
 // Unfiltered on purpose (unlike db/exercises.ts's getExercises): an archived

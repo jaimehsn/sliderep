@@ -1,4 +1,4 @@
-import { TaggedEvent, WodConfig, fold, intervalLines, isSequence } from '@/constants/wod-engine';
+import { TaggedEvent, WodConfig, fold, intervalLines, isSequence, shapeOf } from '@/constants/wod-engine';
 import type { LogEntry } from '@/components/judge/types';
 import { WodResult, blockLogs, combineBlockResults, deriveResult } from '@/components/result/replay';
 import type { AdjustmentChange } from '@/db/session-adjustments';
@@ -65,7 +65,7 @@ function review(config: WodConfig, log: LogEntry[], accepted: Set<number>): Revi
     const completes = nthValid(events, target, isValid);
     if (completes === -1 || completes === events.length - 1) continue;
     for (const e of events.slice(completes + 1)) surplus.add(e);
-    if (config.format.repeat !== 'rounds') continue;
+    if (shapeOf(config) !== 'rounds') continue;
     // Only a position that was complete gives time back.
     const original = nthValid(events, target, (e) => e.ok);
     if (original !== -1) shifts.push({ after: events[original].t, by: events[original].t - events[completes].t });

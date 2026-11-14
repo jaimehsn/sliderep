@@ -13,6 +13,7 @@ import {
   intervalUnit,
   isComplete,
   isSequence,
+  stopsOnMiss,
   kpiAt,
   targetAt,
 } from '@/constants/wod-engine';
@@ -118,7 +119,7 @@ function deriveOnClock(config: WodConfig, log: LogEntry[]): WodResult {
     if (intervalCompleted) intervalsCompleted += 1;
   }
 
-  if (config.block.stopOnMiss) return stopAtFirstMiss(splits, totalIntervals);
+  if (stopsOnMiss(config)) return stopAtFirstMiss(splits, totalIntervals);
   return {
     scoreLabel: 'SCORE',
     scoreValue: `${intervalsCompleted}/${totalIntervals} · ${totalValidReps} reps`,

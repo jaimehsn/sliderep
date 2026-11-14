@@ -2,8 +2,10 @@
 // live judging (clock ticks interleaved with gestures) must end in exactly the
 // state the result fold derives from the same events.
 import { describe, expect, it } from 'vitest';
-import { EngineEvent, EngineState, START_POSITION, WodConfig, advanceTo, apply, blockIndexOf, capSeconds, durationLine, fold, initial, intervalLineAt, intervalSeconds, isComplete, isResting, isSequence, restLeftSeconds, targetAt, view } from '@/constants/wod-engine';
-import { CASES, builtin, workout } from './fixtures';
+import { EngineEvent, EngineState, START_POSITION, WodConfig, advanceTo, apply, blockIndexOf, capSeconds, durationLine, fold, initial, intervalLineAt, intervalSeconds, isComplete, isResting, isSequence, restLeftSeconds, shapeOf, buildWodConfig, isIntervalWindow, targetAt, view } from '@/constants/wod-engine';
+import { CASES, SYNTHETIC_WORKOUTS, builtin, workout } from './fixtures';
+import { V2_EXERCISES, V2_WORKOUTS } from '@/db/seeds/v2-builtins';
+import { parseWorkoutRow } from '@/db/workouts';
 import { blockLogs } from '@/components/result/replay';
 
 const TICK_MS = 250;
@@ -23,9 +25,16 @@ function live(config: WodConfig, events: EngineEvent[], endT: number): EngineSta
   return state;
 }
 
+/** The config with its interval window stopping at the first miss (the window is data, so it is rebuilt). */
+function withStop(config: WodConfig): WodConfig {
+  const { window } = config;
+  if (!isIntervalWindow(window)) throw new Error('Not an interval window');
+  return buildWodConfig(config.name, { ...window, clock: { ...window.clock, stopOnMiss: true } });
+}
+
 function endOf(config: WodConfig, events: EngineEvent[]): number {
   const last = events.reduce((m, e) => Math.max(m, e.t), 0);
-  if (config.format.repeat !== 'rounds') return Math.max(last, config.totalSeconds * 1000);
+  if (shapeOf(config) !== 'rounds') return Math.max(last, config.totalSeconds * 1000);
   const cap = capSeconds(config);
   return cap != null ? Math.max(last, cap * 1000) : last;
 }
@@ -353,7 +362,7 @@ describe('rest (change rest-steps)', () => {
   });
 
   it('stops a stopping Tabata at the end of the missed work', () => {
-    const stopping: WodConfig = { ...tabata, block: { ...tabata.block, stopOnMiss: true } };
+    const stopping: WodConfig = withStop(tabata);
     // Intervals 1 and 2 completed, interval 3 ends its work with 5 of 8.
     const state = fold(stopping, reps([...run(1000, 8), ...run(31000, 8), ...run(61000, 5)]), Infinity);
     expect(state.finished).toBe(true);
@@ -369,7 +378,7 @@ describe('rest (change rest-steps)', () => {
     expect(durationLine(rested)).toBe('60 s rest between rounds');
     expect(durationLine(restedCapped)).toBe('2 min cap · 60 s rest between rounds');
     expect(durationLine(tabata)).toBe('4 min · 20 s work / 10 s rest');
-    expect(durationLine({ ...tabata, block: { ...tabata.block, stopOnMiss: true } })).toBe('4 min max · until failure · 20 s work / 10 s rest');
+    expect(durationLine(withStop(tabata))).toBe('4 min max · until failure · 20 s work / 10 s rest');
     expect(durationLine(builtin('fran'))).toBe(null);
     expect(durationLine(builtin('cindy'))).toBe('12 min');
     expect(durationLine(workout('franCap10'))).toBe('10 min cap');
@@ -506,5 +515,38 @@ describe('event ids and in-play (change no-rep-review)', () => {
     const twoAmraps = workout('twoAmraps');
     const between = fold(twoAmraps, [{ t: 250000, ok: false }], Infinity);
     expect(between.tagged[0]).toMatchObject({ inPlay: false });
+  });
+});
+
+// Change window-model: stored blocks are translated into windows on read, strictly.
+describe('stored blocks as windows', () => {
+  const names = new Map(V2_EXERCISES.map((e) => [e.id, e.name]));
+  const parse = (blocks: object[]) => parseWorkoutRow({ id: 'x', name: 'X', blocks: JSON.stringify(blocks) }, names);
+  const burpees = [{ exerciseId: 'burpees', target: 10 }];
+
+  it('translates every seed and synthetic row', () => {
+    for (const row of [...V2_WORKOUTS, ...SYNTHETIC_WORKOUTS]) expect(() => parseWorkoutRow(row, names)).not.toThrow();
+    expect(builtin('fran').window).toMatchObject({ clock: { kind: 'continuous' }, structures: [{ kind: 'rounds' }] });
+    expect(builtin('cindy').window).toMatchObject({ clock: { kind: 'continuous', limitSeconds: 720 }, structures: [{ kind: 'cycle' }] });
+    expect(builtin('everyMinute').window).toMatchObject({
+      clock: { kind: 'intervals', everySeconds: 60, count: 10 },
+      intervals: [[{ kind: 'once' }], [{ kind: 'once' }]],
+    });
+  });
+
+  it('rejects blocks breaking the stored invariants', () => {
+    expect(() => parse([{ formatId: 'forTime', lines: [burpees, burpees], rounds: 3 }])).toThrow(/rounds/);
+    expect(() => parse([{ formatId: 'amrap', lines: [burpees, burpees], durationSeconds: 300 }])).toThrow(/AMRAP/);
+    expect(() => parse([{ formatId: 'emom', lines: [burpees], rounds: 10, durationSeconds: 300 }])).toThrow(/EMOM/);
+    expect(() => parse([{ formatId: 'tabata', lines: [burpees], rounds: 1 }])).toThrow(/unknown format/);
+  });
+
+  it('rejects windows outside the shapes allowed so far', () => {
+    const line = { exerciseId: 'burpees', exercise: 'BURPEES', target: 10 };
+    expect(() => buildWodConfig('X', { clock: { kind: 'continuous' }, structures: [{ kind: 'cycle', lines: [line] }] })).toThrow(/limit/);
+    expect(() => buildWodConfig('X', {
+      clock: { kind: 'continuous', limitSeconds: 600 },
+      structures: [{ kind: 'once', lines: [line] }, { kind: 'cycle', lines: [line] }],
+    })).toThrow(/exactly one/);
   });
 });

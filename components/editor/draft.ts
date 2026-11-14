@@ -3,8 +3,8 @@
 // Number fields are kept as the strings typed into the form; `validateDraft`
 // reports anything that isn't a whole number of 1 or more, and the stored block
 // is only built from a draft that validated.
-import { isSequence } from '@/constants/wod-engine';
-import type { Block, WodConfig, WodLine } from '@/constants/wod-engine';
+import { isIntervalWindow, isSequence } from '@/constants/wod-engine';
+import type { Window, WodConfig, WodLine } from '@/constants/wod-engine';
 import type { StoredBlock, StoredLine } from '@/db/workouts';
 
 export type DraftFormat = 'forTime' | 'amrap' | 'emom';
@@ -301,7 +301,7 @@ function count(value: string): number {
   return n;
 }
 
-/** The block to store, in the same layout as the built-ins (see `Block`). The draft must have validated. */
+/** The block to store, in the same layout as the built-ins (see `db/workouts.ts`'s `windowFromStored`). The draft must have validated. */
 export function draftToStoredBlock(draft: Draft): StoredBlock {
   if (draft.format === 'forTime') {
     const rounds = count(draft.rounds);
@@ -342,7 +342,7 @@ export function draftToStoredBlock(draft: Draft): StoredBlock {
   };
 }
 
-// ─── Stored block → draft (DUPLICATE) ───────────────────────────────────────
+// ─── Window → draft (DUPLICATE) ─────────────────────────────────────────
 
 function toLineFields(line: WodLine): LineFields {
   return {
@@ -355,56 +355,61 @@ function toLineFields(line: WodLine): LineFields {
 }
 
 /**
- * The draft a workout's block opens as. Throws for a block the editor can't
- * express (a For Time whose rounds don't share their exercises) — none can exist,
- * since the built-ins and everything the editor saves share them.
+ * The draft a workout's window (a block, in the editor) opens as. Throws for a
+ * window the editor can't express (a For Time whose rounds don't share their
+ * exercises) — none can exist, since the built-ins and everything the editor
+ * saves share them.
  */
-export function draftFromBlock(formatId: string, block: Block, name: string): Draft {
-  if (formatId === 'forTime') {
-    const [first = []] = block.lines;
-    const sameShape = block.lines.every(
-      (round) => round.length === first.length && round.every((l, i) => l.exerciseId === first[i].exerciseId),
-    );
-    if (!sameShape) throw new Error('For Time rounds must share their exercises');
-    const rows: ForTimeRow[] = first.map((line, i) => ({
-      ...toLineFields(line),
-      reps: block.lines.map((round) => String(round[i].target)),
-    }));
-    const sameReps = rows.every((row) => row.reps.every((r) => r === row.reps[0]));
-    return {
-      format: 'forTime',
-      name,
-      rounds: String(block.rounds ?? block.lines.length),
-      sameReps,
-      cap: block.durationSeconds ? String(block.durationSeconds / 60) : '',
-      rest: block.restSeconds ? String(block.restSeconds) : '',
-      rows: sameReps ? rows.map((row) => ({ ...row, reps: [row.reps[0]] })) : rows,
-    };
-  }
-  if (formatId === 'amrap') {
-    return {
-      format: 'amrap',
-      name,
-      minutes: String((block.durationSeconds ?? 0) / 60),
-      rows: (block.lines[0] ?? []).map((line) => ({ ...toLineFields(line), reps: String(line.target) })),
-    };
-  }
-  if (formatId === 'emom') {
+export function draftFromWindow(window: Window, name: string): Draft {
+  if (isIntervalWindow(window)) {
+    const { clock } = window;
     return {
       format: 'emom',
       name,
-      every: String(block.intervalSeconds ?? 60),
-      intervals: String(block.rounds ?? (block.durationSeconds ?? 0) / (block.intervalSeconds ?? 60)),
-      work: block.workSeconds ? String(block.workSeconds) : '',
-      stopOnMiss: block.stopOnMiss ?? false,
-      slots: block.lines.map((interval) => interval.map((line) => ({
+      every: String(clock.everySeconds),
+      intervals: String(clock.count),
+      work: clock.workSeconds ? String(clock.workSeconds) : '',
+      stopOnMiss: clock.stopOnMiss ?? false,
+      slots: window.intervals.map((entry) => entry.flatMap((s) => (s.kind === 'once' ? s.lines : [])).map((line) => ({
         ...toLineFields(line),
         reps: String(line.target),
         increment: line.increment ? String(line.increment) : '',
       }))),
     };
   }
-  throw new Error(`Unknown format ${formatId}`);
+  const [structure] = window.structures;
+  const limit = window.clock.limitSeconds;
+  if (structure?.kind === 'rounds') {
+    const lines = structure.rounds;
+    const [first = []] = lines;
+    const sameShape = lines.every(
+      (round) => round.length === first.length && round.every((l, i) => l.exerciseId === first[i].exerciseId),
+    );
+    if (!sameShape) throw new Error('For Time rounds must share their exercises');
+    const rows: ForTimeRow[] = first.map((line, i) => ({
+      ...toLineFields(line),
+      reps: lines.map((round) => String(round[i].target)),
+    }));
+    const sameReps = rows.every((row) => row.reps.every((r) => r === row.reps[0]));
+    return {
+      format: 'forTime',
+      name,
+      rounds: String(lines.length),
+      sameReps,
+      cap: limit ? String(limit / 60) : '',
+      rest: structure.restSeconds ? String(structure.restSeconds) : '',
+      rows: sameReps ? rows.map((row) => ({ ...row, reps: [row.reps[0]] })) : rows,
+    };
+  }
+  if (structure?.kind === 'cycle') {
+    return {
+      format: 'amrap',
+      name,
+      minutes: String((limit ?? 0) / 60),
+      rows: structure.lines.map((line) => ({ ...toLineFields(line), reps: String(line.target) })),
+    };
+  }
+  throw new Error(`No editor draft for a "${structure?.kind}" window`);
 }
 
 // ─── Workouts of several blocks (change multi-block-workouts) ───────────────
@@ -486,13 +491,13 @@ export function workoutToStoredBlocks(workout: WorkoutDraft): StoredBlock[] {
 /** The workout draft a workout opens as for DUPLICATE: every block, its rest and the scoring block. */
 export function workoutDraftFromConfig(config: WodConfig, name: string): WorkoutDraft {
   if (!isSequence(config)) {
-    return { name, scoringBlock: 0, blocks: [{ draft: draftFromBlock(config.format.id, config.block, ''), restAfter: '' }] };
+    return { name, scoringBlock: 0, blocks: [{ draft: draftFromWindow(config.window, ''), restAfter: '' }] };
   }
   return {
     name,
     scoringBlock: config.scoringBlock,
     blocks: config.parts.map((part, i) => ({
-      draft: draftFromBlock(part.format.id, part.block, ''),
+      draft: draftFromWindow(part.window, ''),
       restAfter: config.restAfter[i] > 0 ? String(config.restAfter[i]) : '',
     })),
   };

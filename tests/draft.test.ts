@@ -10,7 +10,7 @@ import {
   addBlock,
   blockProblems,
   copyName,
-  draftFromBlock,
+  draftFromWindow,
   draftLines,
   draftToStoredBlock,
   emptyDraft,
@@ -31,7 +31,7 @@ import {
   workoutDraftFromConfig,
   workoutToStoredBlocks,
 } from '@/components/editor/draft';
-import { START_POSITION, WodConfig, exerciseNameAt, fold, targetAt } from '@/constants/wod-engine';
+import { ContinuousWindow, START_POSITION, WodConfig, exerciseNameAt, fold, targetAt } from '@/constants/wod-engine';
 import { V2_EXERCISES, V2_WORKOUTS } from '@/db/seeds/v2-builtins';
 import { parseWorkoutRow } from '@/db/workouts';
 import { SYNTHETIC_WORKOUTS, builtin } from './fixtures';
@@ -62,16 +62,16 @@ describe('built-ins round-trip', () => {
   for (const row of V2_WORKOUTS) {
     it(row.id, () => {
       const { config } = parseWorkoutRow(row, names);
-      const draft = draftFromBlock(config.format.id, config.block, config.name);
+      const draft = draftFromWindow(config.window, config.name);
       expect(draftToStoredBlock(draft)).toEqual(JSON.parse(row.blocks)[0]);
     });
   }
 
   it('opens FRAN with "same reps" off and FILTHY FIFTY with it on', () => {
     const franConfig = builtin('fran');
-    expect((draftFromBlock('forTime', franConfig.block, 'FRAN') as ForTimeDraft).sameReps).toBe(false);
+    expect((draftFromWindow(franConfig.window, 'FRAN') as ForTimeDraft).sameReps).toBe(false);
     const filthy = builtin('filthyFifty');
-    expect((draftFromBlock('forTime', filthy.block, 'FILTHY FIFTY') as ForTimeDraft).sameReps).toBe(true);
+    expect((draftFromWindow(filthy.window, 'FILTHY FIFTY') as ForTimeDraft).sameReps).toBe(true);
   });
 });
 
@@ -87,7 +87,8 @@ describe('drafts run as saved', () => {
     expect(sequence).toEqual([
       'THRUSTERS 21', 'PULL-UPS 21', 'THRUSTERS 15', 'PULL-UPS 15', 'THRUSTERS 9', 'PULL-UPS 9',
     ]);
-    expect(config.block.lines[0][0].load).toBe('95/65 lb');
+    const [structure] = (config.window as ContinuousWindow).structures;
+    expect(structure.kind === 'rounds' && structure.rounds[0][0].load).toBe('95/65 lb');
   });
 
   it('"same reps" fills every round', () => {
@@ -217,9 +218,9 @@ describe('time cap (change for-time-cap)', () => {
 
   it('DUPLICATE keeps the cap', () => {
     const config = configOf({ ...fran, cap: '10' });
-    const copy = draftFromBlock(config.format.id, config.block, 'COPY') as ForTimeDraft;
+    const copy = draftFromWindow(config.window, 'COPY') as ForTimeDraft;
     expect(copy.cap).toBe('10');
-    expect((draftFromBlock('forTime', builtin('fran').block, 'FRAN') as ForTimeDraft).cap).toBe('');
+    expect((draftFromWindow(builtin('fran').window, 'FRAN') as ForTimeDraft).cap).toBe('');
   });
 
   it('flags a zero cap and accepts none', () => {
@@ -335,7 +336,7 @@ describe('EMOM interval length (change emom-interval-length)', () => {
 
   it('DUPLICATE keeps the interval', () => {
     const config = configOf(emom('90', '6'));
-    const copy = draftFromBlock('emom', config.block, 'COPY');
+    const copy = draftFromWindow(config.window, 'COPY');
     expect(copy).toMatchObject({ every: '90', intervals: '6' });
     expect(draftToStoredBlock(copy)).toEqual(draftToStoredBlock(emom('90', '6')));
   });
@@ -398,7 +399,7 @@ describe('several exercises per EMOM interval (change emom-multi-exercise-interv
 
   it('DUPLICATE keeps the lines per interval', () => {
     const config = configOf(pair);
-    const copy = draftFromBlock('emom', config.block, 'COPY') as EmomDraft;
+    const copy = draftFromWindow(config.window, 'COPY') as EmomDraft;
     expect(copy.slots.map((s) => s.map((l) => [l.exercise?.id, l.reps]))).toEqual([
       [['pull-ups', '5'], ['push-ups', '10']],
       [['air-squats', '15']],
@@ -456,7 +457,7 @@ describe('EMOM progression and stop (change emom-progressive-reps)', () => {
   });
 
   it('DUPLICATE keeps the increment and the stop', () => {
-    const copy = draftFromBlock('emom', configOf(deathBy).block, 'COPY') as EmomDraft;
+    const copy = draftFromWindow(configOf(deathBy).window, 'COPY') as EmomDraft;
     expect(copy.stopOnMiss).toBe(true);
     expect(copy.slots[0][0].increment).toBe('1');
     expect(draftToStoredBlock(copy)).toEqual(draftToStoredBlock(deathBy));
@@ -537,9 +538,9 @@ describe('rest fields (change rest-steps)', () => {
   });
 
   it('DUPLICATE keeps both', () => {
-    const restCopy = draftFromBlock('forTime', configOf(rested).block, 'COPY') as ForTimeDraft;
+    const restCopy = draftFromWindow(configOf(rested).window, 'COPY') as ForTimeDraft;
     expect(restCopy.rest).toBe('60');
-    const tabataCopy = draftFromBlock('emom', configOf(tabata).block, 'COPY') as EmomDraft;
+    const tabataCopy = draftFromWindow(configOf(tabata).window, 'COPY') as EmomDraft;
     expect(tabataCopy.work).toBe('20');
     expect(draftToStoredBlock(tabataCopy)).toEqual(draftToStoredBlock(tabata));
   });

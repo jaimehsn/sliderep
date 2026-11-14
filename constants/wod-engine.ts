@@ -1,15 +1,15 @@
-// The interpreter: turns a declarative WodDefinition + Format into a WodConfig
-// (structure + presentation), and runs it as one incremental engine for both
-// live judging and results (see the Engine section).
-// "Format = behavior, WOD = content" (docs/ROADMAP.md → WOD format as data).
+// The interpreter: turns a declarative workout window (how the clock runs + the
+// structures done inside it) into a WodConfig (structure + presentation), and runs
+// it as one incremental engine for both live judging and results (see the Engine
+// section). Behavior — timer, advance, end, score — is derived from the window
+// (change window-model; docs/ROADMAP.md → WOD format as data).
 //
-// Scope: only the primitives today's 4 built-in WODs actually need, plus a For
-// Time cap (change for-time-cap) and an EMOM interval length (change
-// emom-interval-length), several exercises per EMOM interval (change
-// emom-multi-exercise-intervals), progressive EMOM reps and the stop (change
-// emom-progressive-reps), and rest between For Time rounds or within EMOM
-// intervals (change rest-steps). Multi-block WODs (buy-in/cash-out) are not
-// implemented yet.
+// Scope: the shapes the For Time / AMRAP / EMOM formats had, with a For Time cap
+// (change for-time-cap), EMOM interval length (change emom-interval-length),
+// several exercises per EMOM interval (change emom-multi-exercise-intervals),
+// progressive EMOM reps and the stop (change emom-progressive-reps), rest between
+// For Time rounds or within EMOM intervals (change rest-steps), and workouts of
+// several windows (change multi-block-workouts, where the UI calls them blocks).
 
 export type WodSession = {
   roundIdx: number;
@@ -25,8 +25,11 @@ export type WodKpi = { label: string; current: number; total: number | null };
 /** One row of a workout's exercise list. `note`: rep description and/or load ("500 m · 95/65 lb"), when the line has either. */
 export type WodExercise = { name: string; detail: string; note?: string };
 
+/** The rules version every config carries and every saved session records (change window-model: one for the whole engine). */
+export const ENGINE_VERSION = 1;
+
 export type WodConfig = {
-  /** Derived from format + content (e.g. "12-MIN AMRAP"), never hand-written. */
+  /** Derived from the window's content (e.g. "12-MIN AMRAP"), never hand-written. */
   mode: string;
   name: string;
   /** One-line card description, derived from content (e.g. "21-15-9 · thrusters + pull-ups"). */
@@ -35,16 +38,15 @@ export type WodConfig = {
   totalSeconds: number;
   /** onTarget: the position advances as soon as its target is reached. onClock: only the clock advances it. Plain data (read by session/adjust.tsx). */
   advanceMode: 'onTarget' | 'onClock';
-  /** The built-in Format's version — stored on a saved session so replay always uses the pinned engine semantics. */
+  /** `ENGINE_VERSION` — stored on a saved session so replay always uses the pinned engine semantics. */
   engineVersion: number;
   exercises: WodExercise[];
-  /** The data the engine interprets (see the engine section below). */
-  format: Format;
-  block: Block;
+  /** The data the engine interprets (see the model section below). */
+  window: Window;
   /**
-   * A workout of several blocks (change multi-block-workouts): one config per block,
-   * the rest after each in seconds (0 for none) and the block that scores. Absent on
-   * a one-block config; on a multi-block one, `format`/`block`/`timerMode`/
+   * A workout of several windows (change multi-block-workouts, "blocks" in the UI):
+   * one config per window, the rest after each in seconds (0 for none) and the one
+   * that scores. Absent on a one-window config; on a sequence, `window`/`timerMode`/
    * `advanceMode`/`totalSeconds`/`engineVersion` are the scoring part's.
    */
   parts?: WodConfig[];
@@ -59,43 +61,6 @@ export function isSequence(config: WodConfig): config is SequenceConfig {
   return config.parts != null && config.parts.length > 1;
 }
 
-// ─── Format primitives ──────────────────────────────────────────────────────
-
-export type RepeatKind = 'rounds' | 'cycle' | 'perInterval';
-export type AdvanceKind = 'onTarget' | 'onClock';
-export type TimerKind = 'elapsed' | 'countdown' | 'intervalCountdown';
-export type StopKind = 'whenAllDone' | 'atDuration' | 'afterIntervals';
-export type ScoreKind = 'time' | 'roundsPlusReps' | 'intervalsPlusReps';
-
-export type Format = {
-  id: string;
-  version: number;
-  repeat: RepeatKind;
-  advance: AdvanceKind;
-  timer: TimerKind;
-  stop: StopKind;
-  score: ScoreKind;
-};
-
-export const FOR_TIME_FORMAT: Format = {
-  id: 'forTime', version: 1, repeat: 'rounds', advance: 'onTarget', timer: 'elapsed', stop: 'whenAllDone', score: 'time',
-};
-
-export const AMRAP_FORMAT: Format = {
-  id: 'amrap', version: 1, repeat: 'cycle', advance: 'onTarget', timer: 'countdown', stop: 'atDuration', score: 'roundsPlusReps',
-};
-
-export const EMOM_FORMAT: Format = {
-  id: 'emom', version: 1, repeat: 'perInterval', advance: 'onClock', timer: 'intervalCountdown', stop: 'afterIntervals', score: 'intervalsPlusReps',
-};
-
-/** Built-in formats by id — what a stored block's `formatId` resolves to. */
-export const FORMATS: Record<string, Format> = {
-  [FOR_TIME_FORMAT.id]: FOR_TIME_FORMAT,
-  [AMRAP_FORMAT.id]: AMRAP_FORMAT,
-  [EMOM_FORMAT.id]: EMOM_FORMAT,
-};
-
 // ─── WOD content ────────────────────────────────────────────────────────────
 
 export type WodLine = {
@@ -107,37 +72,124 @@ export type WodLine = {
   repDescription?: { amount: number; unit: 'm' | 'cal' | 's' };
   /** Prescribed load as free text ("95/65 lb"). Descriptive only, never computed on. */
   load?: string;
-  /** perInterval: reps added to `target` each time this line's sequence entry comes round (change emom-progressive-reps). */
+  /** Intervals: reps added to `target` each time this line's sequence entry comes round (change emom-progressive-reps). */
   increment?: number;
 };
 
-export type Block = {
-  /**
-   * One entry per round/interval; each entry is that round/interval's line(s).
-   * 'rounds': one entry per round (For Time: N entries, possibly varying reps; Chipper: 1 entry of many lines).
-   * 'cycle': exactly 1 entry, reused every round (AMRAP).
-   * 'perInterval': one entry per interval of the sequence, cycled by index % length (EMOM); an entry's lines are done in order within the interval.
-   */
-  lines: WodLine[][];
-  /** 'rounds': round count (Chipper = 1). 'perInterval': total intervals. */
-  rounds?: number;
-  /** 'cycle' / 'perInterval': total WOD duration (perInterval: rounds × interval). 'rounds': the time cap. */
-  durationSeconds?: number;
-  /** 'perInterval': interval length in seconds (10–600), 60 when absent (change emom-interval-length). */
-  intervalSeconds?: number;
-  /** 'perInterval': the workout ends at its first missed interval (change emom-progressive-reps). */
-  stopOnMiss?: boolean;
-  /** 'rounds': rest between rounds in seconds, none after the last (change rest-steps). */
-  restSeconds?: number;
-  /** 'perInterval': work time per interval in seconds; the rest of each interval is rest (change rest-steps). */
+// ─── Window model (change window-model) ─────────────────────────────────────
+//
+// A window is how the clock runs plus what is done inside it. The shapes allowed
+// today are the ones the For Time / AMRAP / EMOM formats had: a continuous window
+// holds exactly one `rounds` or `cycle` structure, and each interval entry exactly
+// one `once`. `buildWodConfig` rejects anything else.
+
+/** A clock that runs once: `limitSeconds` is a For Time's cap or an AMRAP's duration. */
+export type ContinuousClock = { kind: 'continuous'; limitSeconds?: number };
+
+/** Every `everySeconds` (10–600), `count` times; optional work time per interval and stop at the first miss. */
+export type IntervalClock = {
+  kind: 'intervals';
+  everySeconds: number;
+  count: number;
+  /** Work time per interval in seconds; the rest of each interval is rest (change rest-steps). */
   workSeconds?: number;
+  /** The window ends at its first missed interval (change emom-progressive-reps). */
+  stopOnMiss?: boolean;
 };
 
-export type WodDefinition = {
-  id: string;
-  name: string;
-  block: Block;
-};
+export type Structure =
+  /** One entry per round, each its lines (Chipper: one round, each line a station); optional rest between rounds (change rest-steps). */
+  | { kind: 'rounds'; rounds: WodLine[][]; restSeconds?: number }
+  /** The same lines round after round until the clock ends it (AMRAP). */
+  | { kind: 'cycle'; lines: WodLine[] }
+  /** Lines done once, in order; the last takes any extra reps (an EMOM interval). */
+  | { kind: 'once'; lines: WodLine[] };
+
+export type ContinuousWindow = { clock: ContinuousClock; structures: Structure[] };
+/** `intervals`: the rotating sequence, interval m doing entry m % length. */
+export type IntervalWindow = { clock: IntervalClock; intervals: Structure[][] };
+export type Window = ContinuousWindow | IntervalWindow;
+
+export function isIntervalWindow(window: Window): window is IntervalWindow {
+  return window.clock.kind === 'intervals';
+}
+
+/**
+ * How a window behaves, derived from its clock and content: 'perInterval' for an
+ * interval window, otherwise the kind of its only structure ('rounds' or 'cycle').
+ * The engine's rules are written per shape (they are the v1 rules per format).
+ */
+export type Shape = 'rounds' | 'cycle' | 'perInterval';
+
+function windowShape(window: Window): Shape {
+  if (isIntervalWindow(window)) return 'perInterval';
+  return window.structures[0].kind === 'cycle' ? 'cycle' : 'rounds';
+}
+
+export function shapeOf(config: WodConfig): Shape {
+  return windowShape(config.window);
+}
+
+function onlyStructure(window: ContinuousWindow): Structure {
+  return window.structures[0];
+}
+
+/** The rounds of a 'rounds' window (one entry per round). */
+function roundsOf(window: Window): WodLine[][] {
+  const s = isIntervalWindow(window) ? null : onlyStructure(window);
+  return s?.kind === 'rounds' ? s.rounds : [];
+}
+
+/** The lines of a 'cycle' window. */
+function cycleOf(window: Window): WodLine[] {
+  const s = isIntervalWindow(window) ? null : onlyStructure(window);
+  return s?.kind === 'cycle' ? s.lines : [];
+}
+
+/** An interval window's sequence: each entry's lines, done in order. */
+function sequenceOf(window: Window): WodLine[][] {
+  if (!isIntervalWindow(window)) return [];
+  return window.intervals.map((entry) => (entry[0]?.kind === 'once' ? entry[0].lines : []));
+}
+
+/** Every line list of the window: its rounds, its cycle, or its interval sequence. */
+function lineLists(window: Window): WodLine[][] {
+  const shape = windowShape(window);
+  return shape === 'rounds' ? roundsOf(window) : shape === 'cycle' ? [cycleOf(window)] : sequenceOf(window);
+}
+
+/** The window's length in seconds: the continuous limit (cap or duration), or count × interval; 0 for none. */
+function windowSeconds(window: Window): number {
+  if (isIntervalWindow(window)) return window.clock.count * window.clock.everySeconds;
+  return window.clock.limitSeconds ?? 0;
+}
+
+function restBetweenRounds(window: Window): number | undefined {
+  const s = isIntervalWindow(window) ? null : onlyStructure(window);
+  return s?.kind === 'rounds' ? s.restSeconds : undefined;
+}
+
+function workOf(window: Window): number | undefined {
+  return isIntervalWindow(window) ? window.clock.workSeconds : undefined;
+}
+
+/** Whether the window stops at its first missed interval (change emom-progressive-reps). */
+export function stopsOnMiss(config: WodConfig): boolean {
+  return isIntervalWindow(config.window) && config.window.clock.stopOnMiss === true;
+}
+
+// The shapes allowed so far (see the section comment); a throw is a bug.
+function checkWindow(window: Window): void {
+  if (isIntervalWindow(window)) {
+    if (window.intervals.length === 0 || window.intervals.some((e) => e.length !== 1 || e[0].kind !== 'once')) {
+      throw new Error('An interval window needs entries of exactly one "once" structure');
+    }
+    return;
+  }
+  const [s, ...more] = window.structures;
+  if (!s || more.length > 0 || s.kind === 'once') throw new Error('A continuous window needs exactly one "rounds" or "cycle" structure');
+  if (s.kind === 'cycle' && !window.clock.limitSeconds) throw new Error('A "cycle" needs a time limit');
+}
 
 // ─── Interpreter ────────────────────────────────────────────────────────────
 
@@ -160,9 +212,9 @@ function lineNote(line: WodLine | undefined): string | undefined {
   return parts.length > 0 ? parts.join(' · ') : undefined;
 }
 
-// An EMOM block's interval length in seconds (60 unless the block sets one).
-function blockInterval(block: Block): number {
-  return block.intervalSeconds ?? 60;
+// A window's interval length in seconds (60 unless an interval window sets one).
+function windowInterval(window: Window): number {
+  return isIntervalWindow(window) ? window.clock.everySeconds : 60;
 }
 
 // A length as m:ss ("1:30"), unlike formatTime's clock-like "01:30".
@@ -171,32 +223,34 @@ function formatLength(seconds: number): string {
 }
 
 // More than one round, all identical: "5 rounds of the same", shown once instead of per round.
-function sameEveryRound(block: Block): boolean {
-  const [first = []] = block.lines;
-  return block.lines.length > 1 && block.lines.every((round) => round.every((l, i) => l.target === first[i]?.target));
+function sameEveryRound(rounds: WodLine[][]): boolean {
+  const [first = []] = rounds;
+  return rounds.length > 1 && rounds.every((round) => round.every((l, i) => l.target === first[i]?.target));
 }
 
-function summarize(format: Format, block: Block): WodExercise[] {
-  if (format.repeat === 'rounds' && (block.rounds === 1 || sameEveryRound(block))) {
+function summarize(window: Window): WodExercise[] {
+  const shape = windowShape(window);
+  const rounds = roundsOf(window);
+  if (shape === 'rounds' && (rounds.length === 1 || sameEveryRound(rounds))) {
     // Chipper (each line is its own station), or rounds that all repeat the first.
-    return block.lines[0].map((l) => ({ name: l.exercise, detail: amountOf(l), note: lineNote(l) }));
+    return rounds[0].map((l) => ({ name: l.exercise, detail: amountOf(l), note: lineNote(l) }));
   }
-  if (format.repeat === 'rounds') {
+  if (shape === 'rounds') {
     // For Time: a fixed exercise order repeated every round, reps vary per round.
-    const firstRound = block.lines[0];
+    const firstRound = rounds[0];
     return firstRound.map((_, exIdx) => ({
       name: firstRound[exIdx].exercise,
-      detail: block.lines.map((round) => round[exIdx]?.target ?? 0).join(' · '),
+      detail: rounds.map((round) => round[exIdx]?.target ?? 0).join(' · '),
       note: lineNote(firstRound[exIdx]),
     }));
   }
-  if (format.repeat === 'cycle') {
+  if (shape === 'cycle') {
     // AMRAP: a single template, reps fixed every round.
-    return block.lines[0].map((l) => ({ name: l.exercise, detail: amountOf(l), note: lineNote(l) }));
+    return cycleOf(window).map((l) => ({ name: l.exercise, detail: amountOf(l), note: lineNote(l) }));
   }
   // perInterval: one row per interval of the sequence, its exercises joined by " + ".
-  const per = blockInterval(block) === 60 ? 'min' : 'interval';
-  return block.lines.map((interval) => {
+  const per = windowInterval(window) === 60 ? 'min' : 'interval';
+  return sequenceOf(window).map((interval) => {
     const notes = interval.map(lineNote).filter((n): n is string => n != null);
     return {
       name: interval.map((l) => l.exercise).join(' + '),
@@ -207,67 +261,73 @@ function summarize(format: Format, block: Block): WodExercise[] {
 }
 
 // Distinct exercise names in first-seen order, lowercased: "a + b" for two, "a, b, c" for more.
-function joinNames(block: Block): string {
-  const names = [...new Set(block.lines.flat().map((l) => l.exercise.toLowerCase()))];
+function joinNames(window: Window): string {
+  const names = [...new Set(lineLists(window).flat().map((l) => l.exercise.toLowerCase()))];
   return names.join(names.length === 2 ? ' + ' : ', ');
 }
 
-function describeMode(format: Format, block: Block): string {
-  if (format.repeat === 'rounds') return sameEveryRound(block) ? `${block.lines.length} ROUNDS FOR TIME` : 'FOR TIME';
-  if (format.repeat === 'cycle') return `${(block.durationSeconds ?? 0) / 60}-MIN AMRAP`;
-  const interval = blockInterval(block);
+function describeMode(window: Window): string {
+  const shape = windowShape(window);
+  if (shape === 'rounds') {
+    const rounds = roundsOf(window);
+    return sameEveryRound(rounds) ? `${rounds.length} ROUNDS FOR TIME` : 'FOR TIME';
+  }
+  if (shape === 'cycle') return `${windowSeconds(window) / 60}-MIN AMRAP`;
+  const interval = windowInterval(window);
   const prefix = interval === 60 ? 'EMOM' : interval % 60 === 0 ? `E${interval / 60}MOM` : `EVERY ${formatLength(interval)}`;
-  return `${prefix} · ${block.rounds ?? 0}`;
+  return `${prefix} · ${isIntervalWindow(window) ? window.clock.count : 0}`;
 }
 
-function describeContent(format: Format, block: Block): string {
-  // A For Time's durationSeconds is its time cap (change for-time-cap).
-  const cap = format.repeat === 'rounds' && block.durationSeconds ? ` · ${block.durationSeconds / 60} min cap` : '';
+function describeContent(window: Window): string {
+  const shape = windowShape(window);
+  // A For Time's limit is its time cap (change for-time-cap).
+  const cap = shape === 'rounds' && windowSeconds(window) ? ` · ${windowSeconds(window) / 60} min cap` : '';
   // A stopping EMOM (change emom-progressive-reps).
-  const untilFailure = format.repeat === 'perInterval' && block.stopOnMiss ? ' · until failure' : '';
+  const untilFailure = isIntervalWindow(window) && window.clock.stopOnMiss ? ' · until failure' : '';
   // Rest between rounds, or work time per interval (change rest-steps).
-  const rest = format.repeat === 'rounds' && block.restSeconds ? ` · ${block.restSeconds} s rest` : '';
-  const work = format.repeat === 'perInterval' && block.workSeconds ? ` · ${block.workSeconds} s work` : '';
-  return describeScheme(format, block) + rest + work + cap + untilFailure;
+  const restSeconds = restBetweenRounds(window);
+  const rest = restSeconds ? ` · ${restSeconds} s rest` : '';
+  const workSeconds = workOf(window);
+  const work = workSeconds ? ` · ${workSeconds} s work` : '';
+  return describeScheme(window) + rest + work + cap + untilFailure;
 }
 
-function describeScheme(format: Format, block: Block): string {
-  if (format.repeat === 'rounds' && block.rounds === 1) {
-    const lines = block.lines[0] ?? [];
+function describeScheme(window: Window): string {
+  const shape = windowShape(window);
+  const rounds = roundsOf(window);
+  if (shape === 'rounds' && rounds.length === 1) {
+    const lines = rounds[0] ?? [];
     const targets = new Set(lines.map((l) => l.target));
     return targets.size === 1
       ? `${lines.length} stations · ${lines[0].target} reps each`
       : `${lines.length} stations`;
   }
-  if (format.repeat === 'rounds' && sameEveryRound(block)) return `${block.lines.length} rounds · ${joinNames(block)}`;
-  if (format.repeat === 'rounds') {
-    const uniform = block.lines.every((round) => round.every((l) => l.target === round[0]?.target));
-    const scheme = uniform ? block.lines.map((round) => round[0]?.target ?? 0).join('-') : `${block.rounds ?? 0} rounds`;
-    return `${scheme} · ${joinNames(block)}`;
+  if (shape === 'rounds' && sameEveryRound(rounds)) return `${rounds.length} rounds · ${joinNames(window)}`;
+  if (shape === 'rounds') {
+    const uniform = rounds.every((round) => round.every((l) => l.target === round[0]?.target));
+    const scheme = uniform ? rounds.map((round) => round[0]?.target ?? 0).join('-') : `${rounds.length} rounds`;
+    return `${scheme} · ${joinNames(window)}`;
   }
-  if (format.repeat === 'perInterval' && blockInterval(block) !== 60) {
-    return `${block.rounds ?? 0} × ${formatLength(blockInterval(block))} · ${joinNames(block)}`;
+  if (isIntervalWindow(window) && windowInterval(window) !== 60) {
+    return `${window.clock.count} × ${formatLength(windowInterval(window))} · ${joinNames(window)}`;
   }
-  return `${(block.durationSeconds ?? 0) / 60} min · ${joinNames(block)}`;
+  return `${windowSeconds(window) / 60} min · ${joinNames(window)}`;
 }
 
-export function buildWodConfig(definition: WodDefinition, format: Format): WodConfig {
-  const { block } = definition;
-
-  const timerMode: WodConfig['timerMode'] =
-    format.timer === 'elapsed' ? 'elapsed' : format.timer === 'countdown' ? 'remaining' : 'minLeft';
-
+/** A one-window config. Timer, advance and totals come from the window's shape. */
+export function buildWodConfig(name: string, window: Window): WodConfig {
+  checkWindow(window);
+  const shape = windowShape(window);
   return {
-    mode: describeMode(format, block),
-    name: definition.name,
-    description: describeContent(format, block),
-    timerMode,
-    totalSeconds: block.durationSeconds ?? 0,
-    advanceMode: format.advance,
-    engineVersion: format.version,
-    exercises: summarize(format, block),
-    format,
-    block,
+    mode: describeMode(window),
+    name,
+    description: describeContent(window),
+    timerMode: shape === 'rounds' ? 'elapsed' : shape === 'cycle' ? 'remaining' : 'minLeft',
+    totalSeconds: windowSeconds(window),
+    advanceMode: shape === 'perInterval' ? 'onClock' : 'onTarget',
+    engineVersion: ENGINE_VERSION,
+    exercises: summarize(window),
+    window,
   };
 }
 
@@ -292,11 +352,11 @@ export function buildSequenceConfig(name: string, parts: WodConfig[], restAfter:
 // ─── Positions ──────────────────────────────────────────────────────────────
 //
 // A position is a WodSession (round/line for onTarget, interval for perInterval).
-// Pure functions of the format + block — the engine and the result labels read them.
+// Pure functions of the window — the engine and the result labels read them.
 
-/** An EMOM's interval length in seconds: the block's `intervalSeconds`, or 60 (change emom-interval-length). */
+/** An interval window's interval length in seconds (change emom-interval-length); 60 for a continuous one. */
 export function intervalSeconds(config: WodConfig): number {
-  return blockInterval(config.block);
+  return windowInterval(config.window);
 }
 
 /** What an EMOM's intervals are called: 'minute' with 60-second intervals, 'interval' otherwise. */
@@ -307,16 +367,17 @@ export function intervalUnit(config: WodConfig): 'minute' | 'interval' {
 export const START_POSITION: WodSession = { roundIdx: 0, exIdx: 0, completedRounds: 0, minuteIdx: 0 };
 
 function lineAt(config: WodConfig, pos: WodSession): WodLine | undefined {
-  const { lines } = config.block;
-  if (config.format.repeat === 'rounds') return lines[pos.roundIdx]?.[pos.exIdx];
-  if (config.format.repeat === 'cycle') return lines[0]?.[pos.exIdx];
-  return lines[pos.minuteIdx % lines.length]?.[pos.exIdx];
+  const shape = shapeOf(config);
+  if (shape === 'rounds') return roundsOf(config.window)[pos.roundIdx]?.[pos.exIdx];
+  if (shape === 'cycle') return cycleOf(config.window)[pos.exIdx];
+  const sequence = sequenceOf(config.window);
+  return sequence[pos.minuteIdx % sequence.length]?.[pos.exIdx];
 }
 
 /** perInterval: the lines of interval `intervalIdx`, done in order. */
 export function intervalLines(config: WodConfig, intervalIdx: number): WodLine[] {
-  const { lines } = config.block;
-  return lines[intervalIdx % lines.length] ?? [];
+  const sequence = sequenceOf(config.window);
+  return sequence[intervalIdx % sequence.length] ?? [];
 }
 
 /**
@@ -338,9 +399,9 @@ export function intervalLineAt(config: WodConfig, intervalIdx: number, k: number
 export function targetAt(config: WodConfig, pos: WodSession): number {
   const line = lineAt(config, pos);
   if (!line) return 0;
-  if (config.format.repeat !== 'perInterval' || !line.increment) return line.target;
+  if (shapeOf(config) !== 'perInterval' || !line.increment) return line.target;
   // Progressive EMOM (change emom-progressive-reps): + increment per repetition of the sequence.
-  return line.target + line.increment * Math.floor(pos.minuteIdx / config.block.lines.length);
+  return line.target + line.increment * Math.floor(pos.minuteIdx / sequenceOf(config.window).length);
 }
 
 export function exerciseNameAt(config: WodConfig, pos: WodSession): string {
@@ -348,25 +409,26 @@ export function exerciseNameAt(config: WodConfig, pos: WodSession): string {
 }
 
 export function kpiAt(config: WodConfig, pos: WodSession): WodKpi {
-  const { block } = config;
-  if (config.format.repeat === 'rounds') {
-    if (block.rounds === 1) {
-      const total = block.lines[0]?.length ?? 0;
+  const { window } = config;
+  const shape = shapeOf(config);
+  if (shape === 'rounds') {
+    const rounds = roundsOf(window);
+    if (rounds.length === 1) {
+      const total = rounds[0]?.length ?? 0;
       return { label: 'station', current: Math.min(pos.exIdx + 1, total), total };
     }
-    const total = block.rounds ?? 0;
+    const total = rounds.length;
     return { label: 'round', current: Math.min(pos.roundIdx + 1, total), total };
   }
-  if (config.format.repeat === 'cycle') return { label: 'rounds', current: pos.completedRounds, total: null };
-  const total = block.rounds ?? 0;
+  if (shape === 'cycle') return { label: 'rounds', current: pos.completedRounds, total: null };
+  const total = isIntervalWindow(window) ? window.clock.count : 0;
   return { label: intervalUnit(config), current: Math.min(pos.minuteIdx + 1, total), total };
 }
 
 // onTarget only: the next line, wrapping into the next round (AMRAP also tallies it).
 function nextPosition(config: WodConfig, pos: WodSession): WodSession {
-  const { block } = config;
-  const cycle = config.format.repeat === 'cycle';
-  const roundLines = block.lines[cycle ? 0 : pos.roundIdx]?.length ?? 0;
+  const cycle = shapeOf(config) === 'cycle';
+  const roundLines = (cycle ? cycleOf(config.window) : roundsOf(config.window)[pos.roundIdx])?.length ?? 0;
   const nextEx = pos.exIdx + 1;
   if (nextEx < roundLines) return { ...pos, exIdx: nextEx };
   return cycle
@@ -376,14 +438,9 @@ function nextPosition(config: WodConfig, pos: WodSession): WodSession {
 
 // AMRAP never completes on reps; it ends on the clock.
 function isCompleteAt(config: WodConfig, pos: WodSession): boolean {
-  return config.format.repeat === 'rounds' && pos.roundIdx >= (config.block.rounds ?? 0);
+  return shapeOf(config) === 'rounds' && pos.roundIdx >= roundsOf(config.window).length;
 }
 
-/**
- * A For Time / Chipper time cap in seconds, or null (change for-time-cap). It is
- * the block's `durationSeconds`, which only AMRAP and EMOM had before; code that
- * means "cap" asks this rather than reading `totalSeconds` on a `rounds` config.
- */
 /**
  * EMOM: whether the state's current interval is short of its targets. Earlier lines
  * of an interval were left only on reaching their target, so it is missed unless
@@ -394,8 +451,13 @@ function intervalMissed(config: WodConfig, state: EngineState): boolean {
   return pos.exIdx < intervalLines(config, pos.minuteIdx).length - 1 || state.raw < targetAt(config, pos);
 }
 
+/**
+ * A For Time / Chipper time cap in seconds, or null (change for-time-cap): a
+ * 'rounds' window's limit. Code that means "cap" asks this rather than reading
+ * `totalSeconds` on a 'rounds' config.
+ */
 export function capSeconds(config: WodConfig): number | null {
-  return config.format.repeat === 'rounds' && config.totalSeconds > 0 ? config.totalSeconds : null;
+  return shapeOf(config) === 'rounds' && config.totalSeconds > 0 ? config.totalSeconds : null;
 }
 
 /**
@@ -407,16 +469,15 @@ export function capSeconds(config: WodConfig): number | null {
 export function durationLine(config: WodConfig): string | null {
   // Each block of a sequence has its own line (change multi-block-workouts).
   if (isSequence(config)) return null;
-  const { block } = config;
   const parts: string[] = [];
   const m = Math.floor(config.totalSeconds / 60);
   if (config.totalSeconds > 0) {
-    parts.push(capSeconds(config) != null ? `${m} min cap` : block.stopOnMiss ? `${m} min max · until failure` : `${m} min`);
+    parts.push(capSeconds(config) != null ? `${m} min cap` : stopsOnMiss(config) ? `${m} min max · until failure` : `${m} min`);
   }
-  if (config.format.repeat === 'rounds' && block.restSeconds) parts.push(`${block.restSeconds} s rest between rounds`);
-  if (config.format.repeat === 'perInterval' && block.workSeconds) {
-    parts.push(`${block.workSeconds} s work / ${intervalSeconds(config) - block.workSeconds} s rest`);
-  }
+  const rest = restBetweenRounds(config.window);
+  if (rest) parts.push(`${rest} s rest between rounds`);
+  const work = workOf(config.window);
+  if (work) parts.push(`${work} s work / ${intervalSeconds(config) - work} s rest`);
   return parts.length > 0 ? parts.join(' · ') : null;
 }
 
@@ -432,7 +493,7 @@ export function isComplete(config: WodConfig, state: EngineState): boolean {
     return state.finished && seq.idx === last && isComplete(config.parts[last], seq.inner);
   }
   return (
-    config.format.repeat === 'rounds' &&
+    shapeOf(config) === 'rounds' &&
     isCompleteAt(config, nextPosition(config, state.pos)) &&
     state.done >= targetAt(config, state.pos)
   );
@@ -443,7 +504,7 @@ export function isComplete(config: WodConfig, state: EngineState): boolean {
 // One engine for live judging and for results: live judging calls `apply` on
 // each gesture and `advanceTo` on each clock tick; a result is `fold` over the
 // stored events with the very same functions. Rules are the ones engineVersion 1
-// pins (tests/__goldens__), per `format.repeat`:
+// pins (tests/__goldens__), per window shape (`shapeOf`, the v1 rules per format):
 //   rounds      — finishes on the last rep, or at its cap when it has one (change
 //                 for-time-cap: an event at the cap or later is ignored); later events ignored
 //   cycle       — finishes at its duration, but still counts events after it (v1)
@@ -520,7 +581,7 @@ export function initial(config: WodConfig): EngineState {
 export function advanceTo(config: WodConfig, state: EngineState, t: number): EngineState {
   if (isSequence(config)) return advanceSequence(config, state, t);
   if (state.finished || t <= state.t) return state;
-  const { repeat } = config.format;
+  const repeat = shapeOf(config);
   if (repeat === 'cycle') {
     const end = config.totalSeconds * 1000;
     return t >= end ? { ...state, t: end, finished: true } : { ...state, t };
@@ -530,8 +591,8 @@ export function advanceTo(config: WodConfig, state: EngineState, t: number): Eng
     const intervalMs = intervalSeconds(config) * 1000;
     const minuteIdx = Math.floor(t / intervalMs);
     // Where interval m's counting ends: its work time, or the whole interval (change rest-steps).
-    const missEnd = (m: number) => m * intervalMs + (config.block.workSeconds ?? intervalSeconds(config)) * 1000;
-    if (config.block.stopOnMiss && t >= missEnd(state.pos.minuteIdx)) {
+    const missEnd = (m: number) => m * intervalMs + (workOf(config.window) ?? intervalSeconds(config)) * 1000;
+    if (stopsOnMiss(config) && t >= missEnd(state.pos.minuteIdx)) {
       // Stopping EMOM (change emom-progressive-reps): end at the first missed interval.
       const m = state.pos.minuteIdx;
       if (intervalMissed(config, state)) return { ...state, t: missEnd(m), finished: true };
@@ -559,8 +620,8 @@ export function advanceTo(config: WodConfig, state: EngineState, t: number): Eng
 
 /** EMOM with a work time: whether session-clock `t` falls in an interval's rest (change rest-steps). */
 function inIntervalRest(config: WodConfig, t: number): boolean {
-  const work = config.block.workSeconds;
-  return config.format.repeat === 'perInterval' && work != null && t % (intervalSeconds(config) * 1000) >= work * 1000;
+  const work = workOf(config.window);
+  return shapeOf(config) === 'perInterval' && work != null && t % (intervalSeconds(config) * 1000) >= work * 1000;
 }
 
 /**
@@ -596,7 +657,7 @@ function idOf(event: EngineEvent): { id?: number } {
 
 export function apply(config: WodConfig, state: EngineState, event: EngineEvent): EngineState {
   if (isSequence(config)) return applySequence(config, state, event);
-  const { repeat } = config.format;
+  const repeat = shapeOf(config);
   const s = advanceTo(config, state, event.t);
   const target = targetAt(config, s.pos);
   const inPlay = !((s.finished && repeat !== 'cycle') || isResting(config, s));
@@ -623,7 +684,7 @@ export function apply(config: WodConfig, state: EngineState, event: EngineEvent)
       return { ...s, tagged, done, finished: true };
     }
     // A new round starts after the rest between rounds, if any (change rest-steps).
-    const rest = repeat === 'rounds' && next.roundIdx > s.pos.roundIdx ? config.block.restSeconds : undefined;
+    const rest = repeat === 'rounds' && next.roundIdx > s.pos.roundIdx ? restBetweenRounds(config.window) : undefined;
     return { ...s, tagged, pos: next, done: 0, restUntil: rest ? event.t + rest * 1000 : s.restUntil };
   }
   return { ...s, tagged, done: Math.min(done, target) };
@@ -736,7 +797,7 @@ export function view(config: WodConfig, state: EngineState): {
   if (isSequence(config)) return viewSequence(config, state);
   const elapsed = Math.floor(state.t / 1000);
   const interval = intervalSeconds(config);
-  const work = config.block.workSeconds;
+  const work = workOf(config.window);
   const resting = isResting(config, state);
   // An EMOM with a work time counts down its current phase (change rest-steps).
   const phased = config.timerMode === 'minLeft' && work != null;
