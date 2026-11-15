@@ -1,0 +1,53 @@
+{
+  "mode": "FOR TIME",
+  "description": "10 burpees → 3 rounds · thrusters · 30 s rest",
+  "exercises": [
+    {
+      "name": "BURPEES",
+      "detail": "10 reps"
+    },
+    {
+      "name": "THRUSTERS",
+      "detail": "5 reps"
+    }
+  ],
+  "sections": [
+    {
+      "title": "PART 1",
+      "exercises": [
+        {
+          "name": "BURPEES",
+          "detail": "10 reps"
+        }
+      ]
+    },
+    {
+      "title": "PART 2 · 3 ROUNDS · 30 s REST",
+      "exercises": [
+        {
+          "name": "THRUSTERS",
+          "detail": "5 reps"
+        }
+      ]
+    }
+  ],
+  "durationLine": null,
+  "timerMode": "elapsed",
+  "totalSeconds": 0,
+  "advanceMode": "onTarget",
+  "engineVersion": 1,
+  "view": {
+    "exerciseName": "BURPEES",
+    "target": 10,
+    "done": 0,
+    "kpi": {
+      "label": "station",
+      "current": 1,
+      "total": 1
+    },
+    "timerStr": "00:00",
+    "timerLabel": "elapsed",
+    "blockLabel": null,
+    "partLabel": "PART 1/2"
+  }
+}

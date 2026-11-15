@@ -148,7 +148,7 @@ export function useJudge(config: WodConfig) {
 
   const gesture = Gesture.Exclusive(pan, tap);
 
-  const { exerciseName, target, done, kpi, timerStr, timerLabel, blockLabel } = view(config, state);
+  const { exerciseName, target, done, kpi, timerStr, timerLabel, blockLabel, partLabel } = view(config, state);
   // The raw input log, as saved: every recorded gesture with its session-clock t.
   const log: LogEntry[] = useMemo(() => state.tagged.map((e, i) => ({ id: i, ok: e.ok, t: e.t })), [state.tagged]);
 
@@ -178,6 +178,7 @@ export function useJudge(config: WodConfig) {
     exerciseName,
     kpi,
     blockLabel,
+    partLabel,
     finished: state.finished,
     log,
     gesture,

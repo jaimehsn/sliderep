@@ -12,7 +12,7 @@ import { getSession, StoredSession } from '@/db/sessions';
 import { Workout, getWorkout } from '@/db/workouts';
 import { AdjustmentChange, SessionAdjustment, addAdjustment, getAdjustments } from '@/db/session-adjustments';
 import { ReviewNoRep, acceptedIds, deriveAdjustedResult, reviewNoReps } from '@/components/result/adjust';
-import { deriveResult, splitLabel } from '@/components/result/replay';
+import { deriveResult, partHeading, splitLabel } from '@/components/result/replay';
 import { START_POSITION, WodConfig, formatTime, isSequence } from '@/constants/wod-engine';
 
 // The no-rep review (change no-rep-review): the judge accepts no-reps they gave, in up
@@ -167,6 +167,8 @@ export default function AdjustScreen() {
             return (
               <Fragment key={i}>
                 {i === 0 || result.splits[i - 1].blockIdx !== split.blockIdx ? groupTitle(blockIdx) : null}
+                {/* A block of several parts: a subheading before each part's splits (change shared-clock). */}
+                {partHeading(result.splits, i) != null && <Text style={styles.partTitle}>{partHeading(result.splits, i)}</Text>}
                 <View style={styles.splitRow}>
                   <Text style={[styles.splitLabel, !split.completed && styles.splitLabelPartial]}>{split.label}</Text>
                   <Text style={styles.splitReps}>{split.reps}/{split.target}</Text>
@@ -269,6 +271,14 @@ const styles = StyleSheet.create({
     letterSpacing: 1.5,
     paddingTop: 20,
     paddingBottom: 4,
+  },
+  partTitle: {
+    fontFamily: fonts.ui,
+    fontSize: 10,
+    color: colors.muted,
+    letterSpacing: 1.5,
+    paddingTop: 12,
+    paddingBottom: 2,
   },
   splitRow: {
     paddingVertical: 12,

@@ -1,0 +1,107 @@
+{
+  "result": {
+    "scoreLabel": "SCORE",
+    "scoreValue": "CAP · 30 reps",
+    "splits": [
+      {
+        "label": "Station 1 — RING MUSCLE-UPS",
+        "reps": 15,
+        "target": 15,
+        "completed": true,
+        "cumulativeMs": 285000,
+        "lapMs": 285000,
+        "roundIdx": 0,
+        "exIdx": 0,
+        "partIdx": 0
+      },
+      {
+        "label": "Round 1 — LEGLESS ROPE CLIMBS",
+        "reps": 1,
+        "target": 1,
+        "completed": true,
+        "cumulativeMs": 305000,
+        "lapMs": 20000,
+        "roundIdx": 1,
+        "exIdx": 0,
+        "partIdx": 1
+      },
+      {
+        "label": "Round 1 — FRONT SQUATS",
+        "reps": 3,
+        "target": 3,
+        "completed": true,
+        "cumulativeMs": 365000,
+        "lapMs": 60000,
+        "roundIdx": 1,
+        "exIdx": 1,
+        "partIdx": 1
+      },
+      {
+        "label": "Round 2 — LEGLESS ROPE CLIMBS",
+        "reps": 1,
+        "target": 1,
+        "completed": true,
+        "cumulativeMs": 385000,
+        "lapMs": 20000,
+        "roundIdx": 2,
+        "exIdx": 0,
+        "partIdx": 1
+      },
+      {
+        "label": "Round 2 — FRONT SQUATS",
+        "reps": 3,
+        "target": 3,
+        "completed": true,
+        "cumulativeMs": 445000,
+        "lapMs": 60000,
+        "roundIdx": 2,
+        "exIdx": 1,
+        "partIdx": 1
+      },
+      {
+        "label": "Round 3 — LEGLESS ROPE CLIMBS",
+        "reps": 1,
+        "target": 1,
+        "completed": true,
+        "cumulativeMs": 465000,
+        "lapMs": 20000,
+        "roundIdx": 3,
+        "exIdx": 0,
+        "partIdx": 1
+      },
+      {
+        "label": "Round 3 — FRONT SQUATS",
+        "reps": 3,
+        "target": 3,
+        "completed": true,
+        "cumulativeMs": 525000,
+        "lapMs": 60000,
+        "roundIdx": 3,
+        "exIdx": 1,
+        "partIdx": 1
+      },
+      {
+        "label": "Round 4 — LEGLESS ROPE CLIMBS",
+        "reps": 1,
+        "target": 1,
+        "completed": true,
+        "cumulativeMs": 545000,
+        "lapMs": 20000,
+        "roundIdx": 4,
+        "exIdx": 0,
+        "partIdx": 1
+      },
+      {
+        "label": "Round 4 — FRONT SQUATS",
+        "reps": 2,
+        "target": 3,
+        "completed": false,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 4,
+        "exIdx": 1,
+        "partIdx": 1
+      }
+    ]
+  }
+}

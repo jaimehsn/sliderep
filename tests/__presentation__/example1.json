@@ -1,0 +1,74 @@
+{
+  "mode": "FOR TIME",
+  "description": "15 ring muscle-ups → 5 rounds · legless rope climbs + front squats → 15 ring muscle-ups · 12 min cap",
+  "exercises": [
+    {
+      "name": "RING MUSCLE-UPS",
+      "detail": "15 reps"
+    },
+    {
+      "name": "LEGLESS ROPE CLIMBS",
+      "detail": "1 reps"
+    },
+    {
+      "name": "FRONT SQUATS",
+      "detail": "3 reps"
+    },
+    {
+      "name": "RING MUSCLE-UPS",
+      "detail": "15 reps"
+    }
+  ],
+  "sections": [
+    {
+      "title": "PART 1",
+      "exercises": [
+        {
+          "name": "RING MUSCLE-UPS",
+          "detail": "15 reps"
+        }
+      ]
+    },
+    {
+      "title": "PART 2 · 5 ROUNDS",
+      "exercises": [
+        {
+          "name": "LEGLESS ROPE CLIMBS",
+          "detail": "1 reps"
+        },
+        {
+          "name": "FRONT SQUATS",
+          "detail": "3 reps"
+        }
+      ]
+    },
+    {
+      "title": "PART 3",
+      "exercises": [
+        {
+          "name": "RING MUSCLE-UPS",
+          "detail": "15 reps"
+        }
+      ]
+    }
+  ],
+  "durationLine": "12 min cap",
+  "timerMode": "elapsed",
+  "totalSeconds": 720,
+  "advanceMode": "onTarget",
+  "engineVersion": 1,
+  "view": {
+    "exerciseName": "RING MUSCLE-UPS",
+    "target": 15,
+    "done": 0,
+    "kpi": {
+      "label": "station",
+      "current": 1,
+      "total": 1
+    },
+    "timerStr": "00:00",
+    "timerLabel": "elapsed · cap 12:00",
+    "blockLabel": null,
+    "partLabel": "PART 1/3"
+  }
+}

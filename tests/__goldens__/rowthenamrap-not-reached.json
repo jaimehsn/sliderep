@@ -1,0 +1,19 @@
+{
+  "result": {
+    "scoreLabel": "SCORE",
+    "scoreValue": "CAP · 38 reps",
+    "splits": [
+      {
+        "label": "Station 1 — ROW",
+        "reps": 38,
+        "target": 50,
+        "completed": false,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 0,
+        "exIdx": 0,
+        "partIdx": 0
+      }
+    ]
+  }
+}

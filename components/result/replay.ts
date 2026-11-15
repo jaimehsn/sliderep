@@ -15,6 +15,9 @@ import {
   isSequence,
   stopsOnMiss,
   kpiAt,
+  partCount,
+  partIndexAt,
+  prefixLength,
   targetAt,
 } from '@/constants/wod-engine';
 import type { LogEntry } from '@/components/judge/types';
@@ -37,6 +40,8 @@ export type Split = {
   exIdx: number;
   /** Workouts of several blocks: the block it belongs to (change multi-block-workouts). */
   blockIdx?: number;
+  /** A block of several parts: the part it belongs to (change shared-clock); absent otherwise. */
+  partIdx?: number;
 };
 
 /** One block's splits on a workout of several blocks, headed "BLOCK n · mode · score". */
@@ -59,14 +64,26 @@ function titleCase(s: string): string {
  * completed-rounds tally for the live header, not the round currently in progress
  * (that one increments together with `completedRounds`, one step later, inside
  * `advance()`). Split labels want the round in progress, so they read `roundIdx`
- * directly for that one case; every other format's kpi.current already is it.
+ * directly for that one case — counted from the cycle's start, after any parts before
+ * it (change shared-clock); every other format's kpi.current already is it, within its part.
  */
 export function splitLabel(config: WodConfig, session: WodSession): string {
   const kpi = kpiAt(config, session);
   const isCumulativeTotal = kpi.label === 'rounds';
-  const number = isCumulativeTotal ? session.roundIdx + 1 : kpi.current;
+  const number = isCumulativeTotal ? session.roundIdx - prefixLength(config) + 1 : kpi.current;
   const prefix = isCumulativeTotal ? 'Round' : titleCase(kpi.label);
   return `${prefix} ${number} — ${exerciseNameAt(config, session)}`;
+}
+
+/**
+ * The "PART n" subheading before split `i`, or null (change shared-clock): before the
+ * first split of each part of a block of several parts, the result and adjust screens'.
+ */
+export function partHeading(splits: Split[], i: number): string | null {
+  const { partIdx, blockIdx } = splits[i];
+  if (partIdx == null) return null;
+  const prev = splits[i - 1];
+  return !prev || prev.partIdx !== partIdx || prev.blockIdx !== blockIdx ? `PART ${partIdx + 1}` : null;
 }
 
 /** An EMOM split's label: "Minute N — X" with 60-second intervals, "Interval N — X" otherwise (X: the interval's `exIdx`-th line). */
@@ -162,6 +179,7 @@ function deriveOnTarget(config: WodConfig, log: LogEntry[]): WodResult {
       lapMs: completed ? lastT - lastSplitT : null,
       roundIdx: pos.roundIdx,
       exIdx: pos.exIdx,
+      ...(partCount(config) > 1 ? { partIdx: partIndexAt(config, pos.roundIdx) } : {}),
     });
     if (completed) lastSplitT = lastT;
   }
@@ -178,6 +196,12 @@ function deriveOnTarget(config: WodConfig, log: LogEntry[]): WodResult {
       scoreValue: formatTime(Math.round((lastCounted?.t ?? 0) / 1000)),
       splits,
     };
+  }
+
+  // A block ending in a cycle that never got past the parts before it (change
+  // shared-clock): every valid rep, as a For Time at its cap.
+  if (state.pos.roundIdx < prefixLength(config)) {
+    return { scoreLabel: 'SCORE', scoreValue: `CAP · ${state.tagged.filter((e) => e.counted).length} reps`, splits };
   }
 
   // AMRAP: completed rounds from the final state's tally, plus every counted rep

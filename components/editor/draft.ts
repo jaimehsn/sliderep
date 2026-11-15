@@ -2,17 +2,17 @@
 // Pure TS — no React, no DB — so conversions and validation are covered by vitest.
 // Number fields are kept as the strings typed into the form; `validateDraft`
 // reports anything that isn't a whole number of 1 or more, and the stored block
-// is only built from a draft that validated.
+// is only built from a draft that validated. A block is a clock plus its parts, or
+// an EMOM, started from a template (change shared-clock).
 import { isIntervalWindow, isSequence } from '@/constants/wod-engine';
 import type { Window, WodConfig, WodLine } from '@/constants/wod-engine';
-import type { StoredBlock, StoredLine } from '@/db/workouts';
+import type { StoredLine, StoredStructure, StoredWindowBlock } from '@/db/workouts';
 
-export type DraftFormat = 'forTime' | 'amrap' | 'emom';
 export type RepUnit = 'm' | 'cal' | 's';
 
 export type DraftExercise = { id: string; name: string };
 
-/** What every line carries, whatever the format. */
+/** What every line carries, whatever the part. */
 export type LineFields = {
   exercise: DraftExercise | null;
   /** Rep description ("500 m"); null when the line has none. */
@@ -21,19 +21,32 @@ export type LineFields = {
   load: string;
 };
 
-/** For Time row: reps per round, or `reps[0]` for every round while `sameReps` is on. */
+/** Rounds row: reps per round, or `reps[0]` for every round while `sameReps` is on. */
 export type ForTimeRow = LineFields & { reps: string[] };
 export type RepsRow = LineFields & { reps: string };
 /** EMOM row: `increment` is the reps added each time its interval comes round, '' meaning 0 (change emom-progressive-reps). */
 export type EmomRow = RepsRow & { increment: string };
 
-/** `cap` is the time cap in whole minutes, '' for none (change for-time-cap); `rest` the rest between rounds in seconds, '' for none (change rest-steps). */
-export type ForTimeDraft = { format: 'forTime'; name: string; rounds: string; sameReps: boolean; cap: string; rest: string; rows: ForTimeRow[] };
-export type AmrapDraft = { format: 'amrap'; name: string; minutes: string; rows: RepsRow[] };
+/**
+ * A part of a FOR TIME or AMRAP block (change shared-clock). ROUNDS: a For Time's
+ * content — `rounds` (1 is a buy-in, cash-out or chipper), "same reps", `rest`
+ * between its rounds in seconds ('' for none, change rest-steps) and its rows.
+ * AMRAP: lines with fixed reps, repeated until the block's time ends; only last.
+ */
+export type RoundsPart = { kind: 'rounds'; rounds: string; sameReps: boolean; rest: string; rows: ForTimeRow[] };
+export type AmrapPart = { kind: 'amrap'; rows: RepsRow[] };
+export type PartDraft = RoundsPart | AmrapPart;
+
+/**
+ * A block with one clock and its parts (change shared-clock). `minutes`: the block's
+ * time in whole minutes — its cap ('' for none, change for-time-cap) when no part is
+ * an AMRAP, its required duration when the last part is.
+ */
+export type ContinuousDraft = { format: 'continuous'; name: string; minutes: string; parts: PartDraft[] };
 /**
  * `every`: interval length in seconds (10–600); `intervals`: how many (change emom-interval-length).
  * `slots`: the interval sequence, each a non-empty list of lines done in order (change
- * emom-multi-exercise-intervals). Line helpers take the flat index into `draftLines`.
+ * emom-multi-exercise-intervals). Line helpers take the flat index into `slots.flat()`.
  * `stopOnMiss`: end at the first missed interval (change emom-progressive-reps).
  * `work`: work time per interval in seconds, the rest of it is rest, '' for none (change rest-steps).
  */
@@ -46,28 +59,128 @@ export type EmomDraft = {
   stopOnMiss: boolean;
   slots: EmomRow[][];
 };
-export type Draft = ForTimeDraft | AmrapDraft | EmomDraft;
+export type Draft = ContinuousDraft | EmomDraft;
 
-export const DRAFT_FORMATS: { id: DraftFormat; label: string }[] = [
+/** What the line helpers edit: one part's lines, or an EMOM's sequence. */
+export type LineSet = PartDraft | EmomDraft;
+
+function isEmom(set: LineSet): set is EmomDraft {
+  return 'slots' in set;
+}
+
+/** The templates a block starts from (change shared-clock): they only fill its time setting and parts. */
+export type TemplateId = 'forTime' | 'amrap' | 'emom' | 'buyInCashOut' | 'buyInAmrap';
+export const TEMPLATES: { id: TemplateId; label: string }[] = [
   { id: 'forTime', label: 'FOR TIME' },
   { id: 'amrap', label: 'AMRAP' },
   { id: 'emom', label: 'EMOM' },
+  { id: 'buyInCashOut', label: 'FOR TIME + BUY-IN/CASH-OUT' },
+  { id: 'buyInAmrap', label: 'BUY-IN + AMRAP' },
 ];
 
 export function emptyLine(): LineFields {
   return { exercise: null, repDescription: null, load: '' };
 }
 
-export function emptyDraft(format: DraftFormat, name = ''): Draft {
-  if (format === 'forTime') return { format, name, rounds: '1', sameReps: true, cap: '', rest: '', rows: [] };
-  if (format === 'amrap') return { format, name, minutes: '', rows: [] };
-  return { format, name, every: '60', intervals: '', work: '', stopOnMiss: false, slots: [] };
+function roundsPart(rounds = '1'): RoundsPart {
+  return { kind: 'rounds', rounds, sameReps: true, rest: '', rows: [] };
 }
 
-/** The draft's lines in order, whatever the format. */
-export function draftLines(draft: Draft): LineFields[] {
-  return draft.format === 'emom' ? draft.slots.flat() : draft.rows;
+function amrapPart(): AmrapPart {
+  return { kind: 'amrap', rows: [] };
 }
+
+export function emptyDraft(template: TemplateId, name = ''): Draft {
+  if (template === 'emom') return { format: 'emom', name, every: '60', intervals: '', work: '', stopOnMiss: false, slots: [] };
+  const parts: PartDraft[] =
+    template === 'forTime' ? [roundsPart()] :
+    template === 'amrap' ? [amrapPart()] :
+    template === 'buyInCashOut' ? [roundsPart(), roundsPart(''), roundsPart()] :
+    [roundsPart(), amrapPart()];
+  return { format: 'continuous', name, minutes: '', parts };
+}
+
+/** The template a block still matches, or null once its parts were changed into another shape. */
+export function templateOf(draft: Draft): TemplateId | null {
+  if (draft.format === 'emom') return 'emom';
+  const shape = draft.parts.map((p) => (p.kind === 'amrap' ? 'A' : parseCount(p.rounds) === 1 ? '1' : 'R')).join('');
+  if (draft.parts.length === 1) return draft.parts[0].kind === 'amrap' ? 'amrap' : 'forTime';
+  if (shape === '1R1') return 'buyInCashOut';
+  if (shape === '1A') return 'buyInAmrap';
+  return null;
+}
+
+// The part a template puts the block's existing lines in.
+function mainPart(template: TemplateId): number {
+  return template === 'buyInCashOut' || template === 'buyInAmrap' ? 1 : 0;
+}
+
+/** The lines of one part or of an EMOM's sequence, in order. */
+export function setLines(set: LineSet): LineFields[] {
+  return isEmom(set) ? set.slots.flat() : set.rows;
+}
+
+/** The block's lines in order, every part's. */
+export function draftLines(draft: Draft): LineFields[] {
+  return draft.format === 'emom' ? draft.slots.flat() : draft.parts.flatMap((p): LineFields[] => p.rows);
+}
+
+/**
+ * Picks a template (change shared-clock): its time setting and parts replace the block's,
+ * and every line keeps its exercise, description and load in the template's main part
+ * (the rounds part, the AMRAP part, or one EMOM interval each); reps start empty.
+ */
+export function applyTemplate(draft: Draft, template: TemplateId): Draft {
+  if (templateOf(draft) === template) return draft;
+  const lines = draftLines(draft).map(({ exercise, repDescription, load }) => ({ exercise, repDescription, load }));
+  const next = emptyDraft(template, draft.name);
+  if (next.format === 'emom') return { ...next, slots: lines.map((l) => [{ ...l, reps: '', increment: '' }]) };
+  const main = mainPart(template);
+  return {
+    ...next,
+    parts: next.parts.map((part, i) => {
+      if (i !== main) return part;
+      return part.kind === 'rounds'
+        ? { ...part, rows: lines.map((l) => ({ ...l, reps: [''] })) }
+        : { ...part, rows: lines.map((l) => ({ ...l, reps: '' })) };
+    }),
+  };
+}
+
+// ─── Parts (change shared-clock) ────────────────────────────────────────────
+
+/** Whether the block ends in an AMRAP part — then `minutes` is its required duration, not a cap. */
+export function endsInAmrap(draft: ContinuousDraft): boolean {
+  return draft.parts[draft.parts.length - 1]?.kind === 'amrap';
+}
+
+/** "+ PART": a 1-round part at the end, or just before a final AMRAP part. */
+export function addPart(draft: ContinuousDraft): ContinuousDraft {
+  const at = endsInAmrap(draft) ? draft.parts.length - 1 : draft.parts.length;
+  return { ...draft, parts: [...draft.parts.slice(0, at), roundsPart(), ...draft.parts.slice(at)] };
+}
+
+/** Removes a part, never the only one. */
+export function removePart(draft: ContinuousDraft, index: number): ContinuousDraft {
+  if (draft.parts.length <= 1) return draft;
+  return { ...draft, parts: draft.parts.filter((_, i) => i !== index) };
+}
+
+export function updatePart(draft: ContinuousDraft, index: number, part: PartDraft): ContinuousDraft {
+  return { ...draft, parts: draft.parts.map((p, i) => (i === index ? part : p)) };
+}
+
+/** Turns a part into ROUNDS (1 round) or AMRAP, keeping its lines and their first round's reps. */
+export function setPartKind(draft: ContinuousDraft, index: number, kind: PartDraft['kind']): ContinuousDraft {
+  const part = draft.parts[index];
+  if (!part || part.kind === kind) return draft;
+  const next: PartDraft = part.kind === 'rounds'
+    ? { kind: 'amrap', rows: part.rows.map((row) => ({ ...row, reps: row.reps[0] ?? '' })) }
+    : { ...roundsPart(), rows: part.rows.map((row) => ({ ...row, reps: [row.reps] })) };
+  return updatePart(draft, index, next);
+}
+
+// ─── Lines (of one part, or of an EMOM's sequence) ──────────────────────────
 
 // EMOM: applies `fn` to the line at flat index `index`, keeping the intervals.
 function mapEmomLine(slots: EmomRow[][], index: number, fn: (row: EmomRow) => EmomRow): EmomRow[][] {
@@ -75,21 +188,22 @@ function mapEmomLine(slots: EmomRow[][], index: number, fn: (row: EmomRow) => Em
   return slots.map((slot) => slot.map((row) => (i++ === index ? fn(row) : row)));
 }
 
-/** Switches format keeping the name and each line's exercise, description and load; reps start empty. */
-export function switchFormat(draft: Draft, format: DraftFormat): Draft {
-  if (format === draft.format) return draft;
-  const lines = draftLines(draft).map(({ exercise, repDescription, load }) => ({ exercise, repDescription, load }));
-  const next = emptyDraft(format, draft.name);
-  if (next.format === 'forTime') return { ...next, rows: lines.map((l) => ({ ...l, reps: [''] })) };
-  if (next.format === 'amrap') return { ...next, rows: lines.map((l) => ({ ...l, reps: '' })) };
-  return { ...next, slots: lines.map((l) => [{ ...l, reps: '', increment: '' }]) };
+// Applies `fn` to line `index` of a set, whatever its rows' shape.
+function mapLine<T extends LineSet>(set: T, index: number, fn: <R extends LineFields>(row: R) => R): T {
+  if (isEmom(set)) return { ...set, slots: mapEmomLine(set.slots, index, fn) };
+  const part = set as PartDraft;
+  return (part.kind === 'rounds'
+    ? { ...part, rows: part.rows.map((row, i) => (i === index ? fn(row) : row)) }
+    : { ...part, rows: part.rows.map((row, i) => (i === index ? fn(row) : row)) }) as T;
 }
 
-/** Appends an empty line (no exercise yet) in the format's shape. */
-export function addLine(draft: Draft): Draft {
-  if (draft.format === 'forTime') return { ...draft, rows: [...draft.rows, { ...emptyLine(), reps: [''] }] };
-  if (draft.format === 'amrap') return { ...draft, rows: [...draft.rows, { ...emptyLine(), reps: '' }] };
-  return { ...draft, slots: [...draft.slots, [{ ...emptyLine(), reps: '', increment: '' }]] };
+/** Appends an empty line (no exercise yet): a new interval on an EMOM. */
+export function addLine<T extends LineSet>(set: T): T {
+  if (isEmom(set)) return { ...set, slots: [...set.slots, [{ ...emptyLine(), reps: '', increment: '' }]] };
+  const part = set as PartDraft;
+  return (part.kind === 'rounds'
+    ? { ...part, rows: [...part.rows, { ...emptyLine(), reps: [''] }] }
+    : { ...part, rows: [...part.rows, { ...emptyLine(), reps: '' }] }) as T;
 }
 
 /** EMOM: appends an empty line to interval `slotIdx` of the sequence. */
@@ -100,63 +214,52 @@ export function addLineToSlot(draft: EmomDraft, slotIdx: number): EmomDraft {
   };
 }
 
-export function removeLine(draft: Draft, index: number): Draft {
-  if (draft.format === 'forTime') return { ...draft, rows: draft.rows.filter((_, i) => i !== index) };
-  if (draft.format === 'amrap') return { ...draft, rows: draft.rows.filter((_, i) => i !== index) };
-  // An interval left without lines leaves the sequence.
-  let i = 0;
-  const slots = draft.slots.map((slot) => slot.filter(() => i++ !== index)).filter((slot) => slot.length > 0);
-  return { ...draft, slots };
+export function removeLine<T extends LineSet>(set: T, index: number): T {
+  if (isEmom(set)) {
+    // An interval left without lines leaves the sequence.
+    let i = 0;
+    return { ...set, slots: set.slots.map((slot) => slot.filter(() => i++ !== index)).filter((slot) => slot.length > 0) };
+  }
+  const part = set as PartDraft;
+  return (part.kind === 'rounds'
+    ? { ...part, rows: part.rows.filter((_, i) => i !== index) }
+    : { ...part, rows: part.rows.filter((_, i) => i !== index) }) as T;
 }
 
-/** Patches a line's exercise, rep description or load, whatever the format. */
-export function updateLineFields(draft: Draft, index: number, patch: Partial<LineFields>): Draft {
-  if (draft.format === 'forTime') {
-    return { ...draft, rows: draft.rows.map((row, i) => (i === index ? { ...row, ...patch } : row)) };
-  }
-  if (draft.format === 'amrap') {
-    return { ...draft, rows: draft.rows.map((row, i) => (i === index ? { ...row, ...patch } : row)) };
-  }
-  return { ...draft, slots: mapEmomLine(draft.slots, index, (row) => ({ ...row, ...patch })) };
+/** Patches a line's exercise, rep description or load. */
+export function updateLineFields<T extends LineSet>(set: T, index: number, patch: Partial<LineFields>): T {
+  return mapLine(set, index, (row) => ({ ...row, ...patch }));
 }
 
 /**
  * Sets or clears a line's rep description. Adding one fills the line's empty
  * reps with 1, the usual case for a distance, calories or time ("ROW 500 m").
  */
-export function setRepDescription(draft: Draft, index: number, repDescription: LineFields['repDescription']): Draft {
-  const had = draftLines(draft)[index]?.repDescription != null;
-  const next = updateLineFields(draft, index, { repDescription });
+export function setRepDescription<T extends LineSet>(set: T, index: number, repDescription: LineFields['repDescription']): T {
+  const had = setLines(set)[index]?.repDescription != null;
+  const next = updateLineFields(set, index, { repDescription });
   if (had || !repDescription) return next;
   const one = (reps: string) => (reps.trim() === '' ? '1' : reps);
-  if (next.format === 'forTime') {
-    return { ...next, rows: next.rows.map((row, i) => (i === index ? { ...row, reps: row.reps.map(one) } : row)) };
-  }
-  if (next.format === 'amrap') {
-    return { ...next, rows: next.rows.map((row, i) => (i === index ? { ...row, reps: one(row.reps) } : row)) };
-  }
-  return { ...next, slots: mapEmomLine(next.slots, index, (row) => ({ ...row, reps: one(row.reps) })) };
+  return mapLine(next, index, (row) => {
+    const reps = (row as unknown as { reps: string | string[] }).reps;
+    return { ...row, reps: Array.isArray(reps) ? reps.map(one) : one(reps) };
+  });
 }
 
-/** Sets a line's reps: AMRAP/EMOM ignore `roundIdx`; For Time writes round 0 while "same reps" is on. */
-export function setLineReps(draft: Draft, index: number, value: string, roundIdx = 0): Draft {
-  if (draft.format === 'forTime') {
-    const r = draft.sameReps ? 0 : roundIdx;
-    return {
-      ...draft,
-      rows: draft.rows.map((row, i) => {
-        if (i !== index) return row;
-        const reps = [...row.reps];
-        while (reps.length <= r) reps.push('');
-        reps[r] = value;
-        return { ...row, reps };
-      }),
-    };
-  }
-  if (draft.format === 'amrap') {
-    return { ...draft, rows: draft.rows.map((row, i) => (i === index ? { ...row, reps: value } : row)) };
-  }
-  return { ...draft, slots: mapEmomLine(draft.slots, index, (row) => ({ ...row, reps: value })) };
+/** Sets a line's reps: AMRAP/EMOM ignore `roundIdx`; a ROUNDS part writes round 0 while "same reps" is on. */
+export function setLineReps<T extends LineSet>(set: T, index: number, value: string, roundIdx = 0): T {
+  if (isEmom(set) || set.kind === 'amrap') return mapLine(set, index, (row) => ({ ...row, reps: value }));
+  const r = set.sameReps ? 0 : roundIdx;
+  return {
+    ...set,
+    rows: set.rows.map((row, i) => {
+      if (i !== index) return row;
+      const reps = [...row.reps];
+      while (reps.length <= r) reps.push('');
+      reps[r] = value;
+      return { ...row, reps };
+    }),
+  };
 }
 
 /** EMOM: sets the increment of the line at flat index `index` (change emom-progressive-reps). */
@@ -185,22 +288,22 @@ export function parseInterval(value: string): number | null {
   return n != null && n >= 10 && n <= 600 ? n : null;
 }
 
-/** The reps a For Time row has in a given round (0-based). */
-export function forTimeReps(draft: ForTimeDraft, row: ForTimeRow, roundIdx: number): string {
-  return draft.sameReps ? (row.reps[0] ?? '') : (row.reps[roundIdx] ?? '');
+/** The reps a ROUNDS part's row has in a given round (0-based). */
+export function forTimeReps(part: RoundsPart, row: ForTimeRow, roundIdx: number): string {
+  return part.sameReps ? (row.reps[0] ?? '') : (row.reps[roundIdx] ?? '');
 }
 
 /**
  * Turning "same reps" off splits each row into one value per round, prefilled
  * with the shared one; turning it on keeps the first round's value for all.
  */
-export function setSameReps(draft: ForTimeDraft, on: boolean): ForTimeDraft {
-  if (on === draft.sameReps) return draft;
-  const rounds = parseCount(draft.rounds) ?? 1;
+export function setSameReps(part: RoundsPart, on: boolean): RoundsPart {
+  if (on === part.sameReps) return part;
+  const rounds = parseCount(part.rounds) ?? 1;
   return {
-    ...draft,
+    ...part,
     sameReps: on,
-    rows: draft.rows.map((row) => ({
+    rows: part.rows.map((row) => ({
       ...row,
       reps: on ? [row.reps[0] ?? ''] : Array.from({ length: rounds }, () => row.reps[0] ?? ''),
     })),
@@ -228,8 +331,10 @@ export function savedName(draft: Draft): string {
 // ─── Validation ─────────────────────────────────────────────────────────────
 
 /**
- * Problems keyed by field: 'name', 'rounds', 'cap', 'rest', 'minutes', 'every', 'intervals', 'work', 'lines', and 'line:<i>'
- * for the i-th line. Empty when the draft can be saved.
+ * Problems keyed by field. EMOM: 'every', 'intervals', 'work', 'lines', and 'line:<i>'
+ * for the i-th line. FOR TIME / AMRAP block: 'minutes', then each part's as
+ * 'part:<p>:<key>' — 'rounds', 'rest', 'kind' (an AMRAP part that isn't last),
+ * 'lines' and 'line:<i>' (see `partProblems`). Also 'name'. Empty when the draft can be saved.
  */
 export type DraftProblems = Record<string, string>;
 
@@ -241,45 +346,71 @@ function lineProblem(line: LineFields, reps: string[]): string | null {
   return null;
 }
 
+function validatePart(part: PartDraft, last: boolean): DraftProblems {
+  const problems: DraftProblems = {};
+  if (part.rows.length === 0) problems.lines = 'Add at least one exercise';
+  if (part.kind === 'amrap') {
+    if (!last) problems.kind = 'AMRAP can only be the last part';
+    part.rows.forEach((row, i) => {
+      const problem = lineProblem(row, [row.reps]);
+      if (problem) problems[`line:${i}`] = problem;
+    });
+    return problems;
+  }
+  const rounds = parseCount(part.rounds);
+  if (rounds == null) problems.rounds = 'Rounds must be 1 or more';
+  if (part.rest.trim() !== '') {
+    const rest = parseCount(part.rest);
+    if (rest == null || rest > 600) problems.rest = 'Rest must be 1 to 600 seconds';
+    else if (rounds != null && rounds < 2) problems.rest = 'Rest needs 2 rounds or more';
+  }
+  part.rows.forEach((row, i) => {
+    const reps = part.sameReps ? [row.reps[0] ?? ''] : Array.from({ length: rounds ?? 1 }, (_, r) => row.reps[r] ?? '');
+    const problem = lineProblem(row, reps);
+    if (problem) problems[`line:${i}`] = problem;
+  });
+  return problems;
+}
+
 export function validateDraft(draft: Draft): DraftProblems {
   const problems: DraftProblems = {};
   if (savedName(draft) === '') problems.name = 'Name is required';
 
-  const lines = draftLines(draft);
-  if (lines.length === 0) problems.lines = 'Add at least one exercise';
-
-  if (draft.format === 'forTime') {
-    const rounds = parseCount(draft.rounds);
-    if (rounds == null) problems.rounds = 'Rounds must be 1 or more';
-    if (draft.cap.trim() !== '' && parseCount(draft.cap) == null) problems.cap = 'Time cap must be 1 or more';
-    if (draft.rest.trim() !== '') {
-      const rest = parseCount(draft.rest);
-      if (rest == null || rest > 600) problems.rest = 'Rest must be 1 to 600 seconds';
-      else if (rounds != null && rounds < 2) problems.rest = 'Rest needs 2 rounds or more';
+  if (draft.format === 'continuous') {
+    if (endsInAmrap(draft)) {
+      if (parseCount(draft.minutes) == null) problems.minutes = 'Minutes must be 1 or more';
+    } else if (draft.minutes.trim() !== '' && parseCount(draft.minutes) == null) {
+      problems.minutes = 'Time cap must be 1 or more';
     }
-    draft.rows.forEach((row, i) => {
-      const reps = draft.sameReps ? [row.reps[0] ?? ''] : Array.from({ length: rounds ?? 1 }, (_, r) => row.reps[r] ?? '');
-      const problem = lineProblem(row, reps);
-      if (problem) problems[`line:${i}`] = problem;
-    });
-  } else {
-    if (draft.format === 'amrap' && parseCount(draft.minutes) == null) problems.minutes = 'Minutes must be 1 or more';
-    if (draft.format === 'emom') {
-      const every = parseInterval(draft.every);
-      if (every == null) problems.every = 'Interval must be 10 to 600 seconds';
-      if (parseCount(draft.intervals) == null) problems.intervals = 'Intervals must be 1 or more';
-      if (draft.work.trim() !== '') {
-        const work = parseCount(draft.work);
-        if (work == null || (every != null && work >= every)) problems.work = 'Work must be 1 or more and shorter than EVERY';
+    draft.parts.forEach((part, p) => {
+      for (const [key, problem] of Object.entries(validatePart(part, p === draft.parts.length - 1))) {
+        problems[`part:${p}:${key}`] = problem;
       }
-    }
-    lines.forEach((line, i) => {
-      const problem = lineProblem(line, [(line as RepsRow).reps])
-        ?? (draft.format === 'emom' && parseIncrement((line as EmomRow).increment) == null ? 'Increment must be 0 or more' : null);
-      if (problem) problems[`line:${i}`] = problem;
     });
+    return problems;
   }
+
+  if (draft.slots.length === 0) problems.lines = 'Add at least one exercise';
+  const every = parseInterval(draft.every);
+  if (every == null) problems.every = 'Interval must be 10 to 600 seconds';
+  if (parseCount(draft.intervals) == null) problems.intervals = 'Intervals must be 1 or more';
+  if (draft.work.trim() !== '') {
+    const work = parseCount(draft.work);
+    if (work == null || (every != null && work >= every)) problems.work = 'Work must be 1 or more and shorter than EVERY';
+  }
+  draft.slots.flat().forEach((line, i) => {
+    const problem = lineProblem(line, [line.reps]) ?? (parseIncrement(line.increment) == null ? 'Increment must be 0 or more' : null);
+    if (problem) problems[`line:${i}`] = problem;
+  });
   return problems;
+}
+
+/** One part's problems with its `part:<p>:` prefix taken off, for its own editor. */
+export function partProblems(problems: DraftProblems, index: number): DraftProblems {
+  const prefix = `part:${index}:`;
+  return Object.fromEntries(
+    Object.entries(problems).filter(([k]) => k.startsWith(prefix)).map(([k, v]) => [k.slice(prefix.length), v]),
+  );
 }
 
 // ─── Draft → stored block ───────────────────────────────────────────────────
@@ -301,44 +432,43 @@ function count(value: string): number {
   return n;
 }
 
-/** The block to store, in the same layout as the built-ins (see `db/workouts.ts`'s `windowFromStored`). The draft must have validated. */
-export function draftToStoredBlock(draft: Draft): StoredBlock {
-  if (draft.format === 'forTime') {
-    const rounds = count(draft.rounds);
+function toStoredStructure(part: PartDraft): StoredStructure {
+  if (part.kind === 'amrap') return { kind: 'cycle', lines: part.rows.map((row) => toStoredLine(row, count(row.reps))) };
+  const rounds = count(part.rounds);
+  return {
+    kind: 'rounds',
+    rounds: Array.from({ length: rounds }, (_, r) => part.rows.map((row) => toStoredLine(row, count(forTimeReps(part, row, r))))),
+    ...(part.rest.trim() !== '' ? { restSeconds: count(part.rest) } : {}),
+  };
+}
+
+/**
+ * The block to store, in the window shape (change shared-clock; see `db/workouts.ts`'s
+ * `StoredWindowBlock`), optional fields only when set. The draft must have validated.
+ */
+export function draftToStoredBlock(draft: Draft): StoredWindowBlock {
+  if (draft.format === 'continuous') {
     return {
-      formatId: 'forTime',
-      lines: Array.from({ length: rounds }, (_, r) =>
-        draft.rows.map((row) => toStoredLine(row, count(forTimeReps(draft, row, r)))),
-      ),
-      rounds,
-      ...(draft.cap.trim() !== '' ? { durationSeconds: count(draft.cap) * 60 } : {}),
-      ...(draft.rest.trim() !== '' ? { restSeconds: count(draft.rest) } : {}),
+      clock: { kind: 'continuous', ...(draft.minutes.trim() !== '' ? { limitSeconds: count(draft.minutes) * 60 } : {}) },
+      structures: draft.parts.map(toStoredStructure),
     };
   }
-  if (draft.format === 'amrap') {
-    return {
-      formatId: 'amrap',
-      lines: [draft.rows.map((row) => toStoredLine(row, count(row.reps)))],
-      durationSeconds: count(draft.minutes) * 60,
-    };
-  }
-  const intervals = count(draft.intervals);
   const every = parseInterval(draft.every);
   if (every == null) throw new Error(`Invalid interval "${draft.every}": validate the draft first`);
   return {
-    formatId: 'emom',
-    lines: draft.slots.map((slot) => slot.map((row) => {
+    clock: {
+      kind: 'intervals',
+      everySeconds: every,
+      count: count(draft.intervals),
+      ...(draft.work.trim() !== '' ? { workSeconds: count(draft.work) } : {}),
+      ...(draft.stopOnMiss ? { stopOnMiss: true } : {}),
+    },
+    intervals: draft.slots.map((slot) => slot.map((row) => {
       const stored = toStoredLine(row, count(row.reps));
       const increment = parseIncrement(row.increment);
       if (increment) stored.increment = increment;
       return stored;
     })),
-    rounds: intervals,
-    durationSeconds: intervals * every,
-    // Omitted at their defaults, so a plain 60-second EMOM is stored exactly like the built-in.
-    ...(every !== 60 ? { intervalSeconds: every } : {}),
-    ...(draft.stopOnMiss ? { stopOnMiss: true } : {}),
-    ...(draft.work.trim() !== '' ? { workSeconds: count(draft.work) } : {}),
   };
 }
 
@@ -355,10 +485,9 @@ function toLineFields(line: WodLine): LineFields {
 }
 
 /**
- * The draft a workout's window (a block, in the editor) opens as. Throws for a
- * window the editor can't express (a For Time whose rounds don't share their
- * exercises) — none can exist, since the built-ins and everything the editor
- * saves share them.
+ * The draft a workout's window (a block, in the editor) opens as, every part kept.
+ * Throws for a window the editor can't express (rounds that don't share their
+ * exercises) — none can exist, since the built-ins and everything the editor saves share them.
  */
 export function draftFromWindow(window: Window, name: string): Draft {
   if (isIntervalWindow(window)) {
@@ -377,46 +506,42 @@ export function draftFromWindow(window: Window, name: string): Draft {
       }))),
     };
   }
-  const [structure] = window.structures;
   const limit = window.clock.limitSeconds;
-  if (structure?.kind === 'rounds') {
-    const lines = structure.rounds;
-    const [first = []] = lines;
-    const sameShape = lines.every(
-      (round) => round.length === first.length && round.every((l, i) => l.exerciseId === first[i].exerciseId),
-    );
-    if (!sameShape) throw new Error('For Time rounds must share their exercises');
-    const rows: ForTimeRow[] = first.map((line, i) => ({
-      ...toLineFields(line),
-      reps: lines.map((round) => String(round[i].target)),
-    }));
-    const sameReps = rows.every((row) => row.reps.every((r) => r === row.reps[0]));
-    return {
-      format: 'forTime',
-      name,
-      rounds: String(lines.length),
-      sameReps,
-      cap: limit ? String(limit / 60) : '',
-      rest: structure.restSeconds ? String(structure.restSeconds) : '',
-      rows: sameReps ? rows.map((row) => ({ ...row, reps: [row.reps[0]] })) : rows,
-    };
-  }
-  if (structure?.kind === 'cycle') {
-    return {
-      format: 'amrap',
-      name,
-      minutes: String((limit ?? 0) / 60),
-      rows: structure.lines.map((line) => ({ ...toLineFields(line), reps: String(line.target) })),
-    };
-  }
-  throw new Error(`No editor draft for a "${structure?.kind}" window`);
+  return {
+    format: 'continuous',
+    name,
+    minutes: limit ? String(limit / 60) : '',
+    parts: window.structures.map((structure): PartDraft => {
+      if (structure.kind === 'cycle') {
+        return { kind: 'amrap', rows: structure.lines.map((line) => ({ ...toLineFields(line), reps: String(line.target) })) };
+      }
+      if (structure.kind !== 'rounds') throw new Error(`No editor part for a "${structure.kind}" structure`);
+      const lines = structure.rounds;
+      const [first = []] = lines;
+      const sameShape = lines.every(
+        (round) => round.length === first.length && round.every((l, i) => l.exerciseId === first[i].exerciseId),
+      );
+      if (!sameShape) throw new Error('Rounds must share their exercises');
+      const rows: ForTimeRow[] = first.map((line, i) => ({
+        ...toLineFields(line),
+        reps: lines.map((round) => String(round[i].target)),
+      }));
+      const sameReps = rows.every((row) => row.reps.every((r) => r === row.reps[0]));
+      return {
+        kind: 'rounds',
+        rounds: String(lines.length),
+        sameReps,
+        rest: structure.restSeconds ? String(structure.restSeconds) : '',
+        rows: sameReps ? rows.map((row) => ({ ...row, reps: [row.reps[0]] })) : rows,
+      };
+    }),
+  };
 }
 
 // ─── Workouts of several blocks (change multi-block-workouts) ───────────────
 //
-// A workout is a list of block drafts: each block is today's `Draft` with its
-// own `name` left empty (the workout's name is kept once, here), plus the rest
-// after it. One block is stored exactly as before.
+// A workout is a list of block drafts: each block is a `Draft` with its own
+// `name` left empty (the workout's name is kept once, here), plus the rest after it.
 
 export type BlockDraft = { draft: Draft; restAfter: string };
 export type WorkoutDraft = { name: string; scoringBlock: number; blocks: BlockDraft[] };
@@ -479,8 +604,8 @@ export function blockProblems(problems: DraftProblems, index: number): DraftProb
   );
 }
 
-/** The stored blocks: each block as before, with `restAfterSeconds` only when set (never on the last). */
-export function workoutToStoredBlocks(workout: WorkoutDraft): StoredBlock[] {
+/** The stored blocks: each block's window shape, with `restAfterSeconds` only when set (never on the last). */
+export function workoutToStoredBlocks(workout: WorkoutDraft): StoredWindowBlock[] {
   return workout.blocks.map(({ draft, restAfter }, i) => {
     const block = draftToStoredBlock(draft);
     const rest = i < workout.blocks.length - 1 ? parseCount(restAfter) : null;

@@ -1,0 +1,69 @@
+{
+  "mode": "12-MIN AMRAP",
+  "description": "50 row → amrap · pull-ups, push-ups, air squats",
+  "exercises": [
+    {
+      "name": "ROW",
+      "detail": "50 reps"
+    },
+    {
+      "name": "PULL-UPS",
+      "detail": "5 reps"
+    },
+    {
+      "name": "PUSH-UPS",
+      "detail": "10 reps"
+    },
+    {
+      "name": "AIR SQUATS",
+      "detail": "15 reps"
+    }
+  ],
+  "sections": [
+    {
+      "title": "PART 1",
+      "exercises": [
+        {
+          "name": "ROW",
+          "detail": "50 reps"
+        }
+      ]
+    },
+    {
+      "title": "PART 2 · AMRAP",
+      "exercises": [
+        {
+          "name": "PULL-UPS",
+          "detail": "5 reps"
+        },
+        {
+          "name": "PUSH-UPS",
+          "detail": "10 reps"
+        },
+        {
+          "name": "AIR SQUATS",
+          "detail": "15 reps"
+        }
+      ]
+    }
+  ],
+  "durationLine": "12 min",
+  "timerMode": "remaining",
+  "totalSeconds": 720,
+  "advanceMode": "onTarget",
+  "engineVersion": 1,
+  "view": {
+    "exerciseName": "ROW",
+    "target": 50,
+    "done": 0,
+    "kpi": {
+      "label": "station",
+      "current": 1,
+      "total": 1
+    },
+    "timerStr": "12:00",
+    "timerLabel": "remaining",
+    "blockLabel": null,
+    "partLabel": "PART 1/2"
+  }
+}

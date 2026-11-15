@@ -25,6 +25,9 @@ export type WodKpi = { label: string; current: number; total: number | null };
 /** One row of a workout's exercise list. `note`: rep description and/or load ("500 m · 95/65 lb"), when the line has either. */
 export type WodExercise = { name: string; detail: string; note?: string };
 
+/** One part's rows in a window of several parts (change shared-clock). */
+export type WodSection = { title: string; exercises: WodExercise[] };
+
 /** The rules version every config carries and every saved session records (change window-model: one for the whole engine). */
 export const ENGINE_VERSION = 1;
 
@@ -41,6 +44,11 @@ export type WodConfig = {
   /** `ENGINE_VERSION` — stored on a saved session so replay always uses the pinned engine semantics. */
   engineVersion: number;
   exercises: WodExercise[];
+  /**
+   * A window of several parts only (change shared-clock): each part's exercise rows under
+   * its title ("PART 2 · 5 ROUNDS"); `exercises` is then their concatenation.
+   */
+  sections?: WodSection[];
   /** The data the engine interprets (see the model section below). */
   window: Window;
   /**
@@ -78,9 +86,10 @@ export type WodLine = {
 
 // ─── Window model (change window-model) ─────────────────────────────────────
 //
-// A window is how the clock runs plus what is done inside it. The shapes allowed
-// today are the ones the For Time / AMRAP / EMOM formats had: a continuous window
-// holds exactly one `rounds` or `cycle` structure, and each interval entry exactly
+// A window is how the clock runs plus what is done inside it. A continuous window
+// holds one or more parts under its one clock (change shared-clock): `rounds` parts
+// (1 round is a buy-in, cash-out or chipper), and optionally a final `cycle` — which
+// needs a limit, counted from the window's start. Each interval entry holds exactly
 // one `once`. `buildWodConfig` rejects anything else.
 
 /** A clock that runs once: `limitSeconds` is a For Time's cap or an AMRAP's duration. */
@@ -116,34 +125,78 @@ export function isIntervalWindow(window: Window): window is IntervalWindow {
 
 /**
  * How a window behaves, derived from its clock and content: 'perInterval' for an
- * interval window, otherwise the kind of its only structure ('rounds' or 'cycle').
- * The engine's rules are written per shape (they are the v1 rules per format).
+ * interval window, 'cycle' for a continuous one ending in a cycle (an AMRAP, with any
+ * parts before it), 'rounds' otherwise. The engine's rules are written per shape
+ * (they are the v1 rules per format).
  */
 export type Shape = 'rounds' | 'cycle' | 'perInterval';
 
 function windowShape(window: Window): Shape {
   if (isIntervalWindow(window)) return 'perInterval';
-  return window.structures[0].kind === 'cycle' ? 'cycle' : 'rounds';
+  return window.structures[window.structures.length - 1].kind === 'cycle' ? 'cycle' : 'rounds';
 }
 
 export function shapeOf(config: WodConfig): Shape {
   return windowShape(config.window);
 }
 
-function onlyStructure(window: ContinuousWindow): Structure {
-  return window.structures[0];
-}
+// A continuous window is read as a path (change shared-clock): the rounds of its
+// `rounds` parts one after another (the prefix), then its cycle if it has one. A
+// position's `roundIdx` runs along it — through the prefix, then on into the cycle
+// (prefix length + k for the cycle's k-th round), while `completedRounds` counts
+// cycle rounds only. A one-part window's path is its rounds, or just its cycle, so
+// its positions are the ones it always had.
 
-/** The rounds of a 'rounds' window (one entry per round). */
+/** The prefix: every round of the window's `rounds` parts, in order (a 'rounds' window's rounds). */
 function roundsOf(window: Window): WodLine[][] {
-  const s = isIntervalWindow(window) ? null : onlyStructure(window);
-  return s?.kind === 'rounds' ? s.rounds : [];
+  if (isIntervalWindow(window)) return [];
+  return window.structures.flatMap((s) => (s.kind === 'rounds' ? s.rounds : []));
 }
 
-/** The lines of a 'cycle' window. */
+/** The lines of a window's final cycle, empty when it has none. */
 function cycleOf(window: Window): WodLine[] {
-  const s = isIntervalWindow(window) ? null : onlyStructure(window);
-  return s?.kind === 'cycle' ? s.lines : [];
+  if (isIntervalWindow(window)) return [];
+  const last = window.structures[window.structures.length - 1];
+  return last?.kind === 'cycle' ? last.lines : [];
+}
+
+/** How many parts the window has: its structures, 1 for an interval window. */
+function partCountOf(window: Window): number {
+  return isIntervalWindow(window) ? 1 : window.structures.length;
+}
+
+/**
+ * The part a path round is in (change shared-clock): its index, the round within it,
+ * and the part's round count (null for the cycle). Past the end of a window without a
+ * cycle — only ever asked for by a completion check — the last part, counting on.
+ */
+function partAtRound(window: ContinuousWindow, roundIdx: number): { partIdx: number; round: number; rounds: number | null } {
+  let before = 0;
+  for (let i = 0; i < window.structures.length; i++) {
+    const s = window.structures[i];
+    if (s.kind === 'cycle') return { partIdx: i, round: roundIdx - before, rounds: null };
+    if (s.kind !== 'rounds') continue;
+    if (roundIdx < before + s.rounds.length || i === window.structures.length - 1) {
+      return { partIdx: i, round: roundIdx - before, rounds: s.rounds.length };
+    }
+    before += s.rounds.length;
+  }
+  return { partIdx: 0, round: roundIdx, rounds: null };
+}
+
+/** The prefix's length: the path rounds before a cycle (all of a 'rounds' window's). */
+export function prefixLength(config: WodConfig): number {
+  return roundsOf(config.window).length;
+}
+
+/** The number of parts of a one-window config (1 for an EMOM and for every pre-shared-clock shape). */
+export function partCount(config: WodConfig): number {
+  return partCountOf(config.window);
+}
+
+/** The part index of path round `roundIdx` (0 on an interval window). */
+export function partIndexAt(config: WodConfig, roundIdx: number): number {
+  return isIntervalWindow(config.window) ? 0 : partAtRound(config.window, roundIdx).partIdx;
 }
 
 /** An interval window's sequence: each entry's lines, done in order. */
@@ -164,9 +217,22 @@ function windowSeconds(window: Window): number {
   return window.clock.limitSeconds ?? 0;
 }
 
+/** A one-part 'rounds' window's rest between rounds — what its description and duration line show. */
 function restBetweenRounds(window: Window): number | undefined {
-  const s = isIntervalWindow(window) ? null : onlyStructure(window);
-  return s?.kind === 'rounds' ? s.restSeconds : undefined;
+  if (isIntervalWindow(window) || window.structures.length !== 1) return undefined;
+  const s = window.structures[0];
+  return s.kind === 'rounds' ? s.restSeconds : undefined;
+}
+
+/**
+ * The rest before path round `roundIdx` starts (change rest-steps): its part's rest
+ * between rounds, when it isn't the part's first round — none between parts (change shared-clock).
+ */
+function restBefore(window: Window, roundIdx: number): number | undefined {
+  if (isIntervalWindow(window) || roundIdx >= roundsOf(window).length) return undefined;
+  const { partIdx, round } = partAtRound(window, roundIdx);
+  const s = window.structures[partIdx];
+  return s.kind === 'rounds' && round > 0 ? s.restSeconds : undefined;
 }
 
 function workOf(window: Window): number | undefined {
@@ -186,9 +252,15 @@ function checkWindow(window: Window): void {
     }
     return;
   }
-  const [s, ...more] = window.structures;
-  if (!s || more.length > 0 || s.kind === 'once') throw new Error('A continuous window needs exactly one "rounds" or "cycle" structure');
-  if (s.kind === 'cycle' && !window.clock.limitSeconds) throw new Error('A "cycle" needs a time limit');
+  const { structures } = window;
+  if (structures.length === 0) throw new Error('A continuous window needs at least one structure');
+  structures.forEach((s, i) => {
+    if (s.kind === 'once') throw new Error('A continuous window holds "rounds" and "cycle" structures only');
+    if (s.kind === 'rounds' && (s.rounds.length === 0 || s.rounds.some((r) => r.length === 0))) throw new Error('A "rounds" structure needs non-empty rounds');
+    if (s.kind === 'cycle' && s.lines.length === 0) throw new Error('A "cycle" needs lines');
+    if (s.kind === 'cycle' && i !== structures.length - 1) throw new Error('A "cycle" can only be the last structure');
+  });
+  if (cycleOf(window).length > 0 && !window.clock.limitSeconds) throw new Error('A "cycle" needs a time limit');
 }
 
 // ─── Interpreter ────────────────────────────────────────────────────────────
@@ -228,7 +300,39 @@ function sameEveryRound(rounds: WodLine[][]): boolean {
   return rounds.length > 1 && rounds.every((round) => round.every((l, i) => l.target === first[i]?.target));
 }
 
+// A window of several parts, one part at a time (change shared-clock): each part on
+// its own, as a one-part window under the same clock.
+function partWindows(window: ContinuousWindow): ContinuousWindow[] {
+  return window.structures.map((s) => ({ clock: window.clock, structures: [s] }));
+}
+
+function severalParts(window: Window): window is ContinuousWindow {
+  return !isIntervalWindow(window) && window.structures.length > 1;
+}
+
+function sectionsOf(window: ContinuousWindow): WodSection[] {
+  return partWindows(window).map((part, i) => {
+    const s = part.structures[0];
+    const kind =
+      s.kind === 'cycle' ? ' · AMRAP' :
+      s.kind === 'rounds' && s.rounds.length > 1 ? ` · ${s.rounds.length} ROUNDS${s.restSeconds ? ` · ${s.restSeconds} s REST` : ''}` : '';
+    return { title: `PART ${i + 1}${kind}`, exercises: summarize(part) };
+  });
+}
+
+// How a part reads in a description of several parts: a 1-round part as its lines
+// ("15 ring muscle-ups", "500 m row"), several rounds as a For Time's scheme, a cycle as "amrap · names".
+function describePart(part: ContinuousWindow): string {
+  const s = part.structures[0];
+  if (s.kind === 'cycle') return `amrap · ${joinNames(part)}`;
+  if (s.kind === 'rounds' && s.rounds.length === 1) {
+    return s.rounds[0].map((l) => `${describedOnly(l) ? amountOf(l) : l.target} ${l.exercise.toLowerCase()}`).join(', ');
+  }
+  return describeScheme(part) + (s.kind === 'rounds' && s.restSeconds ? ` · ${s.restSeconds} s rest` : '');
+}
+
 function summarize(window: Window): WodExercise[] {
+  if (severalParts(window)) return sectionsOf(window).flatMap((section) => section.exercises);
   const shape = windowShape(window);
   const rounds = roundsOf(window);
   if (shape === 'rounds' && (rounds.length === 1 || sameEveryRound(rounds))) {
@@ -268,6 +372,7 @@ function joinNames(window: Window): string {
 
 function describeMode(window: Window): string {
   const shape = windowShape(window);
+  if (shape === 'rounds' && severalParts(window)) return 'FOR TIME';
   if (shape === 'rounds') {
     const rounds = roundsOf(window);
     return sameEveryRound(rounds) ? `${rounds.length} ROUNDS FOR TIME` : 'FOR TIME';
@@ -282,6 +387,8 @@ function describeContent(window: Window): string {
   const shape = windowShape(window);
   // A For Time's limit is its time cap (change for-time-cap).
   const cap = shape === 'rounds' && windowSeconds(window) ? ` · ${windowSeconds(window) / 60} min cap` : '';
+  // Several parts: each part's own reading, joined (change shared-clock).
+  if (severalParts(window)) return partWindows(window).map(describePart).join(' → ') + cap;
   // A stopping EMOM (change emom-progressive-reps).
   const untilFailure = isIntervalWindow(window) && window.clock.stopOnMiss ? ' · until failure' : '';
   // Rest between rounds, or work time per interval (change rest-steps).
@@ -327,6 +434,7 @@ export function buildWodConfig(name: string, window: Window): WodConfig {
     advanceMode: shape === 'perInterval' ? 'onClock' : 'onTarget',
     engineVersion: ENGINE_VERSION,
     exercises: summarize(window),
+    ...(severalParts(window) ? { sections: sectionsOf(window) } : {}),
     window,
   };
 }
@@ -339,6 +447,8 @@ export function buildSequenceConfig(name: string, parts: WodConfig[], restAfter:
   const scoring = parts[scoringBlock];
   return {
     ...scoring,
+    // Each block keeps its own sections; the sequence shows them per block.
+    sections: undefined,
     name,
     mode: `${scoring.mode} · ${parts.length} BLOCKS`,
     description: parts.map((p) => p.description).join(' → '),
@@ -368,8 +478,10 @@ export const START_POSITION: WodSession = { roundIdx: 0, exIdx: 0, completedRoun
 
 function lineAt(config: WodConfig, pos: WodSession): WodLine | undefined {
   const shape = shapeOf(config);
-  if (shape === 'rounds') return roundsOf(config.window)[pos.roundIdx]?.[pos.exIdx];
-  if (shape === 'cycle') return cycleOf(config.window)[pos.exIdx];
+  if (shape !== 'perInterval') {
+    const prefix = roundsOf(config.window);
+    return pos.roundIdx < prefix.length || shape === 'rounds' ? prefix[pos.roundIdx]?.[pos.exIdx] : cycleOf(config.window)[pos.exIdx];
+  }
   const sequence = sequenceOf(config.window);
   return sequence[pos.minuteIdx % sequence.length]?.[pos.exIdx];
 }
@@ -410,33 +522,36 @@ export function exerciseNameAt(config: WodConfig, pos: WodSession): string {
 
 export function kpiAt(config: WodConfig, pos: WodSession): WodKpi {
   const { window } = config;
-  const shape = shapeOf(config);
-  if (shape === 'rounds') {
-    const rounds = roundsOf(window);
-    if (rounds.length === 1) {
-      const total = rounds[0]?.length ?? 0;
+  if (!isIntervalWindow(window)) {
+    // The current part's progress (change shared-clock); a one-part window's as always.
+    const { partIdx, round, rounds } = partAtRound(window, pos.roundIdx);
+    if (rounds == null) return { label: 'rounds', current: pos.completedRounds, total: null };
+    if (rounds === 1) {
+      const part = window.structures[partIdx];
+      const total = part.kind === 'rounds' ? part.rounds[0]?.length ?? 0 : 0;
       return { label: 'station', current: Math.min(pos.exIdx + 1, total), total };
     }
-    const total = rounds.length;
-    return { label: 'round', current: Math.min(pos.roundIdx + 1, total), total };
+    return { label: 'round', current: Math.min(round + 1, rounds), total: rounds };
   }
-  if (shape === 'cycle') return { label: 'rounds', current: pos.completedRounds, total: null };
   const total = isIntervalWindow(window) ? window.clock.count : 0;
   return { label: intervalUnit(config), current: Math.min(pos.minuteIdx + 1, total), total };
 }
 
-// onTarget only: the next line, wrapping into the next round (AMRAP also tallies it).
+// onTarget only: the next line along the path, wrapping into the next round — the
+// prefix's next round (entering the cycle after its last, change shared-clock), or the
+// cycle's again, which tallies a completed round.
 function nextPosition(config: WodConfig, pos: WodSession): WodSession {
-  const cycle = shapeOf(config) === 'cycle';
-  const roundLines = (cycle ? cycleOf(config.window) : roundsOf(config.window)[pos.roundIdx])?.length ?? 0;
+  const prefix = roundsOf(config.window);
+  const inCycle = shapeOf(config) === 'cycle' && pos.roundIdx >= prefix.length;
+  const roundLines = (inCycle ? cycleOf(config.window) : prefix[pos.roundIdx])?.length ?? 0;
   const nextEx = pos.exIdx + 1;
   if (nextEx < roundLines) return { ...pos, exIdx: nextEx };
-  return cycle
+  return inCycle
     ? { ...pos, exIdx: 0, roundIdx: pos.roundIdx + 1, completedRounds: pos.completedRounds + 1 }
     : { ...pos, roundIdx: pos.roundIdx + 1, exIdx: 0 };
 }
 
-// AMRAP never completes on reps; it ends on the clock.
+// AMRAP never completes on reps; it ends on the clock. A 'rounds' window completes past its prefix.
 function isCompleteAt(config: WodConfig, pos: WodSession): boolean {
   return shapeOf(config) === 'rounds' && pos.roundIdx >= roundsOf(config.window).length;
 }
@@ -584,7 +699,10 @@ export function advanceTo(config: WodConfig, state: EngineState, t: number): Eng
   const repeat = shapeOf(config);
   if (repeat === 'cycle') {
     const end = config.totalSeconds * 1000;
-    return t >= end ? { ...state, t: end, finished: true } : { ...state, t };
+    if (t >= end) return { ...state, t: end, finished: true };
+    // A rest between rounds of a part before the cycle is over (change shared-clock).
+    if (state.restUntil != null && t >= state.restUntil) return { ...state, t, restUntil: null };
+    return { ...state, t };
   }
   if (repeat === 'perInterval') {
     const total = totalIntervals(config);
@@ -683,8 +801,9 @@ export function apply(config: WodConfig, state: EngineState, event: EngineEvent)
       // Last rep of the WOD: stay on the final position with its final count.
       return { ...s, tagged, done, finished: true };
     }
-    // A new round starts after the rest between rounds, if any (change rest-steps).
-    const rest = repeat === 'rounds' && next.roundIdx > s.pos.roundIdx ? restBetweenRounds(config.window) : undefined;
+    // A new round starts after the rest between rounds, if any (change rest-steps) —
+    // within a part only, never between parts (change shared-clock).
+    const rest = next.roundIdx > s.pos.roundIdx ? restBefore(config.window, next.roundIdx) : undefined;
     return { ...s, tagged, pos: next, done: 0, restUntil: rest ? event.t + rest * 1000 : s.restUntil };
   }
   return { ...s, tagged, done: Math.min(done, target) };
@@ -779,6 +898,7 @@ function viewSequence(config: SequenceConfig, state: EngineState) {
       timerStr: formatTime(left),
       timerLabel: 'rest left',
       blockLabel: `BLOCK ${seq.idx + 2}/${count}`,
+      partLabel: undefined,
     };
   }
   return { ...view(config.parts[seq.idx], seq.inner), blockLabel: `BLOCK ${seq.idx + 1}/${count}` };
@@ -793,6 +913,8 @@ export function view(config: WodConfig, state: EngineState): {
   timerLabel: string;
   /** "BLOCK n/N" on a workout of several blocks, null otherwise. */
   blockLabel: string | null;
+  /** "PART n/N" in a block of several parts (change shared-clock); absent otherwise, so one-part views are unchanged. */
+  partLabel?: string;
 } {
   if (isSequence(config)) return viewSequence(config, state);
   const elapsed = Math.floor(state.t / 1000);
@@ -819,5 +941,6 @@ export function view(config: WodConfig, state: EngineState): {
     timerStr,
     timerLabel: cap != null ? `${timerLabel} · cap ${formatTime(cap)}` : timerLabel,
     blockLabel: null,
+    ...(partCount(config) > 1 ? { partLabel: `PART ${partIndexAt(config, state.pos.roundIdx) + 1}/${partCount(config)}` } : {}),
   };
 }

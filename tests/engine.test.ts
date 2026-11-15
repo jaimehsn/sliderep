@@ -2,10 +2,11 @@
 // live judging (clock ticks interleaved with gestures) must end in exactly the
 // state the result fold derives from the same events.
 import { describe, expect, it } from 'vitest';
-import { EngineEvent, EngineState, START_POSITION, WodConfig, advanceTo, apply, blockIndexOf, capSeconds, durationLine, fold, initial, intervalLineAt, intervalSeconds, isComplete, isResting, isSequence, restLeftSeconds, shapeOf, buildWodConfig, isIntervalWindow, targetAt, view } from '@/constants/wod-engine';
-import { CASES, SYNTHETIC_WORKOUTS, builtin, workout } from './fixtures';
+import { EngineEvent, EngineState, START_POSITION, Structure, WodConfig, advanceTo, apply, blockIndexOf, capSeconds, durationLine, fold, initial, intervalLineAt, intervalSeconds, isComplete, isResting, isSequence, restLeftSeconds, shapeOf, buildWodConfig, isIntervalWindow, targetAt, view } from '@/constants/wod-engine';
+import { CASES, SHARED_CLOCK_WORKOUTS, SYNTHETIC_WORKOUTS, asWindowBlock, builtin, workout } from './fixtures';
 import { V2_EXERCISES, V2_WORKOUTS } from '@/db/seeds/v2-builtins';
-import { parseWorkoutRow } from '@/db/workouts';
+import { LegacyStoredBlock, parseWorkoutRow } from '@/db/workouts';
+import { V5_NEW_EXERCISES } from '@/db/seeds/v5-exercises';
 import { blockLogs } from '@/components/result/replay';
 
 const TICK_MS = 250;
@@ -541,12 +542,102 @@ describe('stored blocks as windows', () => {
     expect(() => parse([{ formatId: 'tabata', lines: [burpees], rounds: 1 }])).toThrow(/unknown format/);
   });
 
+  // Change shared-clock: several parts, a cycle only last and with a limit, no `once` in a continuous window.
   it('rejects windows outside the shapes allowed so far', () => {
     const line = { exerciseId: 'burpees', exercise: 'BURPEES', target: 10 };
-    expect(() => buildWodConfig('X', { clock: { kind: 'continuous' }, structures: [{ kind: 'cycle', lines: [line] }] })).toThrow(/limit/);
-    expect(() => buildWodConfig('X', {
-      clock: { kind: 'continuous', limitSeconds: 600 },
-      structures: [{ kind: 'once', lines: [line] }, { kind: 'cycle', lines: [line] }],
-    })).toThrow(/exactly one/);
+    const rounds = { kind: 'rounds' as const, rounds: [[line]] };
+    const cycle = { kind: 'cycle' as const, lines: [line] };
+    const continuous = (structures: Structure[], limitSeconds?: number) =>
+      buildWodConfig('X', { clock: { kind: 'continuous', limitSeconds }, structures });
+    expect(() => continuous([cycle])).toThrow(/limit/);
+    expect(() => continuous([rounds, cycle])).toThrow(/limit/);
+    expect(() => continuous([{ kind: 'once', lines: [line] }, cycle], 600)).toThrow(/"rounds" and "cycle"/);
+    expect(() => continuous([cycle, rounds], 600)).toThrow(/last/);
+    expect(() => continuous([], 600)).toThrow(/at least one/);
+    expect(() => continuous([rounds, { kind: 'rounds', rounds: [] }])).toThrow(/non-empty/);
+    expect(() => continuous([rounds, rounds, cycle], 600)).not.toThrow();
+  });
+});
+
+// Change shared-clock: the stored window shape, read beside the legacy one.
+describe('stored window blocks', () => {
+  const names = new Map([...V2_EXERCISES, ...V5_NEW_EXERCISES].map((e) => [e.id, e.name]));
+  const parse = (blocks: object[]) => parseWorkoutRow({ id: 'x', name: 'X', blocks: JSON.stringify(blocks) }, names);
+  const burpees = [{ exerciseId: 'burpees', target: 10 }];
+
+  it('reads every built-in and synthetic workout the same in either shape', () => {
+    for (const row of [...V2_WORKOUTS, ...SYNTHETIC_WORKOUTS]) {
+      const blocks = (JSON.parse(row.blocks) as LegacyStoredBlock[]).map(asWindowBlock);
+      expect(parseWorkoutRow({ ...row, blocks: JSON.stringify(blocks) }, names), row.id).toEqual(parseWorkoutRow(row, names));
+    }
+  });
+
+  it('reads the workouts of several parts', () => {
+    for (const row of SHARED_CLOCK_WORKOUTS) expect(() => parseWorkoutRow(row, names)).not.toThrow();
+    expect(workout('example1').window).toMatchObject({
+      clock: { kind: 'continuous', limitSeconds: 720 },
+      structures: [{ kind: 'rounds' }, { kind: 'rounds' }, { kind: 'rounds' }],
+    });
+    expect(shapeOf(workout('rowThenAmrap'))).toBe('cycle');
+  });
+
+  it('rejects window blocks the app cannot write', () => {
+    const rounds = { kind: 'rounds', rounds: [burpees] };
+    const cycle = { kind: 'cycle', lines: burpees };
+    expect(() => parse([{ clock: { kind: 'continuous', limitSeconds: 600 }, structures: [cycle, rounds] }])).toThrow(/last/);
+    expect(() => parse([{ clock: { kind: 'continuous' }, structures: [rounds, cycle] }])).toThrow(/limit/);
+    expect(() => parse([{ clock: { kind: 'continuous' }, structures: [] }])).toThrow(/at least one/);
+    expect(() => parse([{ clock: { kind: 'continuous' }, structures: [{ kind: 'rounds', rounds: [[]] }] }])).toThrow(/non-empty/);
+    expect(() => parse([{ clock: { kind: 'intervals', everySeconds: 5, count: 10 }, intervals: [burpees] }])).toThrow(/interval of 5 s/);
+    expect(() => parse([{ clock: { kind: 'intervals', everySeconds: 60, count: 10, workSeconds: 60 }, intervals: [burpees] }])).toThrow(/work time/);
+    expect(() => parse([{ clock: { kind: 'continuous' }, structures: [{ kind: 'rounds', rounds: [[{ exerciseId: 'nope', target: 1 }]] }] }])).toThrow(/unknown exercise/);
+  });
+});
+
+// Change shared-clock: several parts under one clock.
+describe('windows of several parts', () => {
+  const reps = (n: number, from = 1000, gap = 1000) => Array.from({ length: n }, (_, i) => ({ t: from + i * gap, ok: true }));
+
+  it('describes them part by part', () => {
+    const example1 = workout('example1');
+    expect(example1.mode).toBe('FOR TIME');
+    expect(example1.description).toBe('15 ring muscle-ups → 5 rounds · legless rope climbs + front squats → 15 ring muscle-ups · 12 min cap');
+    expect(example1.sections?.map((s) => s.title)).toEqual(['PART 1', 'PART 2 · 5 ROUNDS', 'PART 3']);
+    expect(durationLine(example1)).toBe('12 min cap');
+    const rowThenAmrap = workout('rowThenAmrap');
+    expect(rowThenAmrap.mode).toBe('12-MIN AMRAP');
+    expect(rowThenAmrap.description).toBe('50 row → amrap · pull-ups, push-ups, air squats');
+    expect(rowThenAmrap.sections?.map((s) => s.title)).toEqual(['PART 1', 'PART 2 · AMRAP']);
+    expect(workout('restedParts').sections?.[1].title).toBe('PART 2 · 3 ROUNDS · 30 s REST');
+    expect(builtin('fran').sections).toBeUndefined();
+  });
+
+  it('shows the current part and its own progress', () => {
+    const example1 = workout('example1');
+    const first = view(example1, initial(example1));
+    expect(first).toMatchObject({ partLabel: 'PART 1/3', kpi: { label: 'station', current: 1, total: 1 }, timerLabel: 'elapsed · cap 12:00' });
+    const afterBuyIn = view(example1, fold(example1, reps(15), 16000));
+    expect(afterBuyIn).toMatchObject({ partLabel: 'PART 2/3', exerciseName: 'LEGLESS ROPE CLIMBS', kpi: { label: 'round', current: 1, total: 5 } });
+    const rowThenAmrap = workout('rowThenAmrap');
+    // 50 row reps, then 3 AMRAP rounds of 30.
+    const inAmrap = view(rowThenAmrap, fold(rowThenAmrap, reps(140), 141000));
+    expect(inAmrap).toMatchObject({ partLabel: 'PART 2/2', exerciseName: 'PULL-UPS', kpi: { label: 'rounds', current: 3, total: null }, timerStr: '09:39' });
+    expect('partLabel' in view(builtin('cindy'), initial(builtin('cindy')))).toBe(false);
+  });
+
+  it('starts a part on the last rep of the one before, with no rest between parts', () => {
+    const rested = workout('restedParts');
+    // BURPEES 1–10 s, then THRUSTERS at once: round 1 counts from 11 s.
+    const s = fold(rested, [...reps(10), ...reps(5, 11000)], 20000);
+    expect(s.tagged.every((e) => e.counted)).toBe(true);
+    expect(isResting(rested, s)).toBe(true); // the rest between the part's rounds 1 and 2
+    expect(restLeftSeconds(rested, s)).toBe(25);
+  });
+
+  it('ends a block ending in a cycle at its limit, in any part', () => {
+    const rowThenAmrap = workout('rowThenAmrap');
+    const s = fold(rowThenAmrap, reps(38, 5000, 10000), Infinity);
+    expect(s).toMatchObject({ finished: true, t: 720000, pos: { roundIdx: 0, exIdx: 0 } });
+    expect(isComplete(rowThenAmrap, s)).toBe(false);
   });
 });

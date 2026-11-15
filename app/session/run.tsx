@@ -102,8 +102,10 @@ function RunSession({ config, setup }: { config: WodConfig; setup: SessionSetup 
       />
 
       <View style={styles.exerciseZone}>
-        {/* Workouts of several blocks only (change multi-block-workouts). */}
-        {judge.blockLabel != null && <Text style={styles.blockLabel}>{judge.blockLabel}</Text>}
+        {/* Workouts of several blocks (change multi-block-workouts) or a block of several parts (change shared-clock). */}
+        {(judge.blockLabel != null || judge.partLabel != null) && (
+          <Text style={styles.blockLabel}>{[judge.blockLabel, judge.partLabel].filter((l) => l != null).join(' · ')}</Text>
+        )}
         <ExerciseName name={judge.exerciseName} animatedStyle={judge.exerciseNameStyle} />
       </View>
 

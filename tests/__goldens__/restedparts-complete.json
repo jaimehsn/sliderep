@@ -1,0 +1,52 @@
+{
+  "result": {
+    "scoreLabel": "TIME",
+    "scoreValue": "01:40",
+    "splits": [
+      {
+        "label": "Station 1 — BURPEES",
+        "reps": 10,
+        "target": 10,
+        "completed": true,
+        "cumulativeMs": 10000,
+        "lapMs": 10000,
+        "roundIdx": 0,
+        "exIdx": 0,
+        "partIdx": 0
+      },
+      {
+        "label": "Round 1 — THRUSTERS",
+        "reps": 5,
+        "target": 5,
+        "completed": true,
+        "cumulativeMs": 20000,
+        "lapMs": 10000,
+        "roundIdx": 1,
+        "exIdx": 0,
+        "partIdx": 1
+      },
+      {
+        "label": "Round 2 — THRUSTERS",
+        "reps": 5,
+        "target": 5,
+        "completed": true,
+        "cumulativeMs": 60000,
+        "lapMs": 40000,
+        "roundIdx": 2,
+        "exIdx": 0,
+        "partIdx": 1
+      },
+      {
+        "label": "Round 3 — THRUSTERS",
+        "reps": 5,
+        "target": 5,
+        "completed": true,
+        "cumulativeMs": 100000,
+        "lapMs": 40000,
+        "roundIdx": 3,
+        "exIdx": 0,
+        "partIdx": 1
+      }
+    ]
+  }
+}

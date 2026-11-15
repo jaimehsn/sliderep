@@ -6,9 +6,11 @@ import type { LogEntry } from '@/components/judge/types';
 import type { WodConfig } from '@/constants/wod-engine';
 import type { AdjustmentChange } from '@/db/session-adjustments';
 import { V2_EXERCISES, V2_WORKOUTS } from '@/db/seeds/v2-builtins';
-import { WorkoutRow, parseWorkoutRow } from '@/db/workouts';
+import { V5_NEW_EXERCISES } from '@/db/seeds/v5-exercises';
+import { LegacyStoredBlock, StoredWindowBlock, WorkoutRow, parseWorkoutRow } from '@/db/workouts';
 
-const names = new Map(V2_EXERCISES.map((e) => [e.id, e.name]));
+// The whole built-in catalog (v2's 14 plus v5's), so fixtures can use any exercise.
+const names = new Map([...V2_EXERCISES, ...V5_NEW_EXERCISES].map((e) => [e.id, e.name]));
 
 export function builtin(id: string): WodConfig {
   const row = V2_WORKOUTS.find((w) => w.id === id);
@@ -180,9 +182,75 @@ export const SYNTHETIC_WORKOUTS: WorkoutRow[] = [
   },
 ];
 
-/** A golden case's workout: a built-in by id, or one of `SYNTHETIC_WORKOUTS`. */
+// Change shared-clock: workouts in the new stored shape (a clock + its structures),
+// several parts under one clock.
+const once = (exerciseId: string, target: number) => ({ kind: 'rounds', rounds: [[{ exerciseId, target }]] });
+export const SHARED_CLOCK_WORKOUTS: WorkoutRow[] = [
+  {
+    // The owner's example 1: 12 min cap; 15 RING MUSCLE-UPS, 5 rounds of 1 LEGLESS
+    // ROPE CLIMBS + 3 FRONT SQUATS, 15 RING MUSCLE-UPS (50 reps).
+    id: 'example1',
+    name: 'EXAMPLE 1',
+    blocks: JSON.stringify([{
+      clock: { kind: 'continuous', limitSeconds: 720 },
+      structures: [
+        once('ring-muscle-ups', 15),
+        { kind: 'rounds', rounds: [0, 1, 2, 3, 4].map(() => [{ exerciseId: 'legless-rope-climbs', target: 1 }, { exerciseId: 'front-squats', target: 3 }]) },
+        once('ring-muscle-ups', 15),
+      ],
+    }]),
+  },
+  {
+    // 12 minutes: 50 ROW, then an AMRAP of 5 PULL-UPS, 10 PUSH-UPS, 15 AIR SQUATS in the time left.
+    id: 'rowThenAmrap',
+    name: 'ROW THEN AMRAP',
+    blocks: JSON.stringify([{
+      clock: { kind: 'continuous', limitSeconds: 720 },
+      structures: [
+        once('row', 50),
+        { kind: 'cycle', lines: [{ exerciseId: 'pull-ups', target: 5 }, { exerciseId: 'push-ups', target: 10 }, { exerciseId: 'air-squats', target: 15 }] },
+      ],
+    }]),
+  },
+  {
+    // No cap: 10 BURPEES, then 3 rounds of 5 THRUSTERS with 30 s of rest between them
+    // (none between the parts).
+    id: 'restedParts',
+    name: 'RESTED PARTS',
+    blocks: JSON.stringify([{
+      clock: { kind: 'continuous' },
+      structures: [
+        once('burpees', 10),
+        { kind: 'rounds', rounds: [0, 1, 2].map(() => [{ exerciseId: 'thrusters', target: 5 }]), restSeconds: 30 },
+      ],
+    }]),
+  },
+];
+
+/** A legacy stored block in the window shape (change shared-clock): how the editor now saves the same block. */
+export function asWindowBlock(b: LegacyStoredBlock): StoredWindowBlock {
+  const after = b.restAfterSeconds != null ? { restAfterSeconds: b.restAfterSeconds } : {};
+  if (b.formatId === 'emom') {
+    return {
+      clock: {
+        kind: 'intervals',
+        everySeconds: b.intervalSeconds ?? 60,
+        count: b.rounds ?? 0,
+        ...(b.workSeconds != null ? { workSeconds: b.workSeconds } : {}),
+        ...(b.stopOnMiss ? { stopOnMiss: true } : {}),
+      },
+      intervals: b.lines,
+      ...after,
+    };
+  }
+  const clock = { kind: 'continuous' as const, ...(b.durationSeconds ? { limitSeconds: b.durationSeconds } : {}) };
+  if (b.formatId === 'amrap') return { clock, structures: [{ kind: 'cycle', lines: b.lines[0] }], ...after };
+  return { clock, structures: [{ kind: 'rounds', rounds: b.lines, ...(b.restSeconds != null ? { restSeconds: b.restSeconds } : {}) }], ...after };
+}
+
+/** A golden case's workout: a built-in by id, or one of `SYNTHETIC_WORKOUTS` / `SHARED_CLOCK_WORKOUTS`. */
 export function workout(id: string): WodConfig {
-  const row = SYNTHETIC_WORKOUTS.find((w) => w.id === id);
+  const row = [...SYNTHETIC_WORKOUTS, ...SHARED_CLOCK_WORKOUTS].find((w) => w.id === id);
   return row ? parseWorkoutRow(row, names).config : builtin(id);
 }
 
@@ -449,4 +517,33 @@ export const CASES: GoldenCase[] = [
   // BUY-IN AMRAP: a no-rep at 1 s in the buy-in; accepted, the buy-in's TIME is 00:38
   // instead of 00:40, the AMRAP block (the score) and the cash-out unchanged.
   { name: 'review-buyin-no-rep', wodId: 'buyInAmrap', ...reviewed([accept(1000), ...BUY_IN_RUN]) },
+];
+
+// Change shared-clock: cases on SHARED_CLOCK_WORKOUTS, enabled once the engine runs them.
+// EXAMPLE 1: 50 reps every 4 s from 2 s; the buy-in ends at 58 s, the last rep at 3:18.
+const EXAMPLE1_RUN = run(2000, 50, 4000);
+// ROW THEN AMRAP: 50 row reps every 2 s from 1 s (to 99 s), then 187 AMRAP reps every
+// 3 s from 101 s (to 10:59): 6 rounds of 30 and 5 PULL-UPS + 2 PUSH-UPS, 6 + 7.
+const ROW_THEN_AMRAP_RUN = [...run(1000, 50, 2000), ...run(101000, 187, 3000)];
+export const SHARED_CLOCK_CASES: GoldenCase[] = [
+  { name: 'example1-complete', wodId: 'example1', log: toLog(EXAMPLE1_RUN) },
+  // 30 reps every 20 s from 5 s: the buy-in, 3 rounds and LEGLESS ROPE CLIMBS 1 +
+  // FRONT SQUATS 2 of round 4, then the cap: CAP · 30 reps.
+  { name: 'example1-capped-in-rounds', wodId: 'example1', log: toLog(run(5000, 30, 20000)) },
+  { name: 'rowthenamrap-reached', wodId: 'rowThenAmrap', log: toLog(ROW_THEN_AMRAP_RUN) },
+  // 38 row reps every 10 s from 5 s, then 12:00: CAP · 38 reps.
+  { name: 'rowthenamrap-not-reached', wodId: 'rowThenAmrap', log: toLog(run(5000, 38, 10000)) },
+  // BURPEES 1–10 s, THRUSTERS 12–20 s (no rest after the buy-in), rest to 50 s,
+  // 52–60 s, rest to 90 s, 92–100 s: TIME 01:40.
+  {
+    name: 'restedparts-complete',
+    wodId: 'restedParts',
+    log: toLog([...run(1000, 10, 1000), ...run(12000, 5, 2000), ...run(52000, 5, 2000), ...run(92000, 5, 2000)]),
+  },
+  // A no-rep at 1 s in the buy-in; accepted, the buy-in ends at 54 s and every later
+  // event moves 4 s earlier, across parts: 03:18 becomes 03:14.
+  { name: 'review-example1-buyin-no-rep', wodId: 'example1', ...reviewed([accept(1000), ...EXAMPLE1_RUN]) },
+  // A no-rep at 0.5 s in the row; accepted, the row's 50th rep is surplus and nothing
+  // moves in a block ending in an AMRAP part: still 6 + 7.
+  { name: 'review-rowthenamrap-row-no-rep', wodId: 'rowThenAmrap', ...reviewed([accept(500), ...ROW_THEN_AMRAP_RUN]) },
 ];

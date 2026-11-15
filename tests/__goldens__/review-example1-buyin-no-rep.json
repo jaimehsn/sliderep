@@ -1,0 +1,278 @@
+{
+  "result": {
+    "scoreLabel": "TIME",
+    "scoreValue": "03:18",
+    "splits": [
+      {
+        "label": "Station 1 — RING MUSCLE-UPS",
+        "reps": 15,
+        "target": 15,
+        "completed": true,
+        "cumulativeMs": 58000,
+        "lapMs": 58000,
+        "roundIdx": 0,
+        "exIdx": 0,
+        "partIdx": 0
+      },
+      {
+        "label": "Round 1 — LEGLESS ROPE CLIMBS",
+        "reps": 1,
+        "target": 1,
+        "completed": true,
+        "cumulativeMs": 62000,
+        "lapMs": 4000,
+        "roundIdx": 1,
+        "exIdx": 0,
+        "partIdx": 1
+      },
+      {
+        "label": "Round 1 — FRONT SQUATS",
+        "reps": 3,
+        "target": 3,
+        "completed": true,
+        "cumulativeMs": 74000,
+        "lapMs": 12000,
+        "roundIdx": 1,
+        "exIdx": 1,
+        "partIdx": 1
+      },
+      {
+        "label": "Round 2 — LEGLESS ROPE CLIMBS",
+        "reps": 1,
+        "target": 1,
+        "completed": true,
+        "cumulativeMs": 78000,
+        "lapMs": 4000,
+        "roundIdx": 2,
+        "exIdx": 0,
+        "partIdx": 1
+      },
+      {
+        "label": "Round 2 — FRONT SQUATS",
+        "reps": 3,
+        "target": 3,
+        "completed": true,
+        "cumulativeMs": 90000,
+        "lapMs": 12000,
+        "roundIdx": 2,
+        "exIdx": 1,
+        "partIdx": 1
+      },
+      {
+        "label": "Round 3 — LEGLESS ROPE CLIMBS",
+        "reps": 1,
+        "target": 1,
+        "completed": true,
+        "cumulativeMs": 94000,
+        "lapMs": 4000,
+        "roundIdx": 3,
+        "exIdx": 0,
+        "partIdx": 1
+      },
+      {
+        "label": "Round 3 — FRONT SQUATS",
+        "reps": 3,
+        "target": 3,
+        "completed": true,
+        "cumulativeMs": 106000,
+        "lapMs": 12000,
+        "roundIdx": 3,
+        "exIdx": 1,
+        "partIdx": 1
+      },
+      {
+        "label": "Round 4 — LEGLESS ROPE CLIMBS",
+        "reps": 1,
+        "target": 1,
+        "completed": true,
+        "cumulativeMs": 110000,
+        "lapMs": 4000,
+        "roundIdx": 4,
+        "exIdx": 0,
+        "partIdx": 1
+      },
+      {
+        "label": "Round 4 — FRONT SQUATS",
+        "reps": 3,
+        "target": 3,
+        "completed": true,
+        "cumulativeMs": 122000,
+        "lapMs": 12000,
+        "roundIdx": 4,
+        "exIdx": 1,
+        "partIdx": 1
+      },
+      {
+        "label": "Round 5 — LEGLESS ROPE CLIMBS",
+        "reps": 1,
+        "target": 1,
+        "completed": true,
+        "cumulativeMs": 126000,
+        "lapMs": 4000,
+        "roundIdx": 5,
+        "exIdx": 0,
+        "partIdx": 1
+      },
+      {
+        "label": "Round 5 — FRONT SQUATS",
+        "reps": 3,
+        "target": 3,
+        "completed": true,
+        "cumulativeMs": 138000,
+        "lapMs": 12000,
+        "roundIdx": 5,
+        "exIdx": 1,
+        "partIdx": 1
+      },
+      {
+        "label": "Station 1 — RING MUSCLE-UPS",
+        "reps": 15,
+        "target": 15,
+        "completed": true,
+        "cumulativeMs": 198000,
+        "lapMs": 60000,
+        "roundIdx": 6,
+        "exIdx": 0,
+        "partIdx": 2
+      }
+    ]
+  },
+  "adjusted": {
+    "scoreLabel": "TIME",
+    "scoreValue": "03:14",
+    "splits": [
+      {
+        "label": "Station 1 — RING MUSCLE-UPS",
+        "reps": 15,
+        "target": 15,
+        "completed": true,
+        "cumulativeMs": 54000,
+        "lapMs": 54000,
+        "roundIdx": 0,
+        "exIdx": 0,
+        "partIdx": 0
+      },
+      {
+        "label": "Round 1 — LEGLESS ROPE CLIMBS",
+        "reps": 1,
+        "target": 1,
+        "completed": true,
+        "cumulativeMs": 58000,
+        "lapMs": 4000,
+        "roundIdx": 1,
+        "exIdx": 0,
+        "partIdx": 1
+      },
+      {
+        "label": "Round 1 — FRONT SQUATS",
+        "reps": 3,
+        "target": 3,
+        "completed": true,
+        "cumulativeMs": 70000,
+        "lapMs": 12000,
+        "roundIdx": 1,
+        "exIdx": 1,
+        "partIdx": 1
+      },
+      {
+        "label": "Round 2 — LEGLESS ROPE CLIMBS",
+        "reps": 1,
+        "target": 1,
+        "completed": true,
+        "cumulativeMs": 74000,
+        "lapMs": 4000,
+        "roundIdx": 2,
+        "exIdx": 0,
+        "partIdx": 1
+      },
+      {
+        "label": "Round 2 — FRONT SQUATS",
+        "reps": 3,
+        "target": 3,
+        "completed": true,
+        "cumulativeMs": 86000,
+        "lapMs": 12000,
+        "roundIdx": 2,
+        "exIdx": 1,
+        "partIdx": 1
+      },
+      {
+        "label": "Round 3 — LEGLESS ROPE CLIMBS",
+        "reps": 1,
+        "target": 1,
+        "completed": true,
+        "cumulativeMs": 90000,
+        "lapMs": 4000,
+        "roundIdx": 3,
+        "exIdx": 0,
+        "partIdx": 1
+      },
+      {
+        "label": "Round 3 — FRONT SQUATS",
+        "reps": 3,
+        "target": 3,
+        "completed": true,
+        "cumulativeMs": 102000,
+        "lapMs": 12000,
+        "roundIdx": 3,
+        "exIdx": 1,
+        "partIdx": 1
+      },
+      {
+        "label": "Round 4 — LEGLESS ROPE CLIMBS",
+        "reps": 1,
+        "target": 1,
+        "completed": true,
+        "cumulativeMs": 106000,
+        "lapMs": 4000,
+        "roundIdx": 4,
+        "exIdx": 0,
+        "partIdx": 1
+      },
+      {
+        "label": "Round 4 — FRONT SQUATS",
+        "reps": 3,
+        "target": 3,
+        "completed": true,
+        "cumulativeMs": 118000,
+        "lapMs": 12000,
+        "roundIdx": 4,
+        "exIdx": 1,
+        "partIdx": 1
+      },
+      {
+        "label": "Round 5 — LEGLESS ROPE CLIMBS",
+        "reps": 1,
+        "target": 1,
+        "completed": true,
+        "cumulativeMs": 122000,
+        "lapMs": 4000,
+        "roundIdx": 5,
+        "exIdx": 0,
+        "partIdx": 1
+      },
+      {
+        "label": "Round 5 — FRONT SQUATS",
+        "reps": 3,
+        "target": 3,
+        "completed": true,
+        "cumulativeMs": 134000,
+        "lapMs": 12000,
+        "roundIdx": 5,
+        "exIdx": 1,
+        "partIdx": 1
+      },
+      {
+        "label": "Station 1 — RING MUSCLE-UPS",
+        "reps": 15,
+        "target": 15,
+        "completed": true,
+        "cumulativeMs": 194000,
+        "lapMs": 60000,
+        "roundIdx": 6,
+        "exIdx": 0,
+        "partIdx": 2
+      }
+    ]
+  }
+}

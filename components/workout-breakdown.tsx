@@ -9,10 +9,11 @@ import { WodConfig, WodExercise, durationLine, isSequence } from '@/constants/wo
  * A workout's exercises, as the Library detail and the pre-start summary list
  * them. A workout of several blocks (change multi-block-workouts) lists each
  * block under a "BLOCK n · mode" header (SCORES on the scoring one) with its
- * duration line, and the rest between blocks.
+ * duration line, and the rest between blocks. A block of several parts (change
+ * shared-clock) lists each part under its "PART n · kind" title.
  */
 export function WorkoutBreakdown({ config }: { config: WodConfig }) {
-  if (!isSequence(config)) return <ExerciseRows exercises={config.exercises} />;
+  if (!isSequence(config)) return <BlockRows config={config} />;
   return (
     <>
       {config.parts.map((part, i) => {
@@ -27,13 +28,24 @@ export function WorkoutBreakdown({ config }: { config: WodConfig }) {
               {i === config.scoringBlock && <Text style={styles.scores}>SCORES</Text>}
             </View>
             {duration != null && <Text style={styles.blockDuration}>{duration}</Text>}
-            <ExerciseRows exercises={part.exercises} />
+            <BlockRows config={part} />
             {rest > 0 && <Text style={styles.rest}>REST {rest} s</Text>}
           </Fragment>
         );
       })}
     </>
   );
+}
+
+// One block's rows: per part when it has several (change shared-clock).
+function BlockRows({ config }: { config: WodConfig }) {
+  if (!config.sections) return <ExerciseRows exercises={config.exercises} />;
+  return config.sections.map((section, i) => (
+    <Fragment key={i}>
+      <Text style={styles.partTitle}>{section.title}</Text>
+      <ExerciseRows exercises={section.exercises} />
+    </Fragment>
+  ));
 }
 
 function ExerciseRows({ exercises }: { exercises: WodExercise[] }) {
@@ -49,6 +61,13 @@ function ExerciseRows({ exercises }: { exercises: WodExercise[] }) {
 }
 
 const styles = StyleSheet.create({
+  partTitle: {
+    fontFamily: fonts.ui,
+    fontSize: 10,
+    color: colors.muted,
+    letterSpacing: 1.5,
+    paddingTop: 14,
+  },
   blockHeader: {
     flexDirection: 'row',
     alignItems: 'center',

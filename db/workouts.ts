@@ -20,7 +20,8 @@ export type StoredLine = {
   /** EMOM only: reps added each time the line's interval comes round, absent at 0 (change emom-progressive-reps). */
   increment?: number;
 };
-export type StoredBlock = {
+/** The layout every block had before change shared-clock: the built-ins' and older own workouts'. Still read, no longer written. */
+export type LegacyStoredBlock = {
   formatId: string;
   lines: StoredLine[][];
   rounds?: number;
@@ -36,6 +37,28 @@ export type StoredBlock = {
   /** Every block but the last: rest after it in seconds, absent when none (change multi-block-workouts). */
   restAfterSeconds?: number;
 };
+
+/** A stored part of a continuous window (change shared-clock): rounds (one entry per round), or a final cycle. */
+export type StoredStructure =
+  | { kind: 'rounds'; rounds: StoredLine[][]; restSeconds?: number }
+  | { kind: 'cycle'; lines: StoredLine[] };
+
+/**
+ * The layout the editor writes since change shared-clock: the window itself — a clock
+ * plus its parts, or an interval clock plus its sequence (each entry's lines). Optional
+ * fields are stored only when set.
+ */
+export type StoredWindowBlock = (
+  | { clock: { kind: 'continuous'; limitSeconds?: number }; structures: StoredStructure[] }
+  | { clock: { kind: 'intervals'; everySeconds: number; count: number; workSeconds?: number; stopOnMiss?: boolean }; intervals: StoredLine[][] }
+) & { restAfterSeconds?: number };
+
+/** Either layout, told apart by `clock` (change shared-clock): both are read, only the window one is written. */
+export type StoredBlock = LegacyStoredBlock | StoredWindowBlock;
+
+export function isWindowBlock(block: StoredBlock): block is StoredWindowBlock {
+  return 'clock' in block;
+}
 
 // Strict on purpose: an unknown format or exercise, a block breaking the
 // invariants below, or a scoring block out of range can't be stored by the app,
@@ -72,6 +95,7 @@ function windowFromStored(id: string, stored: StoredBlock, exerciseNames: Map<st
   const fail = (why: string): never => {
     throw new Error(`Workout ${id}: ${why}`);
   };
+  if (isWindowBlock(stored)) return windowFromWindowBlock(id, stored, exerciseNames);
   const lines = stored.lines.map((round) => round.map((line) => parseLine(id, line, exerciseNames)));
   if (stored.formatId === 'forTime') {
     if (lines.length === 0 || stored.rounds !== lines.length) fail(`For Time with ${stored.rounds} rounds and ${lines.length} round entries`);
@@ -100,6 +124,46 @@ function windowFromStored(id: string, stored: StoredBlock, exerciseNames: Map<st
     };
   }
   return fail(`unknown format ${stored.formatId}`);
+}
+
+/**
+ * A stored window block (change shared-clock): mirrors the window one-to-one, so only
+ * the exercise names are resolved and the limits checked; the window's own shape
+ * rules (a cycle only last and with a limit, no empty part) are `buildWodConfig`'s.
+ */
+function windowFromWindowBlock(id: string, stored: StoredWindowBlock, exerciseNames: Map<string, string>): Window {
+  const fail = (why: string): never => {
+    throw new Error(`Workout ${id}: ${why}`);
+  };
+  const toLines = (lines: StoredLine[]) => lines.map((line) => parseLine(id, line, exerciseNames));
+  if ('intervals' in stored) {
+    const { everySeconds, count, workSeconds, stopOnMiss } = stored.clock as Extract<StoredWindowBlock, { intervals: unknown }>['clock'];
+    if (!(everySeconds >= 10 && everySeconds <= 600)) fail(`interval of ${everySeconds} s`);
+    if (!(count >= 1)) fail('no intervals');
+    if (workSeconds != null && !(workSeconds >= 1 && workSeconds < everySeconds)) fail(`work time of ${workSeconds} s`);
+    if (stored.intervals.length === 0 || stored.intervals.some((entry) => entry.length === 0)) fail('an empty interval');
+    return {
+      clock: {
+        kind: 'intervals',
+        everySeconds,
+        count,
+        ...(workSeconds != null ? { workSeconds } : {}),
+        ...(stopOnMiss ? { stopOnMiss: true } : {}),
+      },
+      intervals: stored.intervals.map((entry) => [{ kind: 'once', lines: toLines(entry) }]),
+    };
+  }
+  if (stored.clock.kind !== 'continuous') fail(`unknown clock ${stored.clock.kind}`);
+  const { limitSeconds } = stored.clock as { limitSeconds?: number };
+  if (limitSeconds != null && !(limitSeconds > 0)) fail(`time limit of ${limitSeconds} s`);
+  const structures: Structure[] = stored.structures.map((s) => {
+    if (s.kind === 'rounds') {
+      return { kind: 'rounds', rounds: s.rounds.map(toLines), ...(s.restSeconds != null ? { restSeconds: s.restSeconds } : {}) };
+    }
+    if (s.kind === 'cycle') return { kind: 'cycle', lines: toLines(s.lines) };
+    return fail(`unknown structure ${(s as { kind: string }).kind}`);
+  });
+  return { clock: { kind: 'continuous', ...(limitSeconds != null ? { limitSeconds } : {}) }, structures };
 }
 
 function parseLine(id: string, line: StoredLine, exerciseNames: Map<string, string>): WodLine {

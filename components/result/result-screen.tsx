@@ -7,6 +7,7 @@ import { colors, fonts } from '@/constants/theme';
 import { WodConfig, formatTime } from '@/constants/wod-engine';
 import { LogEntry } from '@/components/judge/types';
 import { acceptedIds, deriveAdjustedResult, reviewNoReps } from '@/components/result/adjust';
+import { partHeading } from '@/components/result/replay';
 import { AdjustmentChange, getAdjustments } from '@/db/session-adjustments';
 
 type Props = {
@@ -79,6 +80,8 @@ export function ResultScreen({ config, log, athleteAlias, role = 'judge', saved,
             {result.groups != null && split.blockIdx !== result.splits[i - 1]?.blockIdx && (
               <Text style={styles.groupTitle}>{result.groups[split.blockIdx ?? 0].title}</Text>
             )}
+            {/* A block of several parts: a subheading before each part's splits (change shared-clock). */}
+            {partHeading(result.splits, i) != null && <Text style={styles.partTitle}>{partHeading(result.splits, i)}</Text>}
             <View style={styles.splitRow}>
               <View style={styles.splitLeft}>
                 <Text style={[styles.splitLabel, !split.completed && styles.splitLabelPartial]}>
@@ -194,6 +197,14 @@ const styles = StyleSheet.create({
     letterSpacing: 1.5,
     paddingTop: 20,
     paddingBottom: 4,
+  },
+  partTitle: {
+    fontFamily: fonts.ui,
+    fontSize: 10,
+    color: colors.muted,
+    letterSpacing: 1.5,
+    paddingTop: 12,
+    paddingBottom: 2,
   },
   splitRow: {
     flexDirection: 'row',

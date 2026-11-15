@@ -7,10 +7,10 @@
 import { describe, expect, it } from 'vitest';
 import { deriveAdjustedResult } from '@/components/result/adjust';
 import { deriveResult } from '@/components/result/replay';
-import { CASES, workout } from './fixtures';
+import { CASES, SHARED_CLOCK_CASES, workout } from './fixtures';
 
 describe('v1 goldens', () => {
-  for (const c of CASES) {
+  for (const c of [...CASES, ...SHARED_CLOCK_CASES]) {
     it(c.name, async () => {
       const config = workout(c.wodId);
       const golden = {
