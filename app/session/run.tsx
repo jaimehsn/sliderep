@@ -119,7 +119,7 @@ function RunSession({ config, setup }: { config: WodConfig; setup: SessionSetup 
       />
 
       <View style={styles.countZone}>
-        <CountReadout done={judge.done} target={judge.target} counterStyle={judge.counterStyle} />
+        <CountReadout done={judge.done} target={judge.target} max={judge.max} counterStyle={judge.counterStyle} />
       </View>
     </Screen>
   );

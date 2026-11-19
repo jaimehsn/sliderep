@@ -14,11 +14,14 @@ export type WorkoutRow = { id: string; name: string; blocks: string; scoringBloc
 
 export type StoredLine = {
   exerciseId: string;
-  target: number;
+  /** Absent only on a MAX line. */
+  target?: number;
   repDescription?: WodLine['repDescription'];
   load?: string;
   /** EMOM only: reps added each time the line's interval comes round, absent at 0 (change emom-progressive-reps). */
   increment?: number;
+  /** A MAX line (change max-lines): window-shaped interval blocks only, with no target or increment. */
+  max?: true;
 };
 /** The layout every block had before change shared-clock: the built-ins' and older own workouts'. Still read, no longer written. */
 export type LegacyStoredBlock = {
@@ -96,7 +99,7 @@ function windowFromStored(id: string, stored: StoredBlock, exerciseNames: Map<st
     throw new Error(`Workout ${id}: ${why}`);
   };
   if (isWindowBlock(stored)) return windowFromWindowBlock(id, stored, exerciseNames);
-  const lines = stored.lines.map((round) => round.map((line) => parseLine(id, line, exerciseNames)));
+  const lines = stored.lines.map((round) => round.map((line) => parseLine(id, line, exerciseNames, false)));
   if (stored.formatId === 'forTime') {
     if (lines.length === 0 || stored.rounds !== lines.length) fail(`For Time with ${stored.rounds} rounds and ${lines.length} round entries`);
     const rounds: Structure = { kind: 'rounds', rounds: lines, ...(stored.restSeconds != null ? { restSeconds: stored.restSeconds } : {}) };
@@ -135,7 +138,8 @@ function windowFromWindowBlock(id: string, stored: StoredWindowBlock, exerciseNa
   const fail = (why: string): never => {
     throw new Error(`Workout ${id}: ${why}`);
   };
-  const toLines = (lines: StoredLine[]) => lines.map((line) => parseLine(id, line, exerciseNames));
+  const toLines = (lines: StoredLine[]) => lines.map((line) => parseLine(id, line, exerciseNames, false));
+  const toIntervalLines = (lines: StoredLine[]) => lines.map((line) => parseLine(id, line, exerciseNames, true));
   if ('intervals' in stored) {
     const { everySeconds, count, workSeconds, stopOnMiss } = stored.clock as Extract<StoredWindowBlock, { intervals: unknown }>['clock'];
     if (!(everySeconds >= 10 && everySeconds <= 600)) fail(`interval of ${everySeconds} s`);
@@ -150,7 +154,7 @@ function windowFromWindowBlock(id: string, stored: StoredWindowBlock, exerciseNa
         ...(workSeconds != null ? { workSeconds } : {}),
         ...(stopOnMiss ? { stopOnMiss: true } : {}),
       },
-      intervals: stored.intervals.map((entry) => [{ kind: 'once', lines: toLines(entry) }]),
+      intervals: stored.intervals.map((entry) => [{ kind: 'once', lines: toIntervalLines(entry) }]),
     };
   }
   if (stored.clock.kind !== 'continuous') fail(`unknown clock ${stored.clock.kind}`);
@@ -166,9 +170,16 @@ function windowFromWindowBlock(id: string, stored: StoredWindowBlock, exerciseNa
   return { clock: { kind: 'continuous', ...(limitSeconds != null ? { limitSeconds } : {}) }, structures };
 }
 
-function parseLine(id: string, line: StoredLine, exerciseNames: Map<string, string>): WodLine {
+// `maxAllowed`: a window-shaped interval block's line, the only place a MAX line is stored (change max-lines).
+function parseLine(id: string, line: StoredLine, exerciseNames: Map<string, string>, maxAllowed: boolean): WodLine {
   const exercise = exerciseNames.get(line.exerciseId);
   if (exercise == null) throw new Error(`Workout ${id}: unknown exercise ${line.exerciseId}`);
+  if (line.max) {
+    if (!maxAllowed) throw new Error(`Workout ${id}: a MAX line outside an interval block`);
+    if (line.target != null || line.increment != null) throw new Error(`Workout ${id}: a MAX line with reps or an increment`);
+    return { exerciseId: line.exerciseId, exercise, target: 0, repDescription: line.repDescription, load: line.load, max: true };
+  }
+  if (typeof line.target !== 'number') throw new Error(`Workout ${id}: a line without reps`);
   return {
     exerciseId: line.exerciseId,
     exercise,

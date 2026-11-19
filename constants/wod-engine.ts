@@ -82,6 +82,11 @@ export type WodLine = {
   load?: string;
   /** Intervals: reps added to `target` each time this line's sequence entry comes round (change emom-progressive-reps). */
   increment?: number;
+  /**
+   * A MAX line (change max-lines): only last in an interval entry, no increment, `target` 0.
+   * Every valid rep of its interval's work time counts toward it, with no limit.
+   */
+  max?: true;
 };
 
 // ─── Window model (change window-model) ─────────────────────────────────────
@@ -250,6 +255,12 @@ function checkWindow(window: Window): void {
     if (window.intervals.length === 0 || window.intervals.some((e) => e.length !== 1 || e[0].kind !== 'once')) {
       throw new Error('An interval window needs entries of exactly one "once" structure');
     }
+    // A MAX line only last in its interval, with no increment (change max-lines).
+    for (const [entry] of window.intervals) {
+      const lines = entry.kind === 'once' ? entry.lines : [];
+      if (lines.some((l, i) => l.max && i !== lines.length - 1)) throw new Error('A MAX line can only be last in its interval');
+      if (lines.some((l) => l.max && l.increment)) throw new Error('A MAX line has no increment');
+    }
     return;
   }
   const { structures } = window;
@@ -261,6 +272,7 @@ function checkWindow(window: Window): void {
     if (s.kind === 'cycle' && i !== structures.length - 1) throw new Error('A "cycle" can only be the last structure');
   });
   if (cycleOf(window).length > 0 && !window.clock.limitSeconds) throw new Error('A "cycle" needs a time limit');
+  if (lineLists(window).flat().some((l) => l.max)) throw new Error('A continuous window holds no MAX line');
 }
 
 // ─── Interpreter ────────────────────────────────────────────────────────────
@@ -358,7 +370,7 @@ function summarize(window: Window): WodExercise[] {
     const notes = interval.map(lineNote).filter((n): n is string => n != null);
     return {
       name: interval.map((l) => l.exercise).join(' + '),
-      detail: `${interval.map((l) => `${describedOnly(l) ? amountOf(l) : l.target}${l.increment ? ` (+${l.increment})` : ''}`).join(' + ')} / ${per}`,
+      detail: `${interval.map((l) => `${l.max ? 'MAX' : describedOnly(l) ? amountOf(l) : l.target}${l.increment ? ` (+${l.increment})` : ''}`).join(' + ')} / ${per}`,
       note: notes.length > 0 ? notes.join(' · ') : undefined,
     };
   });
@@ -511,6 +523,8 @@ export function intervalLineAt(config: WodConfig, intervalIdx: number, k: number
 export function targetAt(config: WodConfig, pos: WodSession): number {
   const line = lineAt(config, pos);
   if (!line) return 0;
+  // A MAX line has no target (change max-lines).
+  if (line.max) return 0;
   if (shapeOf(config) !== 'perInterval' || !line.increment) return line.target;
   // Progressive EMOM (change emom-progressive-reps): + increment per repetition of the sequence.
   return line.target + line.increment * Math.floor(pos.minuteIdx / sequenceOf(config.window).length);
@@ -714,8 +728,9 @@ export function advanceTo(config: WodConfig, state: EngineState, t: number): Eng
       // Stopping EMOM (change emom-progressive-reps): end at the first missed interval.
       const m = state.pos.minuteIdx;
       if (intervalMissed(config, state)) return { ...state, t: missEnd(m), finished: true };
-      // The clock skipped a whole interval, which had no reps: that one is missed (targets are ≥ 1).
-      if (t >= missEnd(m + 1) && m + 1 < total) {
+      // The clock skipped a whole interval, which had no reps: that one is missed (targets are ≥ 1),
+      // unless it starts on a MAX line, reached at once (change max-lines).
+      if (t >= missEnd(m + 1) && m + 1 < total && !intervalLines(config, m + 1)[0]?.max) {
         return { ...state, pos: { ...state.pos, minuteIdx: m + 1, exIdx: 0 }, done: 0, raw: 0, t: missEnd(m + 1), finished: true };
       }
     }
@@ -791,7 +806,8 @@ export function apply(config: WodConfig, state: EngineState, event: EngineEvent)
     if (raw >= target && s.pos.exIdx < intervalLines(config, s.pos.minuteIdx).length - 1) {
       return { ...s, tagged, pos: { ...s.pos, exIdx: s.pos.exIdx + 1 }, done: 0, raw: 0 };
     }
-    return { ...s, tagged, raw, done: Math.min(raw, target) };
+    // A MAX line's count has no cap (change max-lines).
+    return { ...s, tagged, raw, done: lineAt(config, s.pos)?.max ? raw : Math.min(raw, target) };
   }
 
   const done = s.done + 1;
@@ -899,6 +915,7 @@ function viewSequence(config: SequenceConfig, state: EngineState) {
       timerLabel: 'rest left',
       blockLabel: `BLOCK ${seq.idx + 2}/${count}`,
       partLabel: undefined,
+      max: undefined,
     };
   }
   return { ...view(config.parts[seq.idx], seq.inner), blockLabel: `BLOCK ${seq.idx + 1}/${count}` };
@@ -915,6 +932,8 @@ export function view(config: WodConfig, state: EngineState): {
   blockLabel: string | null;
   /** "PART n/N" in a block of several parts (change shared-clock); absent otherwise, so one-part views are unchanged. */
   partLabel?: string;
+  /** True while the current line is a MAX line (change max-lines); absent otherwise, so other views are unchanged. */
+  max?: true;
 } {
   if (isSequence(config)) return viewSequence(config, state);
   const elapsed = Math.floor(state.t / 1000);
@@ -942,5 +961,6 @@ export function view(config: WodConfig, state: EngineState): {
     timerLabel: cap != null ? `${timerLabel} · cap ${formatTime(cap)}` : timerLabel,
     blockLabel: null,
     ...(partCount(config) > 1 ? { partLabel: `PART ${partIndexAt(config, state.pos.roundIdx) + 1}/${partCount(config)}` } : {}),
+    ...(!state.finished && lineAt(config, state.pos)?.max ? { max: true as const } : {}),
   };
 }

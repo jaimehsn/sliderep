@@ -24,8 +24,12 @@ export type LineFields = {
 /** Rounds row: reps per round, or `reps[0]` for every round while `sameReps` is on. */
 export type ForTimeRow = LineFields & { reps: string[] };
 export type RepsRow = LineFields & { reps: string };
-/** EMOM row: `increment` is the reps added each time its interval comes round, '' meaning 0 (change emom-progressive-reps). */
-export type EmomRow = RepsRow & { increment: string };
+/**
+ * EMOM row: `increment` is the reps added each time its interval comes round, '' meaning 0
+ * (change emom-progressive-reps). `max`: a MAX line (change max-lines), only an interval's
+ * last line; its reps and increment are ignored.
+ */
+export type EmomRow = RepsRow & { increment: string; max?: boolean };
 
 /**
  * A part of a FOR TIME or AMRAP block (change shared-clock). ROUNDS: a For Time's
@@ -69,13 +73,14 @@ function isEmom(set: LineSet): set is EmomDraft {
 }
 
 /** The templates a block starts from (change shared-clock): they only fill its time setting and parts. */
-export type TemplateId = 'forTime' | 'amrap' | 'emom' | 'buyInCashOut' | 'buyInAmrap';
+export type TemplateId = 'forTime' | 'amrap' | 'emom' | 'buyInCashOut' | 'buyInAmrap' | 'everyBuyInMax';
 export const TEMPLATES: { id: TemplateId; label: string }[] = [
   { id: 'forTime', label: 'FOR TIME' },
   { id: 'amrap', label: 'AMRAP' },
   { id: 'emom', label: 'EMOM' },
   { id: 'buyInCashOut', label: 'FOR TIME + BUY-IN/CASH-OUT' },
   { id: 'buyInAmrap', label: 'BUY-IN + AMRAP' },
+  { id: 'everyBuyInMax', label: 'EVERY + BUY-IN + MAX' },
 ];
 
 export function emptyLine(): LineFields {
@@ -90,8 +95,16 @@ function amrapPart(): AmrapPart {
   return { kind: 'amrap', rows: [] };
 }
 
+function emomRow(max = false): EmomRow {
+  return { ...emptyLine(), reps: '', increment: '', ...(max ? { max: true } : {}) };
+}
+
 export function emptyDraft(template: TemplateId, name = ''): Draft {
   if (template === 'emom') return { format: 'emom', name, every: '60', intervals: '', work: '', stopOnMiss: false, slots: [] };
+  // The box's "AMRAP" (change max-lines): every 3:00 × 5, 2:00 of work, a buy-in then a MAX line.
+  if (template === 'everyBuyInMax') {
+    return { format: 'emom', name, every: '180', intervals: '5', work: '120', stopOnMiss: false, slots: [[emomRow(), emomRow(), emomRow(true)]] };
+  }
   const parts: PartDraft[] =
     template === 'forTime' ? [roundsPart()] :
     template === 'amrap' ? [amrapPart()] :
@@ -102,7 +115,7 @@ export function emptyDraft(template: TemplateId, name = ''): Draft {
 
 /** The template a block still matches, or null once its parts were changed into another shape. */
 export function templateOf(draft: Draft): TemplateId | null {
-  if (draft.format === 'emom') return 'emom';
+  if (draft.format === 'emom') return draft.slots.flat().some((row) => row.max) ? 'everyBuyInMax' : 'emom';
   const shape = draft.parts.map((p) => (p.kind === 'amrap' ? 'A' : parseCount(p.rounds) === 1 ? '1' : 'R')).join('');
   if (draft.parts.length === 1) return draft.parts[0].kind === 'amrap' ? 'amrap' : 'forTime';
   if (shape === '1R1') return 'buyInCashOut';
@@ -134,6 +147,11 @@ export function applyTemplate(draft: Draft, template: TemplateId): Draft {
   if (templateOf(draft) === template) return draft;
   const lines = draftLines(draft).map(({ exercise, repDescription, load }) => ({ exercise, repDescription, load }));
   const next = emptyDraft(template, draft.name);
+  // EVERY + BUY-IN + MAX: the lines are its one interval's buy-in, before a new MAX line (change max-lines).
+  if (template === 'everyBuyInMax' && next.format === 'emom' && lines.length > 0) {
+    return { ...next, slots: [[...lines.map((l) => ({ ...l, reps: '', increment: '' })), emomRow(true)]] };
+  }
+  if (template === 'everyBuyInMax') return next;
   if (next.format === 'emom') return { ...next, slots: lines.map((l) => [{ ...l, reps: '', increment: '' }]) };
   const main = mainPart(template);
   return {
@@ -206,11 +224,34 @@ export function addLine<T extends LineSet>(set: T): T {
     : { ...part, rows: [...part.rows, { ...emptyLine(), reps: '' }] }) as T;
 }
 
-/** EMOM: appends an empty line to interval `slotIdx` of the sequence. */
+/** EMOM: appends an empty line to interval `slotIdx` of the sequence, before its MAX line if it ends in one (change max-lines). */
 export function addLineToSlot(draft: EmomDraft, slotIdx: number): EmomDraft {
   return {
     ...draft,
-    slots: draft.slots.map((slot, i) => (i === slotIdx ? [...slot, { ...emptyLine(), reps: '', increment: '' }] : slot)),
+    slots: draft.slots.map((slot, i) => {
+      if (i !== slotIdx) return slot;
+      const at = slot[slot.length - 1]?.max ? slot.length - 1 : slot.length;
+      return [...slot.slice(0, at), emomRow(), ...slot.slice(at)];
+    }),
+  };
+}
+
+/** Whether the EMOM line at flat index `index` is the last of its interval — the only line that may be MAX. */
+export function isLastInSlot(draft: EmomDraft, index: number): boolean {
+  let start = 0;
+  for (const slot of draft.slots) {
+    if (index < start + slot.length) return index === start + slot.length - 1;
+    start += slot.length;
+  }
+  return false;
+}
+
+/** EMOM: marks or unmarks the line at flat index `index` as MAX, only an interval's last line (change max-lines). */
+export function setLineMax(draft: EmomDraft, index: number, on: boolean): EmomDraft {
+  if (on && !isLastInSlot(draft, index)) return draft;
+  return {
+    ...draft,
+    slots: mapEmomLine(draft.slots, index, ({ max: _max, ...row }) => (on ? { ...row, reps: '', increment: '', max: true } : row)),
   };
 }
 
@@ -399,7 +440,10 @@ export function validateDraft(draft: Draft): DraftProblems {
     if (work == null || (every != null && work >= every)) problems.work = 'Work must be 1 or more and shorter than EVERY';
   }
   draft.slots.flat().forEach((line, i) => {
-    const problem = lineProblem(line, [line.reps]) ?? (parseIncrement(line.increment) == null ? 'Increment must be 0 or more' : null);
+    // A MAX line has no reps or increment to check (change max-lines).
+    const problem = line.max
+      ? lineProblem(line, [])
+      : lineProblem(line, [line.reps]) ?? (parseIncrement(line.increment) == null ? 'Increment must be 0 or more' : null);
     if (problem) problems[`line:${i}`] = problem;
   });
   return problems;
@@ -464,6 +508,11 @@ export function draftToStoredBlock(draft: Draft): StoredWindowBlock {
       ...(draft.stopOnMiss ? { stopOnMiss: true } : {}),
     },
     intervals: draft.slots.map((slot) => slot.map((row) => {
+      if (row.max) {
+        // A MAX line: no target or increment (change max-lines).
+        const { target: _target, ...line } = toStoredLine(row, 0);
+        return { ...line, max: true as const };
+      }
       const stored = toStoredLine(row, count(row.reps));
       const increment = parseIncrement(row.increment);
       if (increment) stored.increment = increment;
@@ -501,8 +550,9 @@ export function draftFromWindow(window: Window, name: string): Draft {
       stopOnMiss: clock.stopOnMiss ?? false,
       slots: window.intervals.map((entry) => entry.flatMap((s) => (s.kind === 'once' ? s.lines : [])).map((line) => ({
         ...toLineFields(line),
-        reps: String(line.target),
-        increment: line.increment ? String(line.increment) : '',
+        ...(line.max
+          ? { reps: '', increment: '', max: true }
+          : { reps: String(line.target), increment: line.increment ? String(line.increment) : '' }),
       }))),
     };
   }

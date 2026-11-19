@@ -1,0 +1,33 @@
+{
+  "mode": "EMOM · 6",
+  "description": "6 min · power snatches, burpees, wall ball",
+  "exercises": [
+    {
+      "name": "POWER SNATCHES",
+      "detail": "MAX / min"
+    },
+    {
+      "name": "BURPEES + WALL BALL",
+      "detail": "5 + MAX / min"
+    }
+  ],
+  "durationLine": "6 min",
+  "timerMode": "minLeft",
+  "totalSeconds": 360,
+  "advanceMode": "onClock",
+  "engineVersion": 1,
+  "view": {
+    "exerciseName": "POWER SNATCHES",
+    "target": 0,
+    "done": 0,
+    "kpi": {
+      "label": "minute",
+      "current": 1,
+      "total": 6
+    },
+    "timerStr": "01:00",
+    "timerLabel": "min left",
+    "blockLabel": null,
+    "max": true
+  }
+}

@@ -173,7 +173,7 @@ Consequences:
 Plan:
 - ✅ **E1 `window-model`** (archived 2026-11-14): the model and the engine on it. Stored workouts are translated on read, with no migration and no visible change.
 - ✅ **E2 `shared-clock`** (archived 2026-11-15): a FOR TIME or AMRAP block holds several parts under one clock — `rounds` parts (1 round is a buy-in or cash-out; `once` stays the interval-entry kind), optionally ending in an AMRAP part whose time counts from the block's start. A block ending in an AMRAP part scores its rounds + reps, or `CAP · N reps` if it never got there. Judging shows `PART n/N` and the part's own progress; splits sit under `PART n` subheadings; parts are numbered, with no rest or cue between them. The editor starts each block from a template (FOR TIME, AMRAP, EMOM, FOR TIME + BUY-IN/CASH-OUT, BUY-IN + AMRAP) and saves only the new stored shape (the window itself); the legacy layout is still read.
-- **E3 `max-lines`**: MAX reps and the global score.
+- ✅ **E3 `max-lines`** (archived 2026-11-19): an EMOM interval's last line may be MAX — no target, it counts every rep of the work time once the lines before it (a buy-in) are done. A block with MAX lines scores `<N> reps`, their total; a workout of several blocks still scores by its SCORES block (the global sum was dropped). MAX only in interval blocks: a continuous buy-in + max is BUY-IN + AMRAP of one exercise. New editor template EVERY + BUY-IN + MAX (the box's "AMRAP"), and a MAX checkbox on each interval's last line.
 - **E4 `max-distance`**: MAX by segments.
 
 General nesting (a scored For Time inside each interval) waits until a real workout needs it.

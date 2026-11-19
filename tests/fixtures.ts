@@ -248,9 +248,9 @@ export function asWindowBlock(b: LegacyStoredBlock): StoredWindowBlock {
   return { clock, structures: [{ kind: 'rounds', rounds: b.lines, ...(b.restSeconds != null ? { restSeconds: b.restSeconds } : {}) }], ...after };
 }
 
-/** A golden case's workout: a built-in by id, or one of `SYNTHETIC_WORKOUTS` / `SHARED_CLOCK_WORKOUTS`. */
+/** A golden case's workout: a built-in by id, or one of `SYNTHETIC_WORKOUTS` / `SHARED_CLOCK_WORKOUTS` / `MAX_LINE_WORKOUTS`. */
 export function workout(id: string): WodConfig {
-  const row = [...SYNTHETIC_WORKOUTS, ...SHARED_CLOCK_WORKOUTS].find((w) => w.id === id);
+  const row = [...SYNTHETIC_WORKOUTS, ...SHARED_CLOCK_WORKOUTS, ...MAX_LINE_WORKOUTS].find((w) => w.id === id);
   return row ? parseWorkoutRow(row, names).config : builtin(id);
 }
 
@@ -546,4 +546,83 @@ export const SHARED_CLOCK_CASES: GoldenCase[] = [
   // A no-rep at 0.5 s in the row; accepted, the row's 50th rep is surplus and nothing
   // moves in a block ending in an AMRAP part: still 6 + 7.
   { name: 'review-rowthenamrap-row-no-rep', wodId: 'rowThenAmrap', ...reviewed([accept(500), ...ROW_THEN_AMRAP_RUN]) },
+];
+
+// Change max-lines: EMOM blocks whose intervals end in a MAX line (no target,
+// counts every rep of its work time), in the window stored shape.
+const maxLine = (exerciseId: string, extra: object = {}) => ({ exerciseId, max: true, ...extra });
+export const MAX_LINE_WORKOUTS: WorkoutRow[] = [
+  {
+    // The owner's example 2 (the box's "AMRAP"): every 3:00 × 5, 2:00 of work; 200 m
+    // ROW, 8 BURPEES, then max POWER SNATCHES. Scored by the POWER SNATCHES total.
+    id: 'boxAmrap',
+    name: 'BOX AMRAP',
+    blocks: JSON.stringify([{
+      clock: { kind: 'intervals', everySeconds: 180, count: 5, workSeconds: 120 },
+      intervals: [[
+        { exerciseId: 'row', target: 1, repDescription: { amount: 200, unit: 'm' } },
+        { exerciseId: 'burpees', target: 8 },
+        maxLine('power-snatches', { load: '60/40 kg' }),
+      ]],
+    }]),
+  },
+  {
+    // Every minute × 6, alternating max POWER SNATCHES and 5 BURPEES then max WALL BALL.
+    id: 'alternatingMax',
+    name: 'ALTERNATING MAX',
+    blocks: JSON.stringify([{
+      clock: { kind: 'intervals', everySeconds: 60, count: 6 },
+      intervals: [[maxLine('power-snatches')], [{ exerciseId: 'burpees', target: 5 }, maxLine('wall-ball')]],
+    }]),
+  },
+  {
+    // Every minute × 10, stopping at the first missed minute: 8 BURPEES then max POWER SNATCHES.
+    id: 'stoppingMax',
+    name: 'STOPPING MAX',
+    blocks: JSON.stringify([{
+      clock: { kind: 'intervals', everySeconds: 60, count: 10, stopOnMiss: true },
+      intervals: [[{ exerciseId: 'burpees', target: 8 }, maxLine('power-snatches')]],
+    }]),
+  },
+];
+
+/**
+ * BOX AMRAP interval `i` (3:00 each): the ROW rep at 5 s, `burpees` BURPEES every 2 s
+ * from 40 s, then `max` POWER SNATCHES every 4 s from 60 s (all within 2:00 of work).
+ */
+function boxInterval(i: number, burpees: number, max: number) {
+  const start = i * 180000;
+  return [{ t: start + 5000, kind: 'rep' as Kind }, ...run(start + 40000, burpees, 2000), ...run(start + 60000, max, 4000)];
+}
+// 11, 10, 9, 12 and 8 POWER SNATCHES: 50 reps.
+const BOX_ALL = [11, 10, 9, 12, 8].flatMap((max, i) => boxInterval(i, 8, max));
+// Interval 4 stops at 6 BURPEES, so its POWER SNATCHES are never reached: 11 + 10 + 9 + 0 + 8 = 38.
+const BOX_MISSED = [11, 10, 9, 0, 8].flatMap((max, i) => boxInterval(i, i === 3 ? 6 : 8, max));
+
+export const MAX_LINE_CASES: GoldenCase[] = [
+  { name: 'boxamrap-all-reached', wodId: 'boxAmrap', log: toLog(BOX_ALL) },
+  { name: 'boxamrap-buyin-missed', wodId: 'boxAmrap', log: toLog(BOX_MISSED) },
+  // Minutes 1, 3, 5: 7, 6, 5 POWER SNATCHES from 1 s; minutes 2, 4, 6: 5 BURPEES then
+  // 8, 7, 6 WALL BALL, every 2 s from 1 s: 39 reps.
+  {
+    name: 'alternatingmax',
+    wodId: 'alternatingMax',
+    log: toLog([[7], [5, 8], [6], [5, 7], [5], [5, 6]].flatMap((reps, m) => run(m * 60000 + 1000, reps.reduce((a, b) => a + b, 0), 2000))),
+  },
+  // Minutes 1 and 2: 8 BURPEES then 12 and 10 POWER SNATCHES; minute 3 stops at 6
+  // BURPEES: complete at 3:00 on minute 3, 22 reps.
+  {
+    name: 'stoppingmax-stops',
+    wodId: 'stoppingMax',
+    log: toLog([...run(1000, 20, 2000), ...run(61000, 18, 2000), ...run(121000, 6, 2000)]),
+  },
+  // A no-rep on interval 1's POWER SNATCHES, after its 11 reps; accepted, 51 reps.
+  { name: 'review-boxamrap-max-no-rep', wodId: 'boxAmrap', ...reviewed([...BOX_ALL, accept(101000)]) },
+  // Interval 4 judged at 7 BURPEES and a no-rep, with no POWER SNATCHES after; accepted,
+  // interval 4 is completed and the total stays 38.
+  {
+    name: 'review-boxamrap-buyin-no-rep',
+    wodId: 'boxAmrap',
+    ...reviewed([...[11, 10, 9, 0, 8].flatMap((max, i) => boxInterval(i, i === 3 ? 7 : 8, max)), accept(594000)]),
+  },
 ];

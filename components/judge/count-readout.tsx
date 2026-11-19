@@ -8,11 +8,13 @@ import { countFontSize, countMetrics } from './count-size';
 type Props = {
   done: number;
   target: number;
+  /** A MAX line (change max-lines): no target, so "MAX" in place of the reps left and "of N". */
+  max?: boolean;
   /** Animated punch (scale) and colour (ink → accent after a no-rep). */
   counterStyle: AnimatedStyle<TextStyle>;
 };
 
-export function CountReadout({ done, target, counterStyle }: Props) {
+export function CountReadout({ done, target, max = false, counterStyle }: Props) {
   const left = Math.max(target - done, 0);
   // The zone's size, measured; the readout renders once it's known so it never shows at the wrong size.
   const [zone, setZone] = useState<{ width: number; height: number } | null>(null);
@@ -21,8 +23,9 @@ export function CountReadout({ done, target, counterStyle }: Props) {
     setZone((z) => (z?.width === width && z?.height === height ? z : { width, height }));
   };
 
-  // Sized from the target's digits (change responsive-review), so it holds while counting toward it.
-  const digits = String(Math.max(target, done)).length;
+  // Sized from the target's digits (change responsive-review), so it holds while counting toward it;
+  // a MAX line has none, so three digits, as at the most reps a line can have (change max-lines).
+  const digits = max ? 3 : String(Math.max(target, done)).length;
   const metrics = zone && countMetrics(countFontSize(zone.width, zone.height, digits));
 
   return (
@@ -31,16 +34,25 @@ export function CountReadout({ done, target, counterStyle }: Props) {
         <>
           <Animated.Text style={[styles.count, metrics.count, counterStyle]} allowFontScaling={false}>{done}</Animated.Text>
           <View style={[styles.divider, { height: metrics.dividerHeight }]} />
-          <View style={styles.side}>
-            <Text style={styles.tag}>left</Text>
-            <Text style={[styles.left, metrics.left]} allowFontScaling={false}>{left}</Text>
-            <Text style={styles.of}>of {target}</Text>
-          </View>
+          {max ? (
+            // "MAX" at 0.8 of the reps-left size: about 1.7 em, within the three digits' width the size allows.
+            <View style={styles.side}>
+              <Text style={[styles.left, metrics.left, { fontSize: metrics.left.fontSize * MAX_RATIO }]} allowFontScaling={false}>MAX</Text>
+            </View>
+          ) : (
+            <View style={styles.side}>
+              <Text style={styles.tag}>left</Text>
+              <Text style={[styles.left, metrics.left]} allowFontScaling={false}>{left}</Text>
+              <Text style={styles.of}>of {target}</Text>
+            </View>
+          )}
         </>
       )}
     </View>
   );
 }
+
+const MAX_RATIO = 0.8;
 
 const styles = StyleSheet.create({
   container: {

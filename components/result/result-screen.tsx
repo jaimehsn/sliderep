@@ -87,7 +87,7 @@ export function ResultScreen({ config, log, athleteAlias, role = 'judge', saved,
                 <Text style={[styles.splitLabel, !split.completed && styles.splitLabelPartial]}>
                   {split.label}
                 </Text>
-                <Text style={styles.splitReps}>{split.reps}/{split.target}</Text>
+                <Text style={styles.splitReps}>{split.max ? `${split.reps}` : `${split.reps}/${split.target}`}</Text>
               </View>
               {split.cumulativeMs != null && (
                 <View style={styles.splitRight}>

@@ -26,6 +26,7 @@ import {
   removeLine,
   removePart,
   setLineIncrement,
+  setLineMax,
   setLineReps,
   setPartKind,
   setRepDescription,
@@ -43,7 +44,7 @@ import { ContinuousWindow, START_POSITION, WodConfig, exerciseNameAt, fold, targ
 import { V2_EXERCISES, V2_WORKOUTS } from '@/db/seeds/v2-builtins';
 import { V5_NEW_EXERCISES } from '@/db/seeds/v5-exercises';
 import { LegacyStoredBlock, StoredWindowBlock, parseWorkoutRow } from '@/db/workouts';
-import { SHARED_CLOCK_WORKOUTS, SYNTHETIC_WORKOUTS, asWindowBlock, builtin, workout as fixtureWorkout } from './fixtures';
+import { MAX_LINE_WORKOUTS, SHARED_CLOCK_WORKOUTS, SYNTHETIC_WORKOUTS, asWindowBlock, builtin, workout as fixtureWorkout } from './fixtures';
 
 const names = new Map([...V2_EXERCISES, ...V5_NEW_EXERCISES].map((e) => [e.id, e.name]));
 const ex = (id: string) => ({ id, name: names.get(id) ?? id });
@@ -678,5 +679,65 @@ describe('templates and parts (change shared-clock)', () => {
     expect(copy.minutes).toBe('12');
     expect(copy.parts.map((p) => p.kind)).toEqual(['rounds', 'amrap']);
     expect(templateOf(copy)).toBe('buyInAmrap');
+  });
+});
+
+describe('MAX lines (change max-lines)', () => {
+  const row = (id: string, reps: string, extra: object = {}) => ({ ...emptyLine(), exercise: ex(id), reps, increment: '', ...extra });
+  const box: EmomDraft = {
+    format: 'emom',
+    name: 'box amrap',
+    every: '180',
+    intervals: '5',
+    work: '120',
+    stopOnMiss: false,
+    slots: [[
+      row('row', '1', { repDescription: { amount: '200', unit: 'm' } }),
+      row('burpees', '8'),
+      row('power-snatches', '', { max: true, load: '60/40 kg' }),
+    ]],
+  };
+
+  it('fills the EVERY + BUY-IN + MAX template', () => {
+    const draft = emptyDraft('everyBuyInMax') as EmomDraft;
+    expect(draft).toMatchObject({ every: '180', intervals: '5', work: '120' });
+    expect(draft.slots.map((s) => s.map((l) => l.max ?? false))).toEqual([[false, false, true]]);
+    expect(templateOf(draft)).toBe('everyBuyInMax');
+    expect(templateOf({ ...box, slots: [[row('burpees', '8')]] })).toBe('emom');
+  });
+
+  it('keeps the lines before the MAX line when switching to it, and makes MAX ordinary when leaving', () => {
+    const switched = applyTemplate(fran, 'everyBuyInMax') as EmomDraft;
+    expect(switched.slots.map((s) => s.map((l) => [l.exercise?.id ?? null, l.max ?? false]))).toEqual([
+      [['thrusters', false], ['pull-ups', false], [null, true]],
+    ]);
+    const back = applyTemplate(box, 'forTime') as ContinuousDraft;
+    expect(back.parts[0].rows.map((r) => [r.exercise?.id, 'max' in r])).toEqual([['row', false], ['burpees', false], ['power-snatches', false]]);
+    expect((applyTemplate(box, 'emom') as EmomDraft).slots.flat().some((l) => l.max)).toBe(false);
+  });
+
+  it('marks only an interval\'s last line as MAX, and adds lines before it', () => {
+    const plain: EmomDraft = { ...box, slots: [[row('burpees', '8'), row('power-snatches', '5', { increment: '1' })]] };
+    expect(setLineMax(plain, 0, true)).toBe(plain);
+    const marked = setLineMax(plain, 1, true);
+    expect(marked.slots[0][1]).toMatchObject({ max: true, reps: '', increment: '' });
+    expect('max' in setLineMax(marked, 1, false).slots[0][1]).toBe(false);
+    expect(addLineToSlot(box, 0).slots[0].map((l) => l.exercise?.id ?? null)).toEqual(['row', 'burpees', null, 'power-snatches']);
+  });
+
+  it('saves a MAX line with no reps, an interval of only a MAX line too', () => {
+    expect(validateDraft(box)).toEqual({});
+    const fixture = MAX_LINE_WORKOUTS.find((w) => w.id === 'boxAmrap')!;
+    expect(draftToStoredBlock(box)).toEqual(JSON.parse(fixture.blocks)[0]);
+    const onlyMax: EmomDraft = { ...box, slots: [[row('wall-ball', '', { max: true })]] };
+    expect(validateDraft(onlyMax)).toEqual({});
+    expect(validateDraft({ ...onlyMax, slots: [[{ ...onlyMax.slots[0][0], exercise: null }]] })).toEqual({ 'line:0': 'Pick an exercise' });
+  });
+
+  it('DUPLICATE keeps every MAX line', () => {
+    for (const row of MAX_LINE_WORKOUTS) {
+      const { config } = parseWorkoutRow(row, names);
+      expect(workoutToStoredBlocks(workoutDraftFromConfig(config, 'COPY'))).toEqual(JSON.parse(row.blocks));
+    }
   });
 });

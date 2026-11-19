@@ -70,3 +70,17 @@ describe('reviewNoReps', () => {
     expect(reviewNoReps(workout('buyInAmrap'), buyIn, none)).toEqual([{ id: 20, blockIdx: 1, roundIdx: 0, exIdx: 0, t: 5000, status: 'open' }]);
   });
 });
+
+// Change max-lines: a MAX line has no target, so its no-reps never become surplus.
+describe('reviewNoReps on a MAX line', () => {
+  const box = workout('boxAmrap');
+
+  it('keeps every MAX no-rep open after an acceptance, at the MAX line', () => {
+    // ROW, 8 BURPEES, then on POWER SNATCHES: a no-rep, 3 reps, a no-rep.
+    const events = log('R' + 'R'.repeat(8) + 'NRRRN');
+    expect(reviewNoReps(box, events, new Set([9])).map((n) => [n.id, n.roundIdx, n.exIdx, n.status])).toEqual([
+      [9, 0, 2, 'accepted'],
+      [13, 0, 2, 'open'],
+    ]);
+  });
+});

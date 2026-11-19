@@ -42,6 +42,8 @@ export type Split = {
   blockIdx?: number;
   /** A block of several parts: the part it belongs to (change shared-clock); absent otherwise. */
   partIdx?: number;
+  /** A MAX line's split (change max-lines): its reps with no target, completed when the line was reached. */
+  max?: true;
 };
 
 /** One block's splits on a workout of several blocks, headed "BLOCK n · mode · score". */
@@ -115,11 +117,12 @@ function deriveOnClock(config: WodConfig, log: LogEntry[]): WodResult {
   // One split per line of each interval; an interval is completed when all its lines are.
   for (let m = 0; m < totalIntervals; m++) {
     let intervalCompleted = true;
-    intervalLines(config, m).forEach((_, i) => {
+    intervalLines(config, m).forEach((line, i) => {
       const session: WodSession = { ...START_POSITION, minuteIdx: m, exIdx: i };
       const target = targetAt(config, session);
       const reps = counted.filter((e) => e.pos.minuteIdx === m && e.pos.exIdx === i).length;
-      const completed = reps >= target;
+      // A MAX line is completed once reached: every line before it completed (change max-lines).
+      const completed = line.max ? intervalCompleted : reps >= target;
       if (!completed) intervalCompleted = false;
       totalValidReps += reps;
       splits.push({
@@ -131,11 +134,17 @@ function deriveOnClock(config: WodConfig, log: LogEntry[]): WodResult {
         lapMs: null,
         roundIdx: m,
         exIdx: i,
+        ...(line.max ? { max: true as const } : {}),
       });
     });
     if (intervalCompleted) intervalsCompleted += 1;
   }
 
+  // A block with MAX lines scores their reps (change max-lines), up to where it stopped.
+  if (splits.some((s) => s.max)) {
+    const kept = stopsOnMiss(config) ? stopAtFirstMiss(splits, totalIntervals).splits : splits;
+    return { scoreLabel: 'SCORE', scoreValue: `${kept.reduce((n, s) => n + (s.max ? s.reps : 0), 0)} reps`, splits: kept };
+  }
   if (stopsOnMiss(config)) return stopAtFirstMiss(splits, totalIntervals);
   return {
     scoreLabel: 'SCORE',

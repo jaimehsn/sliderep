@@ -1,0 +1,29 @@
+{
+  "mode": "E3MOM · 5",
+  "description": "5 × 3:00 · row, burpees, power snatches · 120 s work",
+  "exercises": [
+    {
+      "name": "ROW + BURPEES + POWER SNATCHES",
+      "detail": "200 m + 8 + MAX / interval",
+      "note": "60/40 kg"
+    }
+  ],
+  "durationLine": "15 min · 120 s work / 60 s rest",
+  "timerMode": "minLeft",
+  "totalSeconds": 900,
+  "advanceMode": "onClock",
+  "engineVersion": 1,
+  "view": {
+    "exerciseName": "ROW",
+    "target": 1,
+    "done": 0,
+    "kpi": {
+      "label": "interval",
+      "current": 1,
+      "total": 5
+    },
+    "timerStr": "02:00",
+    "timerLabel": "work left",
+    "blockLabel": null
+  }
+}

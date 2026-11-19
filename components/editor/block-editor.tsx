@@ -27,6 +27,7 @@ import {
   removeLine,
   removePart,
   setLineIncrement,
+  setLineMax,
   setLineReps,
   setLines,
   setPartKind,
@@ -370,15 +371,20 @@ function LinesEditor<T extends LineSet>({
               </ScrollView>
             ) : (
               <View style={styles.paramRow}>
-                <Text style={styles.smallLabel}>REPS</Text>
-                <TextInput
-                  value={repsOf(i)}
-                  onChangeText={(value) => onChange(setLineReps(set, i, value))}
-                  keyboardType="number-pad"
-                  maxLength={REPS_DIGITS}
-                  style={styles.numberInput}
-                />
-                {emom && (
+                {/* A MAX line has no reps or increment (change max-lines). */}
+                {!emom?.slots.flat()[i].max && (
+                  <>
+                    <Text style={styles.smallLabel}>REPS</Text>
+                    <TextInput
+                      value={repsOf(i)}
+                      onChangeText={(value) => onChange(setLineReps(set, i, value))}
+                      keyboardType="number-pad"
+                      maxLength={REPS_DIGITS}
+                      style={styles.numberInput}
+                    />
+                  </>
+                )}
+                {emom && !emom.slots.flat()[i].max && (
                   <>
                     <Text style={[styles.smallLabel, styles.paramGap]}>+/ROUND</Text>
                     <TextInput
@@ -390,6 +396,17 @@ function LinesEditor<T extends LineSet>({
                       style={styles.numberInput}
                     />
                   </>
+                )}
+                {/* Only an interval's last line may be MAX (change max-lines). */}
+                {emom && emomPos[i].last && (
+                  <Pressable
+                    onPress={() => onChange(setLineMax(emom, i, !emom.slots.flat()[i].max) as T)}
+                    hitSlop={6}
+                    style={({ pressed }) => [styles.maxToggle, !emom.slots.flat()[i].max && styles.paramGap, pressed && styles.pressed]}
+                  >
+                    <Text style={styles.check}>{emom.slots.flat()[i].max ? '[x]' : '[ ]'}</Text>
+                    <Text style={styles.checkLabel}>MAX</Text>
+                  </Pressable>
                 )}
               </View>
             )}
@@ -562,6 +579,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: 12,
+  },
+  maxToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   check: {
     fontFamily: fonts.ui,

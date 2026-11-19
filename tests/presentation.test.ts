@@ -5,7 +5,7 @@
 import { describe, expect, it } from 'vitest';
 import { WodConfig, durationLine, initial, isSequence, view } from '@/constants/wod-engine';
 import { V2_WORKOUTS } from '@/db/seeds/v2-builtins';
-import { SHARED_CLOCK_WORKOUTS, SYNTHETIC_WORKOUTS, workout } from './fixtures';
+import { MAX_LINE_WORKOUTS, SHARED_CLOCK_WORKOUTS, SYNTHETIC_WORKOUTS, workout } from './fixtures';
 
 function presentation(config: WodConfig) {
   return {
@@ -24,7 +24,7 @@ function presentation(config: WodConfig) {
 }
 
 describe('presentation', () => {
-  for (const id of [...V2_WORKOUTS.map((w) => w.id), ...SYNTHETIC_WORKOUTS.map((w) => w.id), ...SHARED_CLOCK_WORKOUTS.map((w) => w.id)]) {
+  for (const id of [...V2_WORKOUTS.map((w) => w.id), ...SYNTHETIC_WORKOUTS.map((w) => w.id), ...SHARED_CLOCK_WORKOUTS.map((w) => w.id), ...MAX_LINE_WORKOUTS.map((w) => w.id)]) {
     it(id, async () => {
       const config = workout(id);
       const snapshot = {

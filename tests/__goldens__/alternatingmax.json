@@ -1,0 +1,104 @@
+{
+  "result": {
+    "scoreLabel": "SCORE",
+    "scoreValue": "39 reps",
+    "splits": [
+      {
+        "label": "Minute 1 — POWER SNATCHES",
+        "reps": 7,
+        "target": 0,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 0,
+        "exIdx": 0,
+        "max": true
+      },
+      {
+        "label": "Minute 2 — BURPEES",
+        "reps": 5,
+        "target": 5,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 1,
+        "exIdx": 0
+      },
+      {
+        "label": "Minute 2 — WALL BALL",
+        "reps": 8,
+        "target": 0,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 1,
+        "exIdx": 1,
+        "max": true
+      },
+      {
+        "label": "Minute 3 — POWER SNATCHES",
+        "reps": 6,
+        "target": 0,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 2,
+        "exIdx": 0,
+        "max": true
+      },
+      {
+        "label": "Minute 4 — BURPEES",
+        "reps": 5,
+        "target": 5,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 3,
+        "exIdx": 0
+      },
+      {
+        "label": "Minute 4 — WALL BALL",
+        "reps": 7,
+        "target": 0,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 3,
+        "exIdx": 1,
+        "max": true
+      },
+      {
+        "label": "Minute 5 — POWER SNATCHES",
+        "reps": 5,
+        "target": 0,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 4,
+        "exIdx": 0,
+        "max": true
+      },
+      {
+        "label": "Minute 6 — BURPEES",
+        "reps": 5,
+        "target": 5,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 5,
+        "exIdx": 0
+      },
+      {
+        "label": "Minute 6 — WALL BALL",
+        "reps": 6,
+        "target": 0,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 5,
+        "exIdx": 1,
+        "max": true
+      }
+    ]
+  }
+}

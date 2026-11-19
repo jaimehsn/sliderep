@@ -171,7 +171,7 @@ export default function AdjustScreen() {
                 {partHeading(result.splits, i) != null && <Text style={styles.partTitle}>{partHeading(result.splits, i)}</Text>}
                 <View style={styles.splitRow}>
                   <Text style={[styles.splitLabel, !split.completed && styles.splitLabelPartial]}>{split.label}</Text>
-                  <Text style={styles.splitReps}>{split.reps}/{split.target}</Text>
+                  <Text style={styles.splitReps}>{split.max ? `${split.reps}` : `${split.reps}/${split.target}`}</Text>
                 </View>
                 {(underSplit.get(positionKey(blockIdx, split.roundIdx, split.exIdx)) ?? []).map(noRepRow)}
                 {lastOfBlock && orphanRows(blockIdx)}

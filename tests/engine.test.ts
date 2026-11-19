@@ -2,8 +2,8 @@
 // live judging (clock ticks interleaved with gestures) must end in exactly the
 // state the result fold derives from the same events.
 import { describe, expect, it } from 'vitest';
-import { EngineEvent, EngineState, START_POSITION, Structure, WodConfig, advanceTo, apply, blockIndexOf, capSeconds, durationLine, fold, initial, intervalLineAt, intervalSeconds, isComplete, isResting, isSequence, restLeftSeconds, shapeOf, buildWodConfig, isIntervalWindow, targetAt, view } from '@/constants/wod-engine';
-import { CASES, SHARED_CLOCK_WORKOUTS, SYNTHETIC_WORKOUTS, asWindowBlock, builtin, workout } from './fixtures';
+import { EngineEvent, EngineState, START_POSITION, Structure, WodConfig, WodLine, advanceTo, apply, blockIndexOf, capSeconds, durationLine, fold, initial, intervalLineAt, intervalLines, intervalSeconds, isComplete, isResting, isSequence, restLeftSeconds, shapeOf, buildWodConfig, isIntervalWindow, targetAt, view } from '@/constants/wod-engine';
+import { CASES, MAX_LINE_WORKOUTS, SHARED_CLOCK_WORKOUTS, SYNTHETIC_WORKOUTS, asWindowBlock, builtin, workout } from './fixtures';
 import { V2_EXERCISES, V2_WORKOUTS } from '@/db/seeds/v2-builtins';
 import { LegacyStoredBlock, parseWorkoutRow } from '@/db/workouts';
 import { V5_NEW_EXERCISES } from '@/db/seeds/v5-exercises';
@@ -639,5 +639,80 @@ describe('windows of several parts', () => {
     const s = fold(rowThenAmrap, reps(38, 5000, 10000), Infinity);
     expect(s).toMatchObject({ finished: true, t: 720000, pos: { roundIdx: 0, exIdx: 0 } });
     expect(isComplete(rowThenAmrap, s)).toBe(false);
+  });
+});
+
+// Change max-lines: an interval's last line may be a MAX line, with no target.
+describe('MAX lines', () => {
+  const l = (exercise: string, target: number) => ({ exerciseId: exercise.toLowerCase(), exercise, target });
+  const max = (exercise: string) => ({ exerciseId: exercise.toLowerCase(), exercise, target: 0, max: true as const });
+  const emom = (entries: WodLine[][], extra: { everySeconds?: number; count?: number; workSeconds?: number; stopOnMiss?: boolean } = {}) =>
+    buildWodConfig('X', {
+      clock: { kind: 'intervals', everySeconds: 60, count: 5, ...extra },
+      intervals: entries.map((lines) => [{ kind: 'once' as const, lines }]),
+    });
+  // every 3:00 × 5, 2:00 of work: 1 ROW, 8 BURPEES, then MAX POWER SNATCHES.
+  const box = emom([[l('ROW', 1), l('BURPEES', 8), max('POWER SNATCHES')]], { everySeconds: 180, workSeconds: 120 });
+  const reps = (from: number, n: number, gap = 2000): EngineEvent[] => Array.from({ length: n }, (_, i) => ({ t: from + i * gap, ok: true }));
+
+  it('becomes current after its buy-in and counts with no cap', () => {
+    let state = fold(box, reps(1000, 9), 20000);
+    expect(view(box, state)).toMatchObject({ exerciseName: 'POWER SNATCHES', target: 0, done: 0, max: true });
+    state = fold(box, reps(1000, 9 + 25), 70000);
+    expect(view(box, state)).toMatchObject({ exerciseName: 'POWER SNATCHES', done: 25, max: true });
+    expect(view(box, fold(box, reps(1000, 3), 7000)).max).toBeUndefined();
+  });
+
+  it("doesn't count a rep after the work time", () => {
+    const state = fold(box, [...reps(1000, 9), { t: 125000, ok: true }], 130000);
+    expect(state.tagged.at(-1)).toMatchObject({ counted: false, inPlay: false });
+  });
+
+  it('never misses an interval of only a MAX line, and stops on an unfinished buy-in', () => {
+    const onlyMax = emom([[max('WALL BALL')], [l('BURPEES', 5), max('POWER SNATCHES')]], { stopOnMiss: true, count: 6 });
+    // Minute 1 has no reps at all, and minute 2 its buy-in done: neither is missed.
+    const kept = fold(onlyMax, reps(61000, 5), 125000);
+    expect(kept.finished).toBe(false);
+    expect(kept.pos.minuteIdx).toBe(2);
+    // Minute 2 ends after 3 BURPEES of 5: the workout is complete at 2:00.
+    const stopped = fold(onlyMax, reps(61000, 3), 125000);
+    expect(stopped).toMatchObject({ finished: true, t: 120000, pos: { minuteIdx: 1, exIdx: 0 } });
+    expect(live(onlyMax, reps(61000, 3), 125000)).toEqual(stopped);
+  });
+
+  it('runs live as it folds', () => {
+    const events = [...reps(1000, 30), ...reps(181000, 12), ...reps(361000, 20)];
+    expect(live(box, events, 900000)).toEqual(fold(box, events, 900000));
+  });
+
+  it('rejects a MAX line out of place', () => {
+    expect(() => emom([[max('POWER SNATCHES'), l('BURPEES', 8)]])).toThrow(/last/);
+    expect(() => emom([[{ ...max('POWER SNATCHES'), increment: 1 }]])).toThrow(/increment/);
+    expect(() =>
+      buildWodConfig('X', { clock: { kind: 'continuous', limitSeconds: 600 }, structures: [{ kind: 'cycle', lines: [max('BURPEES')] }] }),
+    ).toThrow(/MAX/);
+  });
+});
+
+describe('stored MAX lines', () => {
+  const names = new Map([...V2_EXERCISES, ...V5_NEW_EXERCISES].map((e) => [e.id, e.name]));
+  const parse = (blocks: object[]) => parseWorkoutRow({ id: 'x', name: 'X', blocks: JSON.stringify(blocks) }, names);
+  const intervals = (lines: object[]) => [{ clock: { kind: 'intervals', everySeconds: 60, count: 5 }, intervals: [lines] }];
+  const burpees = { exerciseId: 'burpees', target: 8 };
+
+  it('reads the MAX workouts, a MAX line as target 0', () => {
+    for (const row of MAX_LINE_WORKOUTS) expect(() => parseWorkoutRow(row, names)).not.toThrow();
+    const [, , snatches] = intervalLines(workout('boxAmrap'), 0);
+    expect(snatches).toMatchObject({ exercise: 'POWER SNATCHES', target: 0, max: true, load: '60/40 kg' });
+  });
+
+  it('rejects a MAX line with reps, an increment, out of place or in the legacy layout', () => {
+    expect(() => parse(intervals([burpees, { exerciseId: 'power-snatches', max: true }]))).not.toThrow();
+    expect(() => parse(intervals([burpees, { exerciseId: 'power-snatches', max: true, target: 5 }]))).toThrow(/reps/);
+    expect(() => parse(intervals([burpees, { exerciseId: 'power-snatches', max: true, increment: 1 }]))).toThrow(/increment/);
+    expect(() => parse(intervals([{ exerciseId: 'power-snatches', max: true }, burpees]))).toThrow(/last/);
+    expect(() => parse([{ clock: { kind: 'continuous', limitSeconds: 600 }, structures: [{ kind: 'cycle', lines: [{ exerciseId: 'burpees', max: true }] }] }])).toThrow(/MAX/);
+    expect(() => parse([{ formatId: 'emom', lines: [[{ exerciseId: 'burpees', max: true }]], rounds: 5, durationSeconds: 300 }])).toThrow(/MAX/);
+    expect(() => parse(intervals([{ exerciseId: 'burpees' }]))).toThrow(/without reps/);
   });
 });

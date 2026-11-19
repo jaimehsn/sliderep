@@ -1,0 +1,324 @@
+{
+  "result": {
+    "scoreLabel": "SCORE",
+    "scoreValue": "38 reps",
+    "splits": [
+      {
+        "label": "Interval 1 — ROW",
+        "reps": 1,
+        "target": 1,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 0,
+        "exIdx": 0
+      },
+      {
+        "label": "Interval 1 — BURPEES",
+        "reps": 8,
+        "target": 8,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 0,
+        "exIdx": 1
+      },
+      {
+        "label": "Interval 1 — POWER SNATCHES",
+        "reps": 11,
+        "target": 0,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 0,
+        "exIdx": 2,
+        "max": true
+      },
+      {
+        "label": "Interval 2 — ROW",
+        "reps": 1,
+        "target": 1,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 1,
+        "exIdx": 0
+      },
+      {
+        "label": "Interval 2 — BURPEES",
+        "reps": 8,
+        "target": 8,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 1,
+        "exIdx": 1
+      },
+      {
+        "label": "Interval 2 — POWER SNATCHES",
+        "reps": 10,
+        "target": 0,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 1,
+        "exIdx": 2,
+        "max": true
+      },
+      {
+        "label": "Interval 3 — ROW",
+        "reps": 1,
+        "target": 1,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 2,
+        "exIdx": 0
+      },
+      {
+        "label": "Interval 3 — BURPEES",
+        "reps": 8,
+        "target": 8,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 2,
+        "exIdx": 1
+      },
+      {
+        "label": "Interval 3 — POWER SNATCHES",
+        "reps": 9,
+        "target": 0,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 2,
+        "exIdx": 2,
+        "max": true
+      },
+      {
+        "label": "Interval 4 — ROW",
+        "reps": 1,
+        "target": 1,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 3,
+        "exIdx": 0
+      },
+      {
+        "label": "Interval 4 — BURPEES",
+        "reps": 7,
+        "target": 8,
+        "completed": false,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 3,
+        "exIdx": 1
+      },
+      {
+        "label": "Interval 4 — POWER SNATCHES",
+        "reps": 0,
+        "target": 0,
+        "completed": false,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 3,
+        "exIdx": 2,
+        "max": true
+      },
+      {
+        "label": "Interval 5 — ROW",
+        "reps": 1,
+        "target": 1,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 4,
+        "exIdx": 0
+      },
+      {
+        "label": "Interval 5 — BURPEES",
+        "reps": 8,
+        "target": 8,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 4,
+        "exIdx": 1
+      },
+      {
+        "label": "Interval 5 — POWER SNATCHES",
+        "reps": 8,
+        "target": 0,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 4,
+        "exIdx": 2,
+        "max": true
+      }
+    ]
+  },
+  "adjusted": {
+    "scoreLabel": "SCORE",
+    "scoreValue": "38 reps",
+    "splits": [
+      {
+        "label": "Interval 1 — ROW",
+        "reps": 1,
+        "target": 1,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 0,
+        "exIdx": 0
+      },
+      {
+        "label": "Interval 1 — BURPEES",
+        "reps": 8,
+        "target": 8,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 0,
+        "exIdx": 1
+      },
+      {
+        "label": "Interval 1 — POWER SNATCHES",
+        "reps": 11,
+        "target": 0,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 0,
+        "exIdx": 2,
+        "max": true
+      },
+      {
+        "label": "Interval 2 — ROW",
+        "reps": 1,
+        "target": 1,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 1,
+        "exIdx": 0
+      },
+      {
+        "label": "Interval 2 — BURPEES",
+        "reps": 8,
+        "target": 8,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 1,
+        "exIdx": 1
+      },
+      {
+        "label": "Interval 2 — POWER SNATCHES",
+        "reps": 10,
+        "target": 0,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 1,
+        "exIdx": 2,
+        "max": true
+      },
+      {
+        "label": "Interval 3 — ROW",
+        "reps": 1,
+        "target": 1,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 2,
+        "exIdx": 0
+      },
+      {
+        "label": "Interval 3 — BURPEES",
+        "reps": 8,
+        "target": 8,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 2,
+        "exIdx": 1
+      },
+      {
+        "label": "Interval 3 — POWER SNATCHES",
+        "reps": 9,
+        "target": 0,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 2,
+        "exIdx": 2,
+        "max": true
+      },
+      {
+        "label": "Interval 4 — ROW",
+        "reps": 1,
+        "target": 1,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 3,
+        "exIdx": 0
+      },
+      {
+        "label": "Interval 4 — BURPEES",
+        "reps": 8,
+        "target": 8,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 3,
+        "exIdx": 1
+      },
+      {
+        "label": "Interval 4 — POWER SNATCHES",
+        "reps": 0,
+        "target": 0,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 3,
+        "exIdx": 2,
+        "max": true
+      },
+      {
+        "label": "Interval 5 — ROW",
+        "reps": 1,
+        "target": 1,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 4,
+        "exIdx": 0
+      },
+      {
+        "label": "Interval 5 — BURPEES",
+        "reps": 8,
+        "target": 8,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 4,
+        "exIdx": 1
+      },
+      {
+        "label": "Interval 5 — POWER SNATCHES",
+        "reps": 8,
+        "target": 0,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 4,
+        "exIdx": 2,
+        "max": true
+      }
+    ]
+  }
+}
