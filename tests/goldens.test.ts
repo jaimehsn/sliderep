@@ -7,10 +7,10 @@
 import { describe, expect, it } from 'vitest';
 import { deriveAdjustedResult } from '@/components/result/adjust';
 import { deriveResult } from '@/components/result/replay';
-import { CASES, MAX_LINE_CASES, SHARED_CLOCK_CASES, workout } from './fixtures';
+import { CASES, MAX_DISTANCE_CASES, MAX_LINE_CASES, SHARED_CLOCK_CASES, workout } from './fixtures';
 
 describe('v1 goldens', () => {
-  for (const c of [...CASES, ...SHARED_CLOCK_CASES, ...MAX_LINE_CASES]) {
+  for (const c of [...CASES, ...SHARED_CLOCK_CASES, ...MAX_LINE_CASES, ...MAX_DISTANCE_CASES]) {
     it(c.name, async () => {
       const config = workout(c.wodId);
       const golden = {

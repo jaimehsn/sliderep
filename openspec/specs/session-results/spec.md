@@ -179,7 +179,7 @@ A block of several parts SHALL list its splits as a For Time or AMRAP does, with
 - **THEN** the first AMRAP split is labelled "Round 1 — PULL-UPS"
 
 ### Requirement: Score of a block with MAX lines
-An EMOM block with at least one MAX line SHALL be scored as "<N> reps", N being the valid reps counted on all its MAX lines, whichever their exercise. Reps on the exercises before a MAX line SHALL NOT add to N. On a stopping EMOM, N SHALL count only the intervals up to and including the one where it stopped. On a workout of several blocks, the block marked to score SHALL give the workout's score as before, and a block with MAX lines SHALL show its "<N> reps" in its group title.
+An EMOM block with MAX lines SHALL be scored with one total per unit: "<N> reps" for MAX lines without a segment, and "<N> <unit>" adding up the segments of each unit, in the order units first appear in the interval sequence, joined by " · ". Reps before a MAX line SHALL NOT count. A stopping EMOM SHALL count only the intervals up to the one where it stopped. On several blocks, the marked block SHALL give the score, and a block with MAX lines SHALL show its own in its group title.
 
 #### Scenario: The box's AMRAP
 - **WHEN** an EMOM of every 3:00 × 5 with 2:00 of work, each interval ROW 1 rep (200 m), BURPEES 8 then POWER SNATCHES MAX, ends with 11, 10, 9, 0 and 8 POWER SNATCHES reps
@@ -197,8 +197,20 @@ An EMOM block with at least one MAX line SHALL be scored as "<N> reps", N being 
 - **WHEN** a workout of two blocks scores its first block, and its second block has MAX lines with 40 reps
 - **THEN** the workout's score is the first block's, and the second block's group title shows 40 reps
 
+#### Scenario: Example 3
+- **WHEN** an EMOM of 15 minutes rotates STEP-UPS 16, RUN 1 rep (200 m) and HANDSTAND WALK MAX each rep 5 m, and the five HANDSTAND WALK minutes count 12, 10, 9, 11 and 8 valid reps
+- **THEN** the score reads 250 m
+
+#### Scenario: Mixed units
+- **WHEN** an EMOM alternates HANDSTAND WALK MAX each rep 5 m and POWER SNATCHES MAX, with 12 valid HANDSTAND WALK reps and 38 valid POWER SNATCHES reps in all
+- **THEN** the score reads 60 m · 38 reps
+
+#### Scenario: Different segment sizes of one unit
+- **WHEN** one MAX line of a block is HANDSTAND WALK each rep 5 m with 4 valid reps, and another is SLED PUSH each rep 10 m with 3 valid reps
+- **THEN** the score reads 50 m
+
 ### Requirement: Splits of a MAX line
-A MAX line SHALL have one split per interval, like any EMOM exercise, showing its valid reps with no target, marked completed when the line was reached. An interval with a MAX line SHALL be completed when its MAX line was reached.
+A MAX line SHALL have one split per interval, like any EMOM exercise, showing its valid reps with no target, or its total in its unit when it has a segment, marked completed when the line was reached. An interval with a MAX line SHALL be completed when its MAX line was reached.
 
 #### Scenario: MAX split
 - **WHEN** interval 2 of every 3:00 counts 10 POWER SNATCHES reps after its buy-in
@@ -207,3 +219,7 @@ A MAX line SHALL have one split per interval, like any EMOM exercise, showing it
 #### Scenario: MAX not reached
 - **WHEN** interval 4 ends after 6 BURPEES of 8
 - **THEN** "Interval 4 — BURPEES" shows 6/8 not completed, and "Interval 4 — POWER SNATCHES" shows 0 reps not completed
+
+#### Scenario: Split in metres
+- **WHEN** minute 3 counts 12 valid HANDSTAND WALK reps, each rep 5 m
+- **THEN** "Minute 3 — HANDSTAND WALK" shows 60 m

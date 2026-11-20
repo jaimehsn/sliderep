@@ -1,0 +1,38 @@
+{
+  "result": {
+    "scoreLabel": "SCORE",
+    "scoreValue": "50 m",
+    "splits": [
+      {
+        "label": "Minute 1 — HANDSTAND WALK",
+        "reps": 4,
+        "target": 0,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 0,
+        "exIdx": 0,
+        "max": true,
+        "segment": {
+          "amount": 5,
+          "unit": "m"
+        }
+      },
+      {
+        "label": "Minute 2 — SLED PUSH",
+        "reps": 3,
+        "target": 0,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 1,
+        "exIdx": 0,
+        "max": true,
+        "segment": {
+          "amount": 10,
+          "unit": "m"
+        }
+      }
+    ]
+  }
+}

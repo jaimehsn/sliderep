@@ -1,0 +1,38 @@
+{
+  "mode": "EMOM · 15",
+  "description": "15 min · step-ups, run, handstand walk",
+  "exercises": [
+    {
+      "name": "STEP-UPS",
+      "detail": "16 / min",
+      "note": "2×22.5 kg"
+    },
+    {
+      "name": "RUN",
+      "detail": "200 m / min"
+    },
+    {
+      "name": "HANDSTAND WALK",
+      "detail": "MAX / min",
+      "note": "5 m"
+    }
+  ],
+  "durationLine": "15 min",
+  "timerMode": "minLeft",
+  "totalSeconds": 900,
+  "advanceMode": "onClock",
+  "engineVersion": 1,
+  "view": {
+    "exerciseName": "STEP-UPS",
+    "target": 16,
+    "done": 0,
+    "kpi": {
+      "label": "minute",
+      "current": 1,
+      "total": 15
+    },
+    "timerStr": "01:00",
+    "timerLabel": "min left",
+    "blockLabel": null
+  }
+}

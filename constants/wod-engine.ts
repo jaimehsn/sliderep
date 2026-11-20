@@ -89,6 +89,14 @@ export type WodLine = {
   max?: true;
 };
 
+/** A MAX line's segment (change max-distance): its rep description, each valid rep being one segment completed. */
+export type Segment = { amount: number; unit: 'm' | 'cal' | 's' };
+
+/** The segment of a MAX line with a rep description; null on any other line. */
+export function maxSegment(line: WodLine | undefined): Segment | null {
+  return line?.max && line.repDescription ? line.repDescription : null;
+}
+
 // ─── Window model (change window-model) ─────────────────────────────────────
 //
 // A window is how the clock runs plus what is done inside it. A continuous window
@@ -916,6 +924,7 @@ function viewSequence(config: SequenceConfig, state: EngineState) {
       blockLabel: `BLOCK ${seq.idx + 2}/${count}`,
       partLabel: undefined,
       max: undefined,
+      segment: undefined,
     };
   }
   return { ...view(config.parts[seq.idx], seq.inner), blockLabel: `BLOCK ${seq.idx + 1}/${count}` };
@@ -934,6 +943,8 @@ export function view(config: WodConfig, state: EngineState): {
   partLabel?: string;
   /** True while the current line is a MAX line (change max-lines); absent otherwise, so other views are unchanged. */
   max?: true;
+  /** The current MAX line's segment (change max-distance); absent otherwise, so other views are unchanged. */
+  segment?: Segment;
 } {
   if (isSequence(config)) return viewSequence(config, state);
   const elapsed = Math.floor(state.t / 1000);
@@ -962,5 +973,6 @@ export function view(config: WodConfig, state: EngineState): {
     blockLabel: null,
     ...(partCount(config) > 1 ? { partLabel: `PART ${partIndexAt(config, state.pos.roundIdx) + 1}/${partCount(config)}` } : {}),
     ...(!state.finished && lineAt(config, state.pos)?.max ? { max: true as const } : {}),
+    ...(!state.finished && maxSegment(lineAt(config, state.pos)) ? { segment: maxSegment(lineAt(config, state.pos))! } : {}),
   };
 }

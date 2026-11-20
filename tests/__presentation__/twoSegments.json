@@ -1,0 +1,39 @@
+{
+  "mode": "EMOM · 2",
+  "description": "2 min · handstand walk + sled push",
+  "exercises": [
+    {
+      "name": "HANDSTAND WALK",
+      "detail": "MAX / min",
+      "note": "5 m"
+    },
+    {
+      "name": "SLED PUSH",
+      "detail": "MAX / min",
+      "note": "10 m"
+    }
+  ],
+  "durationLine": "2 min",
+  "timerMode": "minLeft",
+  "totalSeconds": 120,
+  "advanceMode": "onClock",
+  "engineVersion": 1,
+  "view": {
+    "exerciseName": "HANDSTAND WALK",
+    "target": 0,
+    "done": 0,
+    "kpi": {
+      "label": "minute",
+      "current": 1,
+      "total": 2
+    },
+    "timerStr": "01:00",
+    "timerLabel": "min left",
+    "blockLabel": null,
+    "max": true,
+    "segment": {
+      "amount": 5,
+      "unit": "m"
+    }
+  }
+}

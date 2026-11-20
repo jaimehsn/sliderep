@@ -1,0 +1,60 @@
+{
+  "result": {
+    "scoreLabel": "SCORE",
+    "scoreValue": "60 m · 38 reps",
+    "splits": [
+      {
+        "label": "Minute 1 — HANDSTAND WALK",
+        "reps": 7,
+        "target": 0,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 0,
+        "exIdx": 0,
+        "max": true,
+        "segment": {
+          "amount": 5,
+          "unit": "m"
+        }
+      },
+      {
+        "label": "Minute 2 — POWER SNATCHES",
+        "reps": 20,
+        "target": 0,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 1,
+        "exIdx": 0,
+        "max": true
+      },
+      {
+        "label": "Minute 3 — HANDSTAND WALK",
+        "reps": 5,
+        "target": 0,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 2,
+        "exIdx": 0,
+        "max": true,
+        "segment": {
+          "amount": 5,
+          "unit": "m"
+        }
+      },
+      {
+        "label": "Minute 4 — POWER SNATCHES",
+        "reps": 18,
+        "target": 0,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 3,
+        "exIdx": 0,
+        "max": true
+      }
+    ]
+  }
+}

@@ -2,8 +2,8 @@
 // live judging (clock ticks interleaved with gestures) must end in exactly the
 // state the result fold derives from the same events.
 import { describe, expect, it } from 'vitest';
-import { EngineEvent, EngineState, START_POSITION, Structure, WodConfig, WodLine, advanceTo, apply, blockIndexOf, capSeconds, durationLine, fold, initial, intervalLineAt, intervalLines, intervalSeconds, isComplete, isResting, isSequence, restLeftSeconds, shapeOf, buildWodConfig, isIntervalWindow, targetAt, view } from '@/constants/wod-engine';
-import { CASES, MAX_LINE_WORKOUTS, SHARED_CLOCK_WORKOUTS, SYNTHETIC_WORKOUTS, asWindowBlock, builtin, workout } from './fixtures';
+import { EngineEvent, EngineState, START_POSITION, Structure, WodConfig, WodLine, advanceTo, apply, blockIndexOf, capSeconds, durationLine, fold, initial, intervalLineAt, intervalLines, intervalSeconds, isComplete, isResting, isSequence, restLeftSeconds, shapeOf, buildWodConfig, isIntervalWindow, maxSegment, targetAt, view } from '@/constants/wod-engine';
+import { CASES, MAX_DISTANCE_WORKOUTS, MAX_LINE_WORKOUTS, SHARED_CLOCK_WORKOUTS, SYNTHETIC_WORKOUTS, asWindowBlock, builtin, workout } from './fixtures';
 import { V2_EXERCISES, V2_WORKOUTS } from '@/db/seeds/v2-builtins';
 import { LegacyStoredBlock, parseWorkoutRow } from '@/db/workouts';
 import { V5_NEW_EXERCISES } from '@/db/seeds/v5-exercises';
@@ -714,5 +714,41 @@ describe('stored MAX lines', () => {
     expect(() => parse([{ clock: { kind: 'continuous', limitSeconds: 600 }, structures: [{ kind: 'cycle', lines: [{ exerciseId: 'burpees', max: true }] }] }])).toThrow(/MAX/);
     expect(() => parse([{ formatId: 'emom', lines: [[{ exerciseId: 'burpees', max: true }]], rounds: 5, durationSeconds: 300 }])).toThrow(/MAX/);
     expect(() => parse(intervals([{ exerciseId: 'burpees' }]))).toThrow(/without reps/);
+  });
+});
+
+describe('MAX segments (change max-distance)', () => {
+  const ev = (t: number): EngineEvent => ({ t, ok: true });
+
+  it('every max-distance workout builds', () => {
+    for (const w of MAX_DISTANCE_WORKOUTS) expect(() => workout(w.id)).not.toThrow();
+  });
+
+  it("shows EXAMPLE 3's minute 3 count in reps, with its 5 m segment", () => {
+    const config = workout('example3');
+    let s = initial(config);
+    for (const t of [121000, 125000, 129000]) s = apply(config, s, ev(t));
+    const v = view(config, s);
+    expect(v.exerciseName).toBe('HANDSTAND WALK');
+    expect(v.done).toBe(3);
+    expect(v.max).toBe(true);
+    expect(v.segment).toEqual({ amount: 5, unit: 'm' });
+  });
+
+  it('has no segment on a MAX line without a rep description, nor on an ordinary line', () => {
+    const box = workout('boxAmrap');
+    let s = initial(box);
+    for (const t of [5000, ...Array.from({ length: 8 }, (_, i) => 40000 + i * 2000), 60000]) s = apply(box, s, ev(t));
+    expect(view(box, s).max).toBe(true);
+    expect('segment' in view(box, s)).toBe(false);
+    const ex3 = workout('example3');
+    expect('segment' in view(ex3, initial(ex3))).toBe(false);
+  });
+
+  it('maxSegment reads only MAX lines', () => {
+    const line: WodLine = { exerciseId: 'run', exercise: 'RUN', target: 1, repDescription: { amount: 200, unit: 'm' } };
+    expect(maxSegment(line)).toBeNull();
+    expect(maxSegment({ ...line, target: 0, max: true })).toEqual({ amount: 200, unit: 'm' });
+    expect(maxSegment(undefined)).toBeNull();
   });
 });

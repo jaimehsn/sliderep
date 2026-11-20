@@ -248,9 +248,9 @@ export function asWindowBlock(b: LegacyStoredBlock): StoredWindowBlock {
   return { clock, structures: [{ kind: 'rounds', rounds: b.lines, ...(b.restSeconds != null ? { restSeconds: b.restSeconds } : {}) }], ...after };
 }
 
-/** A golden case's workout: a built-in by id, or one of `SYNTHETIC_WORKOUTS` / `SHARED_CLOCK_WORKOUTS` / `MAX_LINE_WORKOUTS`. */
+/** A golden case's workout: a built-in by id, or one of `SYNTHETIC_WORKOUTS` / `SHARED_CLOCK_WORKOUTS` / `MAX_LINE_WORKOUTS` / `MAX_DISTANCE_WORKOUTS`. */
 export function workout(id: string): WodConfig {
-  const row = [...SYNTHETIC_WORKOUTS, ...SHARED_CLOCK_WORKOUTS, ...MAX_LINE_WORKOUTS].find((w) => w.id === id);
+  const row = [...SYNTHETIC_WORKOUTS, ...SHARED_CLOCK_WORKOUTS, ...MAX_LINE_WORKOUTS, ...MAX_DISTANCE_WORKOUTS].find((w) => w.id === id);
   return row ? parseWorkoutRow(row, names).config : builtin(id);
 }
 
@@ -625,4 +625,64 @@ export const MAX_LINE_CASES: GoldenCase[] = [
     wodId: 'boxAmrap',
     ...reviewed([...[11, 10, 9, 0, 8].flatMap((max, i) => boxInterval(i, i === 3 ? 7 : 8, max)), accept(594000)]),
   },
+];
+
+// Change max-distance: MAX lines whose rep description is their segment (each valid
+// rep is one segment completed), in the window stored shape.
+const metres = (amount: number) => ({ repDescription: { amount, unit: 'm' } });
+export const MAX_DISTANCE_WORKOUTS: WorkoutRow[] = [
+  {
+    // The owner's example 3: a 15-minute rotating EMOM of 16 STEP-UPS, a 200 m RUN
+    // and max HANDSTAND WALK in 5 m segments. Scored in metres.
+    id: 'example3',
+    name: 'EXAMPLE 3',
+    blocks: JSON.stringify([{
+      clock: { kind: 'intervals', everySeconds: 60, count: 15 },
+      intervals: [
+        [{ exerciseId: 'step-ups', target: 16, load: '2×22.5 kg' }],
+        [{ exerciseId: 'run', target: 1, ...metres(200) }],
+        [maxLine('handstand-walk', metres(5))],
+      ],
+    }]),
+  },
+  {
+    // Every minute × 4, alternating max HANDSTAND WALK in 5 m segments and max POWER SNATCHES.
+    id: 'mixedUnits',
+    name: 'MIXED UNITS',
+    blocks: JSON.stringify([{
+      clock: { kind: 'intervals', everySeconds: 60, count: 4 },
+      intervals: [[maxLine('handstand-walk', metres(5))], [maxLine('power-snatches')]],
+    }]),
+  },
+  {
+    // Every minute × 2: max HANDSTAND WALK in 5 m segments, then max SLED PUSH in 10 m ones.
+    id: 'twoSegments',
+    name: 'TWO SEGMENTS',
+    blocks: JSON.stringify([{
+      clock: { kind: 'intervals', everySeconds: 60, count: 2 },
+      intervals: [[maxLine('handstand-walk', metres(5))], [maxLine('sled-push', metres(10))]],
+    }]),
+  },
+];
+
+/**
+ * EXAMPLE 3 by rotation `r` (3 minutes each): 16 STEP-UPS every 2 s from 1 s, the RUN
+ * rep at 40 s, then `walk` HANDSTAND WALK segments every 4 s from 1 s.
+ */
+function example3Rotation(r: number, walk: number) {
+  const start = r * 180000;
+  return [...run(start + 1000, 16, 2000), { t: start + 100000, kind: 'rep' as Kind }, ...run(start + 121000, walk, 4000)];
+}
+// 12, 10, 9, 11 and 8 segments of 5 m: 250 m.
+const EXAMPLE3_RUN = [12, 10, 9, 11, 8].flatMap((walk, r) => example3Rotation(r, walk));
+
+export const MAX_DISTANCE_CASES: GoldenCase[] = [
+  { name: 'example3-metres', wodId: 'example3', log: toLog(EXAMPLE3_RUN) },
+  // Minutes 1 and 3: 7 and 5 HANDSTAND WALK segments; minutes 2 and 4: 20 and 18 POWER
+  // SNATCHES, every 2 s from 1 s: 60 m · 38 reps.
+  { name: 'mixedunits', wodId: 'mixedUnits', log: toLog(perInterval(60000, [7, 20, 5, 18])) },
+  // 4 HANDSTAND WALK segments (20 m) and 3 SLED PUSH segments (30 m): 50 m.
+  { name: 'twosegments', wodId: 'twoSegments', log: toLog(perInterval(60000, [4, 3])) },
+  // A no-rep on minute 3's HANDSTAND WALK, after its 12 segments; accepted, 65 m there and 255 m in all.
+  { name: 'review-example3-segment-no-rep', wodId: 'example3', ...reviewed([...EXAMPLE3_RUN, accept(170000)]) },
 ];

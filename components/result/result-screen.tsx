@@ -7,7 +7,7 @@ import { colors, fonts } from '@/constants/theme';
 import { WodConfig, formatTime } from '@/constants/wod-engine';
 import { LogEntry } from '@/components/judge/types';
 import { acceptedIds, deriveAdjustedResult, reviewNoReps } from '@/components/result/adjust';
-import { partHeading } from '@/components/result/replay';
+import { partHeading, splitAmount } from '@/components/result/replay';
 import { AdjustmentChange, getAdjustments } from '@/db/session-adjustments';
 
 type Props = {
@@ -87,7 +87,7 @@ export function ResultScreen({ config, log, athleteAlias, role = 'judge', saved,
                 <Text style={[styles.splitLabel, !split.completed && styles.splitLabelPartial]}>
                   {split.label}
                 </Text>
-                <Text style={styles.splitReps}>{split.max ? `${split.reps}` : `${split.reps}/${split.target}`}</Text>
+                <Text style={styles.splitReps}>{splitAmount(split)}</Text>
               </View>
               {split.cumulativeMs != null && (
                 <View style={styles.splitRight}>

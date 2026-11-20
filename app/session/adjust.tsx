@@ -12,7 +12,7 @@ import { getSession, StoredSession } from '@/db/sessions';
 import { Workout, getWorkout } from '@/db/workouts';
 import { AdjustmentChange, SessionAdjustment, addAdjustment, getAdjustments } from '@/db/session-adjustments';
 import { ReviewNoRep, acceptedIds, deriveAdjustedResult, reviewNoReps } from '@/components/result/adjust';
-import { deriveResult, partHeading, splitLabel } from '@/components/result/replay';
+import { deriveResult, partHeading, splitAmount, splitLabel } from '@/components/result/replay';
 import { START_POSITION, WodConfig, formatTime, isSequence } from '@/constants/wod-engine';
 
 // The no-rep review (change no-rep-review): the judge accepts no-reps they gave, in up
@@ -171,7 +171,7 @@ export default function AdjustScreen() {
                 {partHeading(result.splits, i) != null && <Text style={styles.partTitle}>{partHeading(result.splits, i)}</Text>}
                 <View style={styles.splitRow}>
                   <Text style={[styles.splitLabel, !split.completed && styles.splitLabelPartial]}>{split.label}</Text>
-                  <Text style={styles.splitReps}>{split.max ? `${split.reps}` : `${split.reps}/${split.target}`}</Text>
+                  <Text style={styles.splitReps}>{splitAmount(split)}</Text>
                 </View>
                 {(underSplit.get(positionKey(blockIdx, split.roundIdx, split.exIdx)) ?? []).map(noRepRow)}
                 {lastOfBlock && orphanRows(blockIdx)}

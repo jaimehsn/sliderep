@@ -1,0 +1,38 @@
+{
+  "mode": "EMOM · 4",
+  "description": "4 min · handstand walk + power snatches",
+  "exercises": [
+    {
+      "name": "HANDSTAND WALK",
+      "detail": "MAX / min",
+      "note": "5 m"
+    },
+    {
+      "name": "POWER SNATCHES",
+      "detail": "MAX / min"
+    }
+  ],
+  "durationLine": "4 min",
+  "timerMode": "minLeft",
+  "totalSeconds": 240,
+  "advanceMode": "onClock",
+  "engineVersion": 1,
+  "view": {
+    "exerciseName": "HANDSTAND WALK",
+    "target": 0,
+    "done": 0,
+    "kpi": {
+      "label": "minute",
+      "current": 1,
+      "total": 4
+    },
+    "timerStr": "01:00",
+    "timerLabel": "min left",
+    "blockLabel": null,
+    "max": true,
+    "segment": {
+      "amount": 5,
+      "unit": "m"
+    }
+  }
+}

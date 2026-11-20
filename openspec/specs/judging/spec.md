@@ -231,7 +231,7 @@ The pre-start summary SHALL list a block of several parts grouped by part, each 
 - **THEN** the summary lists PART 1 with RING MUSCLE-UPS 15, PART 2 · 5 ROUNDS with LEGLESS ROPE CLIMBS 1 and FRONT SQUATS 3, and PART 3 with RING MUSCLE-UPS 15
 
 ### Requirement: Judging a MAX line
-While a MAX line is current, the judging screen SHALL show its exercise and its rep count, and "MAX" in place of the reps left and the target. The count SHALL keep growing with each valid rep. The other exercises of the interval SHALL be shown as in any EMOM.
+While a MAX line is current, the judging screen SHALL show its exercise and its count, and "MAX" in place of the reps left and the target. The count SHALL keep growing with each valid rep. On a MAX line with a segment, the count SHALL be its total in its unit, growing by the segment's amount, and the unit SHALL replace "MAX". The other exercises of the interval SHALL be shown as in any EMOM.
 
 #### Scenario: Counting MAX reps
 - **WHEN** POWER SNATCHES MAX becomes current and the judge records 3 valid reps
@@ -240,3 +240,7 @@ While a MAX line is current, the judging screen SHALL show its exercise and its 
 #### Scenario: Buy-in before the MAX line
 - **WHEN** BURPEES 8 is current before POWER SNATCHES MAX
 - **THEN** the screen shows the reps left and the target 8 as in any EMOM
+
+#### Scenario: Counting metres
+- **WHEN** HANDSTAND WALK MAX, each rep 5 m, becomes current and the judge records 3 valid reps
+- **THEN** the screen shows HANDSTAND WALK, the count 15 and "m"

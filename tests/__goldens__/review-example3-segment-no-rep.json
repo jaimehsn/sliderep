@@ -1,0 +1,364 @@
+{
+  "result": {
+    "scoreLabel": "SCORE",
+    "scoreValue": "250 m",
+    "splits": [
+      {
+        "label": "Minute 1 — STEP-UPS",
+        "reps": 16,
+        "target": 16,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 0,
+        "exIdx": 0
+      },
+      {
+        "label": "Minute 2 — RUN",
+        "reps": 1,
+        "target": 1,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 1,
+        "exIdx": 0
+      },
+      {
+        "label": "Minute 3 — HANDSTAND WALK",
+        "reps": 12,
+        "target": 0,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 2,
+        "exIdx": 0,
+        "max": true,
+        "segment": {
+          "amount": 5,
+          "unit": "m"
+        }
+      },
+      {
+        "label": "Minute 4 — STEP-UPS",
+        "reps": 16,
+        "target": 16,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 3,
+        "exIdx": 0
+      },
+      {
+        "label": "Minute 5 — RUN",
+        "reps": 1,
+        "target": 1,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 4,
+        "exIdx": 0
+      },
+      {
+        "label": "Minute 6 — HANDSTAND WALK",
+        "reps": 10,
+        "target": 0,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 5,
+        "exIdx": 0,
+        "max": true,
+        "segment": {
+          "amount": 5,
+          "unit": "m"
+        }
+      },
+      {
+        "label": "Minute 7 — STEP-UPS",
+        "reps": 16,
+        "target": 16,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 6,
+        "exIdx": 0
+      },
+      {
+        "label": "Minute 8 — RUN",
+        "reps": 1,
+        "target": 1,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 7,
+        "exIdx": 0
+      },
+      {
+        "label": "Minute 9 — HANDSTAND WALK",
+        "reps": 9,
+        "target": 0,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 8,
+        "exIdx": 0,
+        "max": true,
+        "segment": {
+          "amount": 5,
+          "unit": "m"
+        }
+      },
+      {
+        "label": "Minute 10 — STEP-UPS",
+        "reps": 16,
+        "target": 16,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 9,
+        "exIdx": 0
+      },
+      {
+        "label": "Minute 11 — RUN",
+        "reps": 1,
+        "target": 1,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 10,
+        "exIdx": 0
+      },
+      {
+        "label": "Minute 12 — HANDSTAND WALK",
+        "reps": 11,
+        "target": 0,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 11,
+        "exIdx": 0,
+        "max": true,
+        "segment": {
+          "amount": 5,
+          "unit": "m"
+        }
+      },
+      {
+        "label": "Minute 13 — STEP-UPS",
+        "reps": 16,
+        "target": 16,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 12,
+        "exIdx": 0
+      },
+      {
+        "label": "Minute 14 — RUN",
+        "reps": 1,
+        "target": 1,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 13,
+        "exIdx": 0
+      },
+      {
+        "label": "Minute 15 — HANDSTAND WALK",
+        "reps": 8,
+        "target": 0,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 14,
+        "exIdx": 0,
+        "max": true,
+        "segment": {
+          "amount": 5,
+          "unit": "m"
+        }
+      }
+    ]
+  },
+  "adjusted": {
+    "scoreLabel": "SCORE",
+    "scoreValue": "255 m",
+    "splits": [
+      {
+        "label": "Minute 1 — STEP-UPS",
+        "reps": 16,
+        "target": 16,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 0,
+        "exIdx": 0
+      },
+      {
+        "label": "Minute 2 — RUN",
+        "reps": 1,
+        "target": 1,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 1,
+        "exIdx": 0
+      },
+      {
+        "label": "Minute 3 — HANDSTAND WALK",
+        "reps": 13,
+        "target": 0,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 2,
+        "exIdx": 0,
+        "max": true,
+        "segment": {
+          "amount": 5,
+          "unit": "m"
+        }
+      },
+      {
+        "label": "Minute 4 — STEP-UPS",
+        "reps": 16,
+        "target": 16,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 3,
+        "exIdx": 0
+      },
+      {
+        "label": "Minute 5 — RUN",
+        "reps": 1,
+        "target": 1,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 4,
+        "exIdx": 0
+      },
+      {
+        "label": "Minute 6 — HANDSTAND WALK",
+        "reps": 10,
+        "target": 0,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 5,
+        "exIdx": 0,
+        "max": true,
+        "segment": {
+          "amount": 5,
+          "unit": "m"
+        }
+      },
+      {
+        "label": "Minute 7 — STEP-UPS",
+        "reps": 16,
+        "target": 16,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 6,
+        "exIdx": 0
+      },
+      {
+        "label": "Minute 8 — RUN",
+        "reps": 1,
+        "target": 1,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 7,
+        "exIdx": 0
+      },
+      {
+        "label": "Minute 9 — HANDSTAND WALK",
+        "reps": 9,
+        "target": 0,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 8,
+        "exIdx": 0,
+        "max": true,
+        "segment": {
+          "amount": 5,
+          "unit": "m"
+        }
+      },
+      {
+        "label": "Minute 10 — STEP-UPS",
+        "reps": 16,
+        "target": 16,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 9,
+        "exIdx": 0
+      },
+      {
+        "label": "Minute 11 — RUN",
+        "reps": 1,
+        "target": 1,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 10,
+        "exIdx": 0
+      },
+      {
+        "label": "Minute 12 — HANDSTAND WALK",
+        "reps": 11,
+        "target": 0,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 11,
+        "exIdx": 0,
+        "max": true,
+        "segment": {
+          "amount": 5,
+          "unit": "m"
+        }
+      },
+      {
+        "label": "Minute 13 — STEP-UPS",
+        "reps": 16,
+        "target": 16,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 12,
+        "exIdx": 0
+      },
+      {
+        "label": "Minute 14 — RUN",
+        "reps": 1,
+        "target": 1,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 13,
+        "exIdx": 0
+      },
+      {
+        "label": "Minute 15 — HANDSTAND WALK",
+        "reps": 8,
+        "target": 0,
+        "completed": true,
+        "cumulativeMs": null,
+        "lapMs": null,
+        "roundIdx": 14,
+        "exIdx": 0,
+        "max": true,
+        "segment": {
+          "amount": 5,
+          "unit": "m"
+        }
+      }
+    ]
+  }
+}

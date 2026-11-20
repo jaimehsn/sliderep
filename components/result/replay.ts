@@ -1,5 +1,6 @@
 import {
   START_POSITION,
+  Segment,
   SequenceConfig,
   TaggedEvent,
   WodConfig,
@@ -15,6 +16,7 @@ import {
   isSequence,
   stopsOnMiss,
   kpiAt,
+  maxSegment,
   partCount,
   partIndexAt,
   prefixLength,
@@ -44,7 +46,29 @@ export type Split = {
   partIdx?: number;
   /** A MAX line's split (change max-lines): its reps with no target, completed when the line was reached. */
   max?: true;
+  /** A MAX line's segment (change max-distance): each rep is one, shown as `reps × amount` in its unit. */
+  segment?: Segment;
 };
+
+/** A split's amount as shown: "60 m" with a segment, "12" on a MAX line, "12/15" otherwise (change max-distance). */
+export function splitAmount(split: Split): string {
+  if (split.segment) return `${split.reps * split.segment.amount} ${split.segment.unit}`;
+  return split.max ? `${split.reps}` : `${split.reps}/${split.target}`;
+}
+
+/**
+ * The score of MAX splits (change max-distance): one total per unit, reps for lines
+ * without a segment, in the order the units first appear, joined by " · ".
+ */
+function maxScore(splits: Split[]): string {
+  const totals = new Map<string, number>();
+  for (const s of splits) {
+    if (!s.max) continue;
+    const unit = s.segment?.unit ?? 'reps';
+    totals.set(unit, (totals.get(unit) ?? 0) + s.reps * (s.segment?.amount ?? 1));
+  }
+  return [...totals].map(([unit, n]) => `${n} ${unit}`).join(' · ');
+}
 
 /** One block's splits on a workout of several blocks, headed "BLOCK n · mode · score". */
 export type SplitGroup = { blockIdx: number; title: string; splits: Split[] };
@@ -135,15 +159,17 @@ function deriveOnClock(config: WodConfig, log: LogEntry[]): WodResult {
         roundIdx: m,
         exIdx: i,
         ...(line.max ? { max: true as const } : {}),
+        ...(maxSegment(line) ? { segment: maxSegment(line)! } : {}),
       });
     });
     if (intervalCompleted) intervalsCompleted += 1;
   }
 
-  // A block with MAX lines scores their reps (change max-lines), up to where it stopped.
+  // A block with MAX lines scores their totals (change max-lines), one per unit
+  // (change max-distance), up to where it stopped.
   if (splits.some((s) => s.max)) {
     const kept = stopsOnMiss(config) ? stopAtFirstMiss(splits, totalIntervals).splits : splits;
-    return { scoreLabel: 'SCORE', scoreValue: `${kept.reduce((n, s) => n + (s.max ? s.reps : 0), 0)} reps`, splits: kept };
+    return { scoreLabel: 'SCORE', scoreValue: maxScore(kept), splits: kept };
   }
   if (stopsOnMiss(config)) return stopAtFirstMiss(splits, totalIntervals);
   return {
